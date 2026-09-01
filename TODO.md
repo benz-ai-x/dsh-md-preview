@@ -101,6 +101,22 @@
       tsdown 客户端 face `define` 注入完整 v 前缀标签（vitest define 镜像供测试）；
       verify-built 新增门：bundle 必须内嵌当前版本字面量。56/56 测试
 
+## 架构深化两连（2026-09-01，0.2.7 / 0.3.0）
+
+- [x] 架构走查（子代理新鲜视角 + HTML 报告四候选）+ grilling 定案：
+      两个 Strong 落地，候选 3（classifyProduced 收拢）/候选 4（线契约 zod 单源）留观
+- [x] **0.2.7 · resolveWorkspaceTarget**：read/write 逐字平行的九步权威前置
+      （各占方法体 ~50%）归一为私有深模块；pass-through 的旧 helper 删除；
+      测试归一（tests/host-harness.ts 共享工厂 + host-authority.spec 表驱动
+      read×write ×九失败）；59/59。纯重构，发布链完整
+- [x] **0.3.0 · PreviewSession 机器**：走查实证的散落重置 bug（保存中切换目标 →
+      `saving` 永久卡死；换目标 2 秒内闪上一份的已保存 toast）先以红测试证死，
+      再抽 `src/client/preview-session.ts` 纯 reducer（READ_STARTED=新目标唯一
+      全量重置；RETRY_READ=同目标刷新、toast 存活）+ `use-preview-session.ts`
+      效果适配器（RPC/abort/toast 计时/一次性 close）；PreviewOverlay 只剩
+      渲染+几何+词条，死 wasOpen 删除；红测试转绿
+- 0.2.7 发布时自防御门当场拦下一次 bump 后未重建的陈旧 lib（0.2.4 教训闭环）
+
 ## 0.2.4 坏包事故与修复（2026-09-01，0.2.5）
 
 - [x] 现象：页面显示 v0.2.3，用户质疑是否发布。实查：registry 上 0.2.4 的

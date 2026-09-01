@@ -45,7 +45,12 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   (list, id `md-preview`). CodeMirror 6 (curated extension set; the GFM
   grammar assembled directly from `@lezer/markdown` to avoid
   `lang-markdown`'s static html/css/js chain) is a build-time devDependency
-  inlined into the client bundle.
+  inlined into the client bundle. The panel's whole state — read lifecycle,
+  edit session, guarded save, prompts — is one pure machine
+  (`src/client/preview-session.ts`, `READ_STARTED` on a new target being the
+  single full reset) behind the effectful adapter
+  `src/client/use-preview-session.ts`; the component renders and owns only
+  geometry and locale.
 
 Service dependencies:
 

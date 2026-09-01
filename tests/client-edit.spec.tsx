@@ -32,6 +32,8 @@ interface PanelHarness {
   container: HTMLElement
   reads: number
   write: ReturnType<typeof vi.fn>
+  /** Mutable write behavior; defaults to resolving `writeResult`. */
+  writeImpl: (args: unknown[]) => Promise<{ ok: true; value: MdPreviewWriteResult } | { ok: false; error: { code: string; message: string } }>
   setTarget: (target: { sessionId: string; path: string } | null) => void
   rerender: () => Promise<void>
   view: { dispatch: (spec: unknown) => void } | null
@@ -44,7 +46,8 @@ async function renderPanel(): Promise<PanelHarness> {
   const harness: PanelHarness = {
     container: document.createElement('div'),
     reads: 0,
-    write: vi.fn(() => Promise.resolve(harness.writeResult)),
+    write: vi.fn((...args: unknown[]) => harness.writeImpl(args)),
+    writeImpl: () => Promise.resolve(harness.writeResult),
     setTarget: target => { store.set(target as never) },
     rerender: () => act(async () => {
       root.render(panelElement())
@@ -200,6 +203,38 @@ describe('PreviewOverlay edit mode', () => {
     // Back on the rendered document: the heading is markup now, not source text.
     expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toBe('Hi')
     expect(harness.write).not.toHaveBeenCalled()
+  })
+
+  it('recovers when the preview target changes during an in-flight save', async () => {
+    const harness = await renderPanel()
+    let resolveFirst!: (value: { ok: true; value: MdPreviewWriteResult }) => void
+    harness.writeImpl = () => new Promise(resolve => { resolveFirst = resolve })
+    await enterEdit(harness)
+    await typeInto(harness, ' more')
+    await click(harness, 'panel.save')
+    expect(harness.write).toHaveBeenCalledTimes(1)
+    // Switch documents while the save is still in flight; the panel stays mounted.
+    harness.setTarget({ sessionId: 'session-1', path: 'OTHER.md' })
+    await act(async () => { await Promise.resolve() })
+    resolveFirst({ ok: true, value: { path: 'OTHER.md', fingerprint: 'v9' } })
+    await act(async () => { await Promise.resolve() })
+    // The next document's edit session must be able to save at all.
+    await enterEdit(harness)
+    await typeInto(harness, ' next')
+    harness.writeImpl = () => Promise.resolve({ ok: true, value: { path: 'OTHER.md', fingerprint: 'v10' } })
+    await click(harness, 'panel.save')
+    expect(harness.write).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not carry the saved toast across a target change', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    await typeInto(harness, ' more')
+    await click(harness, 'panel.save')
+    expect(harness.container.querySelector('.dsh-md-preview-toast')).toBeTruthy()
+    harness.setTarget({ sessionId: 'session-1', path: 'OTHER.md' })
+    await act(async () => { await Promise.resolve() })
+    expect(harness.container.querySelector('.dsh-md-preview-toast')).toBeNull()
   })
 
   it('flashes a saved toast after a successful save', async () => {
