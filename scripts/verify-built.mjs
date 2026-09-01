@@ -51,6 +51,11 @@ if (existsSync(client)) {
   if (!head.startsWith('window.__ModuleLoader__.load(') || !/['"`]@benz-ai-x\/dsh-md-preview['"`]/.test(head)) {
     failures.push('lib/client.js does not open with the lazy-CJS factory registration')
   }
+  // The build-time version define must land in the shipped bundle.
+  const version = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8')).version
+  if (!readFileSync(client, 'utf8').includes(`v${version}`)) {
+    failures.push(`lib/client.js does not embed the current version v${version}`)
+  }
 }
 
 if (failures.length > 0) {

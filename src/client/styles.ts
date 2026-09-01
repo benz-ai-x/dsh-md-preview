@@ -53,6 +53,14 @@ const CSS = `
   padding: 14px 12px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
+.dsh-md-preview-version {
+  flex: none;
+  margin-left: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  user-select: none;
+}
 .dsh-md-preview-title {
   flex: 1;
   overflow: hidden;

@@ -4,12 +4,16 @@
  * imports (their package `./client` exports are browser factory bundles, not
  * Node modules).
  */
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vitest/config'
 import { standardDecoratorPlugin } from './scripts/build-plugins.ts'
 
 const projectRoot = resolve(import.meta.dirname)
 const harnessRoot = resolve(process.env.DSH_HARNESS_ROOT ?? projectRoot, process.env.DSH_HARNESS_ROOT ? '.' : '../../deepseek-harness')
+
+/** Package version label, mirrored from the tsdown client-face define for tests. */
+const VERSION = `v${JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8')).version as string}`
 
 /** Harness-source resolution for the runtime `./client` imports used by tests. */
 const clientSourceAliases = {
@@ -24,6 +28,9 @@ const clientSourceAliases = {
 
 export default defineConfig({
   plugins: [standardDecoratorPlugin()],
+  define: {
+    'process.env.MD_PREVIEW_VERSION': JSON.stringify(VERSION),
+  },
   resolve: {
     alias: clientSourceAliases,
   },

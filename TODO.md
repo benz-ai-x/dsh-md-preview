@@ -95,6 +95,12 @@
       `md-preview/forbidden`；`@deepseek-ai/dsh-sandbox` 仅 type-only 依赖
       （host bundle 无运行时引用）。0.2.2 发布（55/55 测试）
 
+## 面板版本号（2026-09-01，0.2.3）
+
+- [x] 面板标题旁显示 `v<version>` 弱化小字；版本取自 package.json，
+      tsdown 客户端 face `define` 注入完整 v 前缀标签（vitest define 镜像供测试）；
+      verify-built 新增门：bundle 必须内嵌当前版本字面量。56/56 测试
+
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 
 - [x] profile 级 remove → re-add 往返：dump 中行消失/恢复

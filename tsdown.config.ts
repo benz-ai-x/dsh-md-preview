@@ -8,11 +8,15 @@
  * kept external and everything else inlined. The host face is a plain ESM
  * Node bundle.
  */
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'tsdown'
 import { standardDecoratorPlugin } from './scripts/build-plugins.ts'
 
 /** Module-table id: must equal the npm package name (the boot graph keys rows by package name). */
 const ID = '@benz-ai-x/dsh-md-preview'
+
+/** Package version, injected into the client bundle at build time. */
+const VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version as string
 
 /** The module specifiers the DSH web shell shares into the frozen module table. */
 const PLATFORM_MODULES = new Set([
@@ -78,6 +82,8 @@ export default defineConfig([
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
+      // The full v-prefixed label, so it lands in the bundle as one literal.
+      'process.env.MD_PREVIEW_VERSION': JSON.stringify(`v${VERSION}`),
       'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV ?? 'production'),
       'import.meta.env': JSON.stringify({ MODE: process.env.NODE_ENV ?? 'production' }),
     },

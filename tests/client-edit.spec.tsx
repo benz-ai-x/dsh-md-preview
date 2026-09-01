@@ -9,6 +9,7 @@ import { useSyncExternalStore } from 'react'
 import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
 import { EditorView } from '@codemirror/view'
+import { readFileSync } from 'node:fs'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
@@ -105,6 +106,13 @@ afterEach(() => {
 })
 
 describe('PreviewOverlay edit mode', () => {
+  it('shows the plugin version beside the panel title', async () => {
+    const harness = await renderPanel()
+    // vitest runs from the project root; jsdom's URL global rejects file: bases.
+    const version = JSON.parse(readFileSync('package.json', 'utf8')).version
+    expect(harness.container.querySelector('.dsh-md-preview-version')?.textContent).toBe(`v${version}`)
+  })
+
   it('enters edit mode from a loaded document', async () => {
     const harness = await renderPanel()
     await enterEdit(harness)

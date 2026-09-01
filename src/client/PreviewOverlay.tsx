@@ -188,6 +188,7 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
           <div className="dsh-md-preview-title" title={target.path}>{basename(target.path)}</div>
+          <span className="dsh-md-preview-version" aria-hidden>{process.env.MD_PREVIEW_VERSION}</span>
           {mode === 'view' && content.state === 'ready' && (
             <button
               type="button" className="dsh-md-preview-icon" aria-label={t('panel.edit')}
