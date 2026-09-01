@@ -35,7 +35,16 @@ dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
 | --- | --- | --- |
 | npm (recommended) | `dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview` | ✅ prebuilt, works out of the box |
 | tarball | `dsh plugin --profile <name> add ./benz-ai-x-dsh-md-preview-<ver>.tgz` (from `pnpm pack:publishable`) | ✅ prebuilt, no build approval needed |
-| Git | `dsh plugin --profile <name> add github:benz-ai-x/dsh-md-preview` | ❌ **not supported yet** — git installs fetch source and require a self-contained `prepare` script; this repo's source build depends on a locally `link:`ed harness checkout (see #8). Use npm or tarball |
+| Git | `dsh plugin --profile <name> add github:benz-ai-x/dsh-md-preview#<sha>` | ✅ builds from source via the package's self-contained `prepare` (transpile-only; no type declarations ship on this form) — see below |
+
+Git installs fetch source, and pnpm refuses to run a git dependency's `prepare` until the package is explicitly allowed. After the first `add` fails, copy the package key pnpm printed into the profile's `pnpm-workspace.yaml`:
+
+```yaml
+allowBuilds:
+  '@benz-ai-x/dsh-md-preview': true
+```
+
+then re-run `add`. Allowing a build executes the package's code on your machine at install time — allow only sources you trust, and pin a commit (`#<sha>`) so a later push cannot silently change what runs.
 
 ## Configuration
 
@@ -80,7 +89,7 @@ The panel shows `md-preview/<reason>` on failure. All codes:
 ```sh
 pnpm install
 pnpm verify                 # context:check:strict + typecheck + test + build + built:check
-pnpm context:sync           # rewrites links after the harness checkout moves
+pnpm context:link           # source-linked development: rewrite link: at the harness checkout (registry by default)
 pnpm watch:client           # client bundle watch build
 ```
 

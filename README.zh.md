@@ -35,7 +35,16 @@ dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
 | --- | --- | --- |
 | npm(推荐) | `dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview` | ✅ 预构建产物,即装即用 |
 | tarball | `dsh plugin --profile <name> add ./benz-ai-x-dsh-md-preview-<ver>.tgz`(tarball 由源码 `pnpm pack:publishable` 产出) | ✅ 预构建产物,无需任何构建授权 |
-| Git 直装 | `dsh plugin --profile <name> add github:benz-ai-x/dsh-md-preview` | ❌ **暂不支持**:git 安装拉取源码并要求包自带自包含 `prepare` 构建脚本,而本仓库的源码构建依赖本地 `link:` 的 Harness 检出(见 #8)。请用 npm 或 tarball |
+| Git 直装 | `dsh plugin --profile <name> add github:benz-ai-x/dsh-md-preview#<sha>` | ✅ 由包自带的自包含 `prepare` 从源码构建(纯转译,此形态不带类型声明)——见下文 |
+
+git 安装拉取的是源码,pnpm 在得到显式允许前拒绝运行 git 依赖的 `prepare`。首次 `add` 失败后,把 pnpm 打印的确切包键复制进该 profile 的 `pnpm-workspace.yaml`:
+
+```yaml
+allowBuilds:
+  '@benz-ai-x/dsh-md-preview': true
+```
+
+然后重新执行 `add`。授权构建 = 允许该包的代码在安装时于你的机器上执行 —— 只对可信源码授权,并用 `#<sha>` 锁定 commit,让后续推送无法悄悄改变实际运行的内容。
 
 ## 配置
 
@@ -80,7 +89,7 @@ dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
 ```sh
 pnpm install
 pnpm verify                 # context:check:strict + typecheck + test + build + built:check
-pnpm context:sync           # Harness 检出移动后重写 link 并刷新 lockfile
+pnpm context:link           # 需要源码联调时:重写 link: 指向 Harness 检出并刷新 lockfile(默认 registry)
 pnpm watch:client           # 客户端 bundle 热构建
 ```
 

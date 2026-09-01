@@ -19,6 +19,10 @@ const VERSION = `v${JSON.parse(readFileSync(resolve(projectRoot, 'package.json')
 const clientSourceAliases = {
   '@deepseek-ai/dsh-client-ui-renderer/client': resolve(harnessRoot, 'packages/client/ui-renderer/src/client/index.ts'),
   '@deepseek-ai/dsh-client-locale/client': resolve(harnessRoot, 'packages/client/locale/src/client/index.ts'),
+  // The registry artifact of ui-primitives imports built `.module.css`
+  // files (a monorepo-pipeline product the host bundle understands, not
+  // node/vitest); tests resolve the source, like the two aliases above.
+  '@deepseek-ai/dsh-client-ui-primitives': resolve(harnessRoot, 'packages/client/ui-primitives/src/index.ts'),
   // One React copy for the whole render tree: harness-linked client packages
   // resolve their own 18.3.x through the harness checkout while this project
   // pins 18.2, and two dispatcher copies break every hook call.

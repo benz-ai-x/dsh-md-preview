@@ -211,8 +211,8 @@ if (manifest) {
     'strict context script requires the source baseline',
   )
   check(
-    manifest.scripts?.['context:sync'] === 'node scripts/verify-dsh-context.mjs --sync-links --require-source && pnpm install --no-frozen-lockfile',
-    'context sync script rewrites links and refreshes the package-manager lock',
+    manifest.scripts?.['context:link'] === 'node scripts/verify-dsh-context.mjs --sync-links --require-source && pnpm install --no-frozen-lockfile',
+    'context link script rewrites links and refreshes the package-manager lock',
   )
   const serialized = JSON.stringify(manifest)
   check(!serialized.includes('workspace:'), 'external package contains no workspace protocol dependency')
@@ -257,18 +257,28 @@ if (lock) {
         passes.push(`synchronized Harness links to ${sourceRoot}`)
       }
 
+      // Source-linked vs registry default: once `context:link` rewrote a
+      // devDependency to `link:`, that link must point at the audited source;
+      // without any link: the manifest must carry the registry versions (the
+      // default since the git-install support landed — a manifest that mixes
+      // in wrong-link: entries means the source checkout moved behind the
+      // developer's back, so relink with `pnpm context:link`).
       for (const [packageName, sourcePath] of Object.entries(expectedLinks)) {
         const specifier = manifest?.devDependencies?.[packageName]
-        const linkedPath = typeof specifier === 'string' && specifier.startsWith('link:')
-          ? resolve(projectRoot, specifier.slice('link:'.length))
-          : undefined
-        const expectedPath = join(sourceRoot, sourcePath)
-        check(
-          linkedPath !== undefined
-          && existsSync(linkedPath)
-          && realpathSync(linkedPath) === realpathSync(expectedPath),
-          `${packageName} development dependency links to the audited source`,
-        )
+        const isLink = typeof specifier === 'string' && specifier.startsWith('link:')
+        if (isLink) {
+          const linkedPath = resolve(projectRoot, specifier.slice('link:'.length))
+          const expectedPath = join(sourceRoot, sourcePath)
+          check(
+            existsSync(linkedPath) && realpathSync(linkedPath) === realpathSync(expectedPath),
+            `${packageName} development dependency links to the audited source`,
+          )
+        } else {
+          check(
+            typeof specifier === 'string' && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(specifier),
+            `${packageName} development dependency pins its registry version (${specifier ?? 'missing'})`,
+          )
+        }
       }
       passes.push(`validated DSH source at ${sourceRoot}`)
     } catch (error) {
