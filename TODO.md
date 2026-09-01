@@ -45,6 +45,11 @@
 - 备注：pnpm 11 supply-chain 策略会给刚发布的包记 `minimumReleaseAgeExclude`
       （新鲜度门槛），其它 profile 安装新发布的版本时可能遇到同类提示，属预期行为
 
+## 发布 0.1.1（2026-09-01）
+
+- [x] 内容 = 0.1.0 + 重写后的 README（npm 包页 README 取自最新 tarball，故补发）；
+      代码零变化。发布流程同 0.1.0（净化 manifest + tmux 真终端浏览器授权）
+
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 
 - [x] profile 级 remove → re-add 往返：dump 中行消失/恢复
