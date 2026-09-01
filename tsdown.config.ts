@@ -63,6 +63,7 @@ export default defineConfig([
     dts: false,
     sourcemap: true,
     clean: false,
+    minify: true,
     deps: {
       neverBundle: (specifier: string) => isExternal(specifier) || isOwnRemote(specifier),
       alwaysBundle: (specifier: string) => !(isExternal(specifier) || isOwnRemote(specifier)),

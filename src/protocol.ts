@@ -2,12 +2,22 @@
 
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
-/** One rendered-preview payload: the requested path and its full text content. */
+/** One rendered-preview payload: the requested path, its full text, and freshness. */
 export interface MdPreviewFile {
   /** The path exactly as requested by the caller (tool-produced spelling). */
   readonly path: string
   /** The complete file content, capped by the configured byte limit. */
   readonly content: string
+  /** Opaque fs freshness token; pass it back to `write` to guard the save. */
+  readonly fingerprint: string
+}
+
+/** One persisted write: the saved path and its new freshness token. */
+export interface MdPreviewWriteResult {
+  /** The path exactly as requested by the caller. */
+  readonly path: string
+  /** Freshness token of the file after the write; guards the next save. */
+  readonly fingerprint: string
 }
 
 /** Stable failure codes carried by `RemoteError` across the wire. */
@@ -19,6 +29,7 @@ export const MD_PREVIEW_FAILURE_CODES = [
   'md-preview/forbidden',
   'md-preview/not-found',
   'md-preview/too-large',
+  'md-preview/conflict',
   'md-preview/unavailable',
 ] as const
 
@@ -41,6 +52,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'md-preview/not-found': {}
     /** The file exceeds the configured byte cap. */
     'md-preview/too-large': {}
+    /** The file changed since the read backing this write's fingerprint. */
+    'md-preview/conflict': {}
     /** The read itself failed. */
     'md-preview/unavailable': {}
   }

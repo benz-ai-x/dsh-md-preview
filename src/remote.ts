@@ -8,14 +8,28 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-session'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import type { FsTarget } from '@deepseek-ai/dsh-fs'
+import type { FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Config } from './config.ts'
-import type { MdPreviewFile, MdPreviewFailureCode } from './protocol.ts'
+import type { MdPreviewFile, MdPreviewFailureCode, MdPreviewWriteResult } from './protocol.ts'
 
 /** Business rejection with a stable code; the transport preserves it verbatim. */
 function failure(code: MdPreviewFailureCode, message: string): RemoteError {
   return new RemoteError(code, message, {})
+}
+
+/**
+ * `FsErrorCode` of a caught fs-layer error, duck-typed off the `code` property
+ * so the Host bundle keeps zero runtime imports beyond its declared peers.
+ * @param error - anything thrown by `ctx.fs`.
+ * @returns the stable fs code, or undefined for a foreign error shape.
+ */
+function fsErrorCode(error: unknown): string | undefined {
+  if (error !== null && typeof error === 'object' && 'code' in error) {
+    const code = (error as { code?: unknown }).code
+    if (typeof code === 'string') return code
+  }
+  return undefined
 }
 
 /** Lowercased dot-prefixed extension of a path, or the empty string. */
@@ -110,7 +124,86 @@ export class MdPreviewService extends TypertRemoteService {
     if (content.length > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/read refuses "${path}" above the configured byte cap`)
     }
-    return { path, content }
+    return { path, content, fingerprint: info.version }
+  }
+
+  /**
+   * Write one previewable file back into the session's workspace.
+   * @param sessionId - owning session; its header cwd roots the write.
+   * @param path - path as it appeared in the conversation.
+   * @param content - the complete new file content.
+   * @param fingerprint - freshness token from the backing read; required
+   *   unless `force` opts into an unconditional overwrite.
+   * @param force - skip the freshness guard (the conflict prompt's override).
+   * @param signal - caller cancellation carried through every fs call.
+   * @returns the saved path with its new freshness token.
+   * @throws RemoteError with a stable MdPreview failure code.
+   */
+  @Remote
+  async write(
+    sessionId: SessionId,
+    path: string,
+    content: string,
+    fingerprint: string | undefined,
+    force: boolean,
+    signal: AbortSignal,
+  ): Promise<MdPreviewWriteResult> {
+    if (path.trim().length === 0) {
+      throw failure('md-preview/bad-request', 'mdPreview/write requires a non-empty path')
+    }
+    if (!isAllowedExtension(path, this.config.allowedExtensions)) {
+      throw failure('md-preview/unsupported-extension', `mdPreview/write refuses non-previewable path "${path}"`)
+    }
+    const session = this.ctx.sessions.get(sessionId)
+    if (session === undefined) {
+      throw failure('md-preview/unknown-session', `mdPreview/write cannot resolve session "${sessionId}"`)
+    }
+    const cwd = session.header.cwd
+    if (cwd === undefined) {
+      throw failure('md-preview/no-workspace', `mdPreview/write session "${sessionId}" has no working directory`)
+    }
+    const root = await this.resolveWorkspacePath(cwd, signal)
+    let target: FsTarget
+    try {
+      target = await this.resolveWorkspacePath(path, signal, cwd)
+    } catch (error) {
+      if (signal.aborted) throw error
+      throw failure('md-preview/not-found', `mdPreview/write cannot resolve path "${path}"`)
+    }
+    if (!this.ctx.fs.contains(root, target)) {
+      throw failure('md-preview/forbidden', 'mdPreview/write refuses paths outside the session workspace')
+    }
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) {
+      throw failure('md-preview/not-found', `mdPreview/write cannot find "${path}"`)
+    }
+    if (info.type !== 'file') {
+      throw failure('md-preview/unsupported-extension', `mdPreview/write target "${path}" is not a regular file`)
+    }
+    if (content.length > this.config.maxBytes) {
+      throw failure('md-preview/too-large', `mdPreview/write refuses "${path}" above the configured byte cap`)
+    }
+    if (fingerprint === undefined && !force) {
+      throw failure('md-preview/bad-request', 'mdPreview/write requires a fingerprint or force')
+    }
+    const expected = fingerprint === undefined
+      ? undefined
+      : { kind: 'replaceIfVersion' as const, version: fingerprint as FsVersion }
+    let outcome: { version: string }
+    try {
+      outcome = await this.ctx.fs.writeText(target, content, expected, signal) as { version: string }
+    } catch (error) {
+      if (signal.aborted) throw error
+      const code = fsErrorCode(error)
+      if (code === 'FS_STALE_VERSION') {
+        throw failure('md-preview/conflict', `mdPreview/write refuses "${path}": the file changed since read`)
+      }
+      if (code === 'FS_NOT_FOUND') {
+        throw failure('md-preview/not-found', `mdPreview/write cannot find "${path}"`)
+      }
+      throw failure('md-preview/unavailable', `mdPreview/write failed for "${path}": ${error instanceof Error ? error.message : String(error)}`)
+    }
+    return { path, fingerprint: outcome.version }
   }
 
   /** Resolve one path against the workspace, with a plain not-found mapping. */

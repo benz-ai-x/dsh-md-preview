@@ -12,6 +12,8 @@ DSH Web GUI 插件:点击对话中出现的 Markdown 文档,在对话右侧打�
 - 非 Markdown 产出文件保持原有行为(交给系统打开)。
 - 面板可关闭、可拖宽(320–960 px);拖出的宽度在本次应用会话内保持。
 - 没有预览目标时面板不渲染。
+- **编辑**:面板「编辑」进入 CodeMirror 编辑器(行号、GFM 高亮、Cmd/Ctrl-S 保存),「保存」写回工作区后回到渲染视图,「取消编辑」丢弃草稿;只编辑已存在的文件。
+- **冲突保护**:保存时若文件已被其它方(agent、其它会话、外部编辑器)修改,提示「文件已变化」,由你选择【重新加载】或【强制覆盖】;带未保存修改关闭面板会先询问。
 
 ## 安装
 
@@ -45,14 +47,15 @@ dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
 
 | 码 | 含义 |
 | --- | --- |
-| `md-preview/bad-request` | path 为空或非法 |
+| `md-preview/bad-request` | path 为空或非法;或保存时既无指纹也未强制 |
 | `md-preview/unknown-session` | 会话不存在 |
 | `md-preview/no-workspace` | 会话没有工作目录 |
 | `md-preview/unsupported-extension` | 扩展名不在白名单 |
 | `md-preview/forbidden` | 路径超出会话工作区 |
-| `md-preview/not-found` | 文件不存在 |
-| `md-preview/too-large` | 文件超过 `maxBytes` |
-| `md-preview/unavailable` | 读取过程发生 IO 错误 |
+| `md-preview/not-found` | 文件不存在(编辑只针对已存在文件) |
+| `md-preview/too-large` | 文件(读取)或内容(写入)超过 `maxBytes` |
+| `md-preview/conflict` | 保存时文件已变化(指纹不匹配且未强制) |
+| `md-preview/unavailable` | 读/写过程发生 IO 错误 |
 
 ## 已知限制
 
@@ -76,7 +79,8 @@ pnpm watch:client           # 客户端 bundle 热构建
 | Host Remote | `src/remote.ts` | `mdPreview/read(sessionId, path, signal)`;工作区限域、扩展名白名单、字节上限 |
 | Remote contribution | `src/typert/remote-client.ts` | 手工维护的浏览器端描述符(生成器产物的等价物) |
 | 浏览器入口 | `src/client/index.ts` | 挂载 Remote + 注册三个 Slot 贡献 |
-| 预览面板 | `src/client/PreviewOverlay.tsx` | `shell.overlay`(list,增量) |
+| 预览面板 | `src/client/PreviewOverlay.tsx` | `shell.overlay`(list,增量);编辑/冲突/未保存状态机 |
+| 编辑器 | `src/client/editor.tsx` | CodeMirror 6(精选扩展集,构建期内联,client bundle ~400 kB minified) |
 | chip 行接管 | `src/client/MdChips.tsx` | `conversation.chat.turnTail`(chain,仅认领含 Markdown 的回合) |
 | 消息操作 | `src/client/PreviewAction.tsx` | `conversation.chat.assistant-actions`(list,增量) |
 

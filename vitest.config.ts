@@ -15,6 +15,11 @@ const harnessRoot = resolve(process.env.DSH_HARNESS_ROOT ?? projectRoot, process
 const clientSourceAliases = {
   '@deepseek-ai/dsh-client-ui-renderer/client': resolve(harnessRoot, 'packages/client/ui-renderer/src/client/index.ts'),
   '@deepseek-ai/dsh-client-locale/client': resolve(harnessRoot, 'packages/client/locale/src/client/index.ts'),
+  // One React copy for the whole render tree: harness-linked client packages
+  // resolve their own 18.3.x through the harness checkout while this project
+  // pins 18.2, and two dispatcher copies break every hook call.
+  react: resolve(projectRoot, 'node_modules/react'),
+  'react/jsx-runtime': resolve(projectRoot, 'node_modules/react/jsx-runtime'),
 }
 
 export default defineConfig({
@@ -24,6 +29,6 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['tests/**/*.spec.ts'],
+    include: ['tests/**/*.spec.{ts,tsx}'],
   },
 })

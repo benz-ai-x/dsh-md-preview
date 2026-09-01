@@ -90,10 +90,10 @@ describe('isAllowedExtension', () => {
 describe('MdPreviewService.read', () => {
   it('reads a workspace markdown file', async () => {
     const { service } = await makeService({
-      files: new Map([['/workspace/project/README.md', { type: 'file', size: 12, content: '# Hello\n' }]]),
+      files: new Map([['/workspace/project/README.md', { type: 'file', size: 12, content: '# Hello\n', version: 'v1' }]]),
     })
     await expect(service.read(SESSION as never, 'README.md', new AbortController().signal))
-      .resolves.toEqual({ path: 'README.md', content: '# Hello\n' })
+      .resolves.toEqual({ path: 'README.md', content: '# Hello\n', fingerprint: 'v1' })
   })
 
   it('rejects an empty path with bad-request', async () => {

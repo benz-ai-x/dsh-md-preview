@@ -1,6 +1,6 @@
 {
   "name": "@benz-ai-x/dsh-md-preview",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "DSH markdown preview: clicking a markdown document in the conversation opens a rendered preview panel docked to the right of the chat.",
   "license": "MIT",
   "repository": {
@@ -90,6 +90,10 @@
     "@deepseek-ai/dsh-typert-protocol": "0.1.2-alpha.3"
   },
   "devDependencies": {
+    "@codemirror/commands": "^6.11.0",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/state": "^6.7.1",
+    "@codemirror/view": "^6.43.9",
     "@deepseek-ai/cordis": "link:../deepseek-harness/vendor/cordis",
     "@deepseek-ai/cordis-plugin-include": "link:../deepseek-harness/vendor/include",
     "@deepseek-ai/cordis-plugin-loader": "link:../deepseek-harness/vendor/loader",
@@ -108,9 +112,11 @@
     "@deepseek-ai/dsh-fs": "link:../deepseek-harness/packages/fs/fs",
     "@deepseek-ai/dsh-session": "link:../deepseek-harness/packages/core/session",
     "@deepseek-ai/dsh-typert-protocol": "link:../deepseek-harness/packages/typert/protocol",
+    "@lezer/lr": "^1.4.10",
+    "@lezer/markdown": "^1.7.2",
     "@types/node": "22.20.0",
-    "jsdom": "29.1.1",
     "@types/react": "~18.3.1",
+    "jsdom": "29.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.2",

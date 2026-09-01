@@ -11,11 +11,12 @@ import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MdPreviewFile } from '../protocol.ts'
+import type { MdPreviewFile, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState } from './preview-state.ts'
 import { basename } from './preview-state.ts'
+import { MarkdownEditor } from './editor.tsx'
 
-/** Read RPC and panel dismissal, created in the plugin's apply world. */
+/** Read/write RPCs and panel dismissal, created in the plugin's apply world. */
 export interface PreviewOverlayInjected {
   hooks: {
     /** Current preview target; null while the panel is closed. */
@@ -29,6 +30,15 @@ export interface PreviewOverlayInjected {
     path: string,
     signal: AbortSignal,
   ): Promise<RemoteResult<MdPreviewFile>>
+  /** One guarded write; `fingerprint` comes from the backing read. */
+  write(
+    sessionId: SessionId,
+    path: string,
+    content: string,
+    fingerprint: string | undefined,
+    force: boolean,
+    signal: AbortSignal,
+  ): Promise<RemoteResult<MdPreviewWriteResult>>
 }
 
 /** Content lifecycle of one preview target. */
@@ -36,6 +46,9 @@ type PreviewContent =
   | { readonly state: 'loading' }
   | { readonly state: 'ready'; readonly file: MdPreviewFile }
   | { readonly state: 'failed'; readonly code: string; readonly message: string }
+
+/** Panel face: rendering the document, or editing a draft of it. */
+type PanelMode = 'view' | 'edit'
 
 /** Full composed panel props. */
 export type PreviewOverlayProps =
@@ -60,7 +73,7 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, read RPC, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, close, read, t }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
   const [content, setContent] = useState<PreviewContent>({ state: 'loading' })
   const [width, setWidth] = useState(DEFAULT_WIDTH)
@@ -69,11 +82,24 @@ export function PreviewOverlay({ usePreviewTarget, close, read, t }: PreviewOver
   const [revision, setRevision] = useState(0)
   const labels = useMemo(() => markdownLabels(t), [t])
 
+  // Edit face: the draft, its conflict state, the unsaved guard, and the
+  // in-flight save's controller (aborted when the panel leaves edit/unmounts).
+  const [mode, setMode] = useState<PanelMode>('view')
+  const [draft, setDraft] = useState('')
+  const [conflicted, setConflicted] = useState(false)
+  const [unsavedPrompt, setUnsavedPrompt] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const saveController = useRef<AbortController | null>(null)
+
   // One read per target identity (plus retry revision); the previous read is
   // aborted by the effect cleanup when the identity changes or the panel unmounts.
+  // Every (re)read also settles the edit face back to the rendered document.
   useEffect(() => {
     if (target === null) return
     setContent({ state: 'loading' })
+    setMode('view')
+    setConflicted(false)
+    setUnsavedPrompt(false)
     const controller = new AbortController()
     void read(target.sessionId, target.path, controller.signal).then((result) => {
       if (controller.signal.aborted) return
@@ -83,6 +109,12 @@ export function PreviewOverlay({ usePreviewTarget, close, read, t }: PreviewOver
     })
     return () => { controller.abort() }
   }, [read, target, revision])
+
+  // A target change while a save is in flight must not land on the old file.
+  useEffect(() => {
+    saveController.current?.abort()
+    saveController.current = null
+  }, [target])
 
   // The panel stays mounted across targets and opens; the user's width
   // persists for the whole app session (min/max clamped in the handler).
@@ -98,6 +130,38 @@ export function PreviewOverlay({ usePreviewTarget, close, read, t }: PreviewOver
     setWidth(current => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, current - deltaX)))
   }, [])
 
+  const dirty = mode === 'edit' && content.state === 'ready' && draft !== content.file.content
+
+  /** Persist the draft; a conflict keeps the edit face and raises its bar. */
+  const save = useCallback((force: boolean): void => {
+    if (target === null || content.state !== 'ready' || saving) return
+    const file = content.file
+    const controller = new AbortController()
+    saveController.current = controller
+    setSaving(true)
+    void write(target.sessionId, target.path, draft, force ? undefined : file.fingerprint, force, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return
+        if (result.ok) {
+          setMode('view')
+          setConflicted(false)
+          setUnsavedPrompt(false)
+          setRevision(value => value + 1)
+        } else if (result.error.code === 'md-preview/conflict') {
+          setConflicted(true)
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setSaving(false)
+      })
+  }, [content, draft, saving, target, write])
+
+  /** Close request: an unsaved draft asks first, everything else closes. */
+  const requestClose = useCallback((): void => {
+    if (dirty) setUnsavedPrompt(true)
+    else close()
+  }, [close, dirty])
+
   if (target === null) return null
   return (
     <div className="dsh-md-preview-dock">
@@ -105,9 +169,45 @@ export function PreviewOverlay({ usePreviewTarget, close, read, t }: PreviewOver
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
           <div className="dsh-md-preview-title" title={target.path}>{basename(target.path)}</div>
+          {mode === 'view' && content.state === 'ready' && (
+            <button
+              type="button" className="dsh-md-preview-icon" aria-label={t('panel.edit')}
+              title={t('panel.edit')} onClick={() => {
+                setDraft(content.file.content)
+                setConflicted(false)
+                setUnsavedPrompt(false)
+                setMode('edit')
+              }}
+            >
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                <path d="M11.5 2.5l2 2L6 12l-3 1 1-3zM10 4l2 2" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+          {mode === 'edit' && (
+            <>
+              <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('panel.save')}
+                title={t('panel.save')} disabled={saving || !dirty && !conflicted}
+                onClick={() => { save(false) }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M2 2h9l3 3v9H2zM5 2v4h6V2M4 14V9h8v5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('panel.cancel')}
+                title={t('panel.cancel')} onClick={() => { setMode('view'); setConflicted(false); setUnsavedPrompt(false) }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                </svg>
+              </button>
+            </>
+          )}
           <button
             type="button" className="dsh-md-preview-icon" aria-label={t('panel.close')}
-            onClick={() => { close() }}
+            onClick={requestClose}
           >
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -115,21 +215,49 @@ export function PreviewOverlay({ usePreviewTarget, close, read, t }: PreviewOver
           </button>
         </div>
         <div className="dsh-md-preview-body">
-          {content.state === 'loading' && <div className="dsh-md-preview-state">{t('panel.loading')}</div>}
-          {content.state === 'failed' && (
-            <div className="dsh-md-preview-state">
-              <div className="dsh-md-preview-error">{t('panel.error')} · {content.code}</div>
-              <div>{content.message}</div>
-              <button
-                type="button" className="dsh-md-preview-retry"
-                onClick={() => { setRevision(value => value + 1) }}
-              >
-                {t('panel.retry')}
-              </button>
+          {unsavedPrompt && (
+            <div className="dsh-md-preview-bar" role="alert">
+              <span>{t('panel.unsaved.title')}</span>
+              <button type="button" onClick={() => { close() }}>{t('panel.unsaved.discard')}</button>
+              <button type="button" onClick={() => { setUnsavedPrompt(false) }}>{t('panel.unsaved.keep')}</button>
             </div>
           )}
-          {content.state === 'ready' && (
-            <MarkdownText text={content.file.content} labels={labels} />
+          {conflicted && mode === 'edit' && (
+            <div className="dsh-md-preview-bar" role="alert">
+              <span>{t('panel.conflict.title')}</span>
+              <button
+                type="button" onClick={() => { setMode('view'); setConflicted(false); setRevision(value => value + 1) }}
+              >
+                {t('panel.conflict.reload')}
+              </button>
+              <button type="button" disabled={saving} onClick={() => { save(true) }}>{t('panel.conflict.force')}</button>
+            </div>
+          )}
+          {mode === 'edit' ? (
+            <MarkdownEditor
+              initialValue={content.state === 'ready' ? content.file.content : ''}
+              onChange={setDraft}
+              onSave={() => { save(false) }}
+            />
+          ) : (
+            <>
+              {content.state === 'loading' && <div className="dsh-md-preview-state">{t('panel.loading')}</div>}
+              {content.state === 'failed' && (
+                <div className="dsh-md-preview-state">
+                  <div className="dsh-md-preview-error">{t('panel.error')} · {content.code}</div>
+                  <div>{content.message}</div>
+                  <button
+                    type="button" className="dsh-md-preview-retry"
+                    onClick={() => { setRevision(value => value + 1) }}
+                  >
+                    {t('panel.retry')}
+                  </button>
+                </div>
+              )}
+              {content.state === 'ready' && (
+                <MarkdownText text={content.file.content} labels={labels} />
+              )}
+            </>
           )}
         </div>
         <ResizeHandle onResize={onResize} />

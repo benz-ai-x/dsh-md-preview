@@ -44,11 +44,11 @@ for (const artifact of artifacts) {
 }
 
 // The browser bundle must register through the module loader and must not
-// carry a bare ESM entry.
+// carry a bare ESM entry. Minification may quote the id with ", ', or `.
 const client = join(projectRoot, 'lib/client.js')
 if (existsSync(client)) {
   const head = readFileSync(client, 'utf8').slice(0, 400)
-  if (!head.startsWith('window.__ModuleLoader__.load(') || !head.includes('"@benz-ai-x/dsh-md-preview"')) {
+  if (!head.startsWith('window.__ModuleLoader__.load(') || !/['"`]@benz-ai-x\/dsh-md-preview['"`]/.test(head)) {
     failures.push('lib/client.js does not open with the lazy-CJS factory registration')
   }
 }

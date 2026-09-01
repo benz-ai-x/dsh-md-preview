@@ -172,6 +172,31 @@ const CSS = `
 }
 .dsh-md-preview-list button:hover { background: var(--dsw-alias-fill-secondary); }
 .dsh-md-preview-anchor { position: relative; }
+.dsh-md-preview-editor { flex: 1; min-height: 0; overflow: hidden; }
+.dsh-md-preview-editor .cm-editor { height: 100%; }
+.dsh-md-preview-editor .cm-scroller { overflow: auto; }
+.dsh-md-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2, var(--dsw-alias-border-l1));
+  background: var(--dsw-alias-fill-tertiary, var(--dsw-alias-fill-secondary));
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary);
+}
+.dsh-md-preview-bar button {
+  border: 1px solid var(--dsw-alias-border-l2, var(--dsw-alias-border-l1));
+  border-radius: 6px;
+  padding: 3px 10px;
+  background: var(--dsw-alias-fill-primary);
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.dsh-md-preview-bar button:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-bar button:disabled { opacity: 0.5; cursor: default; }
 `
 
 let injected = false

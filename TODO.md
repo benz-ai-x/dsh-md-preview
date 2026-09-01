@@ -50,6 +50,30 @@
 - [x] 内容 = 0.1.0 + 重写后的 README（npm 包页 README 取自最新 tarball，故补发）；
       代码零变化。发布流程同 0.1.0（净化 manifest + tmux 真终端浏览器授权）
 
+## 编辑功能（2026-09-01，目标 0.2.0）
+
+- [x] 设计（bounded，用户批准）：CodeMirror 6 编辑器 + 乐观锁保存；冲突提示
+      （重新加载/强制覆盖）；未保存关闭守卫；仅编辑已存在文件
+- [x] 关键发现：harness fs 服务自带并发写入机制 —— `stat().version` 即新鲜度
+      令牌（FsVersion），`writeText(target, content, {kind:'replaceIfVersion',
+      version})` 原子守卫，过期抛 FS_STALE_VERSION → 映射 `md-preview/conflict`；
+      force = 省略 intent（无条件覆盖）。无需自造指纹
+- [x] Host（TDD）：read 结果带 fingerprint；write 全套权威测试（12 项：限域/
+      白名单/上限/冲突/force/取消/IO 映射）
+- [x] Contribution（TDD）：write 描述符 + codecs（fingerprint/force 可选参数）
+- [x] Client（TDD，jsdom 真渲染 CodeMirror）：编辑进入/保存指纹传递/冲突往返/
+      未保存守卫/取消丢弃（5 项）；vitest include 扩展 .tsx；react 单副本别名
+      （harness 18.3.1 vs 项目 18.2 双 React 导致 invalid hook call）
+- [x] 体积攻坚：basicSetup+markdown() 默认配置 = 1354 kB（language-data 全目录
+      内联）→ 精选扩展 + `@lezer/markdown` 直组 GFM 语法（绕开 lang-markdown
+      静态拖入 lang-html→css/js/autocomplete，888 kB）→ 对齐 harness `minify:
+      true`（最终 **402 kB** minified，gzip ~100 kB）；verify-built 兼容反引号 id
+- [x] `pnpm verify` 全绿：context 123 + typecheck + **52/52 测试** + build +
+      built:check
+- [x] 文档同步：PROJECT_CONTRACT（写权威、conflict 码、验收断言、已知限制）、
+      README（编辑效果、失败码表、结构表）、本 TODO
+- [ ] 0.2.0：packed 冒烟 + npm 发布 + web profile 升级 + 浏览器端到端走查
+
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 
 - [x] profile 级 remove → re-add 往返：dump 中行消失/恢复
