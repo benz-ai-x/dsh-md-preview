@@ -29,8 +29,11 @@ export interface FakeFile {
 export interface FakeFsOptions {
   root?: string
   files?: ReadonlyMap<string, FakeFile>
+  /** Directory listings by absolute directory path; entry targets resolve inside. */
+  dirs?: ReadonlyMap<string, ReadonlyArray<{ name: string; type: 'file' | 'directory' | 'other' }>>
   resolveFailure?: ReadonlySet<string>
   writeFailure?: ReadonlySet<string>
+  listFailure?: ReadonlySet<string>
 }
 
 /**
@@ -54,41 +57,50 @@ export function fakeFs(options: FakeFsOptions = {}) {
       if (opts?.signal?.aborted) throw new DOMException('aborted', 'AbortError')
       if (options.resolveFailure?.has(path)) throw new Error(`no such path ${path}`)
       const absolute = path.startsWith('/') ? joinPath('', path) : joinPath(opts?.cwd ?? root, path)
-      return { path: absolute } as never
+      return { targetKey: absolute, displayPath: absolute } as never
     },
-    contains: (parent: { path: string }, child: { path: string }) =>
-      parent.path === child.path || child.path.startsWith(`${parent.path}/`),
-    stat: async (target: { path: string }, signal?: AbortSignal) => {
+    contains: (parent: { displayPath: string }, child: { displayPath: string }) =>
+      parent.displayPath === child.displayPath || child.displayPath.startsWith(`${parent.displayPath}/`),
+    stat: async (target: { displayPath: string }, signal?: AbortSignal) => {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
-      const file = files.get(target.path)
+      const file = files.get(target.displayPath)
       if (file === undefined) return undefined
       return { version: file.version, type: file.type, size: file.size ?? file.content?.length } as never
     },
-    readText: async (target: { path: string }, signal?: AbortSignal) => {
+    readText: async (target: { displayPath: string }, signal?: AbortSignal) => {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
-      return files.get(target.path)?.content ?? ''
+      return files.get(target.displayPath)?.content ?? ''
     },
     writeText: async (
-      target: { path: string },
+      target: { displayPath: string },
       content: string,
       expected?: { kind: 'replaceIfVersion'; version: string },
       signal?: AbortSignal,
       sandboxPolicy?: { mode: string; workspaceRoot: string; sessionId?: string },
     ) => {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
-      if (options.writeFailure?.has(target.path)) {
-        throw new FsError(`io failure ${target.path}`, 'FS_IO_ERROR')
+      if (options.writeFailure?.has(target.displayPath)) {
+        throw new FsError(`io failure ${target.displayPath}`, 'FS_IO_ERROR')
       }
-      const file = files.get(target.path)
-      if (file === undefined) throw new FsError(`missing ${target.path}`, 'FS_NOT_FOUND')
+      const file = files.get(target.displayPath)
+      if (file === undefined) throw new FsError(`missing ${target.displayPath}`, 'FS_NOT_FOUND')
       if (expected !== undefined && file.version !== expected.version) {
-        throw new FsError(`stale version for ${target.path}`, 'FS_STALE_VERSION')
+        throw new FsError(`stale version for ${target.displayPath}`, 'FS_STALE_VERSION')
       }
       file.content = content
       file.size = content.length
       file.version = `${file.version}+w${writes.length + 1}`
-      writes.push({ path: target.path, content, expected, signal, sandboxPolicy })
+      writes.push({ path: target.displayPath, content, expected, signal, sandboxPolicy })
       return { operation: 'update', version: file.version, before: null, after: content } as never
+    },
+    listDir: async (target: { displayPath: string }, signal?: AbortSignal) => {
+      if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
+      if (options.listFailure?.has(target.displayPath)) throw new Error(`io failure listing ${target.displayPath}`)
+      return (options.dirs?.get(target.displayPath) ?? []).map(entry => ({
+        name: entry.name,
+        type: entry.type,
+        target: { targetKey: joinPath(target.displayPath, entry.name), displayPath: joinPath(target.displayPath, entry.name) },
+      })) as never
     },
     writes,
     root,

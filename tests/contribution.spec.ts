@@ -4,18 +4,21 @@ import { describe, expect, it } from 'vitest'
 import { isTypertRemoteSegment } from '@deepseek-ai/dsh-typert-protocol'
 import { TYPERT_REMOTE } from '../src/typert/remote-client.ts'
 
-const [descriptor, writeDescriptor] = TYPERT_REMOTE.descriptors
+const [descriptor, writeDescriptor, listDescriptor] = TYPERT_REMOTE.descriptors
 if (descriptor === undefined) throw new Error('contribution must carry the read descriptor')
 if (writeDescriptor === undefined) throw new Error('contribution must carry the write descriptor')
+if (listDescriptor === undefined) throw new Error('contribution must carry the list descriptor')
 
 describe('TYPERT_REMOTE', () => {
-  it('names this package and its read and write methods', () => {
+  it('names this package and its read, write, and list methods', () => {
     expect(TYPERT_REMOTE.package).toBe('@benz-ai-x/dsh-md-preview')
-    expect(TYPERT_REMOTE.descriptors).toHaveLength(2)
+    expect(TYPERT_REMOTE.descriptors).toHaveLength(3)
     expect(descriptor.method).toBe('read')
     expect(writeDescriptor.method).toBe('write')
+    expect(listDescriptor.method).toBe('list')
     expect(descriptor.mode).toBeUndefined()
     expect(writeDescriptor.mode).toBeUndefined()
+    expect(listDescriptor.mode).toBeUndefined()
   })
 
   it('carries wire-legal segments', () => {
@@ -25,8 +28,10 @@ describe('TYPERT_REMOTE', () => {
     }
     expect(descriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/read')
     expect(writeDescriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/write')
+    expect(listDescriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/list')
     expect(descriptor.service).toBe('mdPreview')
     expect(writeDescriptor.service).toBe('mdPreview')
+    expect(listDescriptor.service).toBe('mdPreview')
   })
 
   it('takes the session identity as an explicit first business argument', () => {
@@ -65,6 +70,32 @@ describe('TYPERT_REMOTE', () => {
   it('declares write cancellation and a strict result codec', () => {
     expect(writeDescriptor.cancellation).toEqual({ parameter: 'signal' })
     expect(writeDescriptor.result.mode).toBe('strict')
+  })
+
+  it('takes the listing path as a plain string that may spell the root', () => {
+    expect(listDescriptor.invocation).toEqual({ kind: 'direct' })
+    expect(listDescriptor.parameters.map(parameter => parameter.wire)).toEqual(['sessionId', 'path'])
+    const path = listDescriptor.parameters[1]
+    const schema = path?.codec.mode === 'strict' ? path.codec.schema : undefined
+    expect(schema?.parse('')).toBe('')
+    expect(schema?.parse('docs')).toBe('docs')
+    const result = listDescriptor.result.mode === 'strict' ? listDescriptor.result.schema : undefined
+    expect(result?.parse({
+      path: '',
+      entries: [
+        { name: 'docs', type: 'directory', path: 'docs' },
+        { name: 'README.md', type: 'file', path: 'README.md' },
+        { name: 'x.bin', type: 'other', path: 'x.bin' },
+      ],
+    })).toEqual({
+      path: '',
+      entries: [
+        { name: 'docs', type: 'directory', path: 'docs' },
+        { name: 'README.md', type: 'file', path: 'README.md' },
+        { name: 'x.bin', type: 'other', path: 'x.bin' },
+      ],
+    })
+    expect(() => result?.parse({ path: '', entries: [{ name: 'x', type: 'symlink', path: 'x' }] })).toThrow()
   })
 
   it('round-trips the write codecs', () => {

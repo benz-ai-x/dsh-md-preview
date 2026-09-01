@@ -20,6 +20,24 @@ export interface MdPreviewWriteResult {
   readonly fingerprint: string
 }
 
+/** One directory entry of the workspace browser tree. */
+export interface MdPreviewEntry {
+  /** Entry basename as the fs layer reports it. */
+  readonly name: string
+  /** Regular file, directory, or anything else. */
+  readonly type: 'file' | 'directory' | 'other'
+  /** Workspace-relative path of the entry (the tree's node identity). */
+  readonly path: string
+}
+
+/** One workspace directory listing. */
+export interface MdPreviewListResult {
+  /** The requested path as the caller spelled it (blank = workspace root). */
+  readonly path: string
+  /** Directory entries, folders first then alphabetical. */
+  readonly entries: readonly MdPreviewEntry[]
+}
+
 /** Stable failure codes carried by `RemoteError` across the wire. */
 export const MD_PREVIEW_FAILURE_CODES = [
   'md-preview/bad-request',
