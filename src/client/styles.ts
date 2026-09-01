@@ -227,6 +227,13 @@ const CSS = `
 }
 .dsh-md-preview-treeleaf .dsh-md-preview-treerow { cursor: pointer; }
 .dsh-md-preview-treerow:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-treeitem[data-current] > .dsh-md-preview-treerow {
+  background: var(--dsw-alias-fill-tertiary, var(--dsw-alias-fill-secondary));
+  font-weight: 500;
+}
+.dsh-md-preview-treeitem[aria-selected="true"]:not([data-current]) > .dsh-md-preview-treerow {
+  background: var(--dsw-alias-fill-secondary);
+}
 .dsh-md-preview-treeexpander {
   display: inline-flex;
   align-items: center;

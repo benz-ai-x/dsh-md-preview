@@ -174,6 +174,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                   sessionId={target.sessionId}
                   list={list}
                   onOpenFile={openFromBrowser}
+                  currentPath={target.path}
                   t={t}
                 />
               )}

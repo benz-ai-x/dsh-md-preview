@@ -100,6 +100,52 @@ const enterBrowse = async (harness: BrowseHarness): Promise<void> => {
 
 afterEach(() => { document.body.replaceChildren() })
 
+describe('browser face connectivity', () => {
+  it('highlights the current target, auto-reveals its ancestors, and keeps expansion across face switches', async () => {
+    const harness = await renderBrowse(new Map([
+      ['', { entries: [
+        { name: 'docs', type: 'directory', path: 'docs' },
+        { name: 'README.md', type: 'file', path: 'README.md' },
+      ] }],
+      ['docs', { entries: [{ name: 'guide.md', type: 'file', path: 'docs/guide.md' }] }],
+    ]))
+    // Open a nested document from outside the tree (chip-style).
+    harness.setTarget({ sessionId: 'session-1', path: 'docs/guide.md' })
+    await flush()
+    await enterBrowse(harness)
+    await flush()
+    // The ancestor auto-revealed and the current file carries aria-current.
+    const current = harness.container.querySelector<HTMLElement>('[aria-current="true"]')
+    expect(current?.textContent).toContain('guide.md')
+    // Switch to another file through the tree, come back: expansion survives
+    // and the highlight followed the new target.
+    const readme = [...harness.container.querySelectorAll<HTMLElement>('[role="treeitem"] .dsh-md-preview-treerow')]
+      .find(node => node.textContent === 'README.md')!
+    await act(async () => { readme.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await flush()
+    await enterBrowse(harness)
+    await flush()
+    expect(harness.container.querySelector('[data-expander="docs"]')?.closest('[aria-expanded="true"]')).toBeTruthy()
+    const next = harness.container.querySelector<HTMLElement>('[aria-current="true"]')
+    expect(next?.textContent).toContain('README.md')
+  })
+
+  it('lets a collapsed, still-loading ancestor inherit the selection', async () => {
+    const harness = await renderBrowse(new Map([
+      ['', { entries: [{ name: 'docs', type: 'directory', path: 'docs' }] }],
+      ['docs', { entries: [], pending: true }],
+    ]))
+    harness.setTarget({ sessionId: 'session-1', path: 'docs/guide.md' })
+    await flush()
+    await enterBrowse(harness)
+    // The auto-reveal request for docs is pending: while collapsed-loading,
+    // the directory inherits the selection so context is not lost.
+    const docs = harness.container.querySelector<HTMLElement>('[data-expander="docs"]')?.closest<HTMLElement>('[role="treeitem"]')
+    expect(docs?.getAttribute('aria-expanded')).toBe('true')
+    expect(docs?.getAttribute('aria-selected')).toBe('true')
+  })
+})
+
 describe('browser face', () => {
   it('enters the browse face from the panel header and renders the root, folders first', async () => {
     const harness = await renderBrowse(new Map([

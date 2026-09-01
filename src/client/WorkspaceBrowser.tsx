@@ -22,6 +22,8 @@ export interface WorkspaceBrowserProps {
   ): Promise<RemoteResult<MdPreviewListResult>>
   /** Open one file as the panel's preview target. */
   onOpenFile(path: string): void
+  /** Workspace-relative path of the current preview target, if any. */
+  currentPath: string | null
   /** Locale seat. */
   t(key: string): string
 }
@@ -63,10 +65,12 @@ function EntryIcon({ type }: { type: MdPreviewEntry['type'] }) {
  * @param props - session identity, listing RPC, file-open handoff, locale seat.
  * @returns the tree element.
  */
-export function WorkspaceBrowser({ sessionId, list, onOpenFile, t }: WorkspaceBrowserProps) {
+export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }: WorkspaceBrowserProps) {
   // Keyed by workspace-relative directory path; presence means expanded.
   const [dirs, setDirs] = useState<ReadonlyMap<string, DirState>>(new Map([['', { state: 'loading' }]]))
   const controllers = useRef(new Map<string, AbortController>())
+  const dirsRef = useRef<ReadonlyMap<string, DirState>>(new Map())
+  dirsRef.current = dirs
 
   const load = useCallback((path: string): void => {
     setDirs(current => new Map(current).set(path, { state: 'loading' }))
@@ -88,6 +92,17 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, t }: WorkspaceBr
     }
   }, [load])
 
+  // Auto-reveal: a target set outside the tree (chip row, message action)
+  // walks its ancestor directories open so the file is already located.
+  useEffect(() => {
+    if (currentPath === null) return
+    const segments = currentPath.split('/')
+    for (let depth = 1; depth < segments.length; depth += 1) {
+      const prefix = segments.slice(0, depth).join('/')
+      if (!dirsRef.current.has(prefix)) load(prefix)
+    }
+  }, [currentPath, load])
+
   const toggle = useCallback((path: string): void => {
     setDirs(current => {
       if (!current.has(path)) {
@@ -104,12 +119,22 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, t }: WorkspaceBr
 
   const renderEntries = (entries: readonly MdPreviewEntry[], level: number) => entries.map(entry => {
     const state = dirs.get(entry.path)
+    const isCurrent = currentPath !== null && entry.path === currentPath
+    // A collapsed directory whose subtree holds the current target inherits
+    // the selection, so the location reads even before it opens.
+    const inherits = currentPath !== null
+      && entry.type === 'directory'
+      && !isCurrent
+      && currentPath.startsWith(`${entry.path}/`)
     return (
       <li
         key={entry.path}
         role="treeitem"
         aria-level={level}
         aria-expanded={entry.type === 'directory' ? state !== undefined : undefined}
+        aria-selected={isCurrent || inherits ? 'true' : undefined}
+        aria-current={isCurrent ? 'true' : undefined}
+        data-current={isCurrent || undefined}
         className={entry.type === 'directory' ? 'dsh-md-preview-treeitem dsh-md-preview-treebranch' : 'dsh-md-preview-treeitem dsh-md-preview-treeleaf'}
         title={entry.path}
       >
