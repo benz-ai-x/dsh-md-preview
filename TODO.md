@@ -14,9 +14,36 @@
 ## 待办
 
 - [ ] HMR 验证：`pnpm watch:client` + 浏览器 bundle 热替换
-- [ ] packed-artifact 冒烟（发布前置条件；当前 private）
+- [x] packed-artifact 冒烟（发布前置条件）→ 已通过，见下节
 - [ ] 评估：正文内联 `.md` 文件提及（chatFileMentions 仍归 ui-deliverables 所有）是否值得提供包装层
 - [ ] 用户环境已知问题：web profile 中第三方插件 `@benz-ai-x/dsh-client-ui-session-graph`（link 自 ~/Dev-Space/dsh-session-graph）自身依赖缺失，会在插件树加载时 fail-loud；与本插件无关，需在源项目修复或禁用该行
+
+## 发布 0.1.0（2026-09-01）
+
+- [x] 改名 `dsh-md-preview` → `@benz-ai-x/dsh-md-preview`：无 scope 名在 npm 已被他人
+      （eaglewong/manibookmark，2026-08-17）占用。联动更新：boot graph 以包名为主键
+      （`ClientBundleRegistration.id` 必须 = npm 包名）→ tsdown banner id、typert
+      contribution `package`/descriptor id/typeSymbol、cordis.patch.yml 行、两个 verify
+      脚本、README、测试断言同步
+- [x] peerDependencies 5 个 `@deepseek-ai/dsh-*`：`0.1.2-alpha.1` → `0.1.2-alpha.3`
+      （与锁定基线一致，npm 均已存在）；`dsh.client.inject` 统一为 scoped 包名
+- [x] 发布元数据：去 `private`，加 publishConfig(public)/repository/license/keywords；
+      context gate 翻转断言（`private === undefined` + `publishConfig.access === 'public'`）
+- [x] `scripts/pack.mjs`：打包/发布用净化 manifest（删 `link:` devDependencies，工作区
+      manifest 事后逐字节还原）+ tarball 内 manifest 复检（无 devDeps、无 link:/workspace:）；
+      `pnpm pack:publishable` / `pnpm publish:registry`
+- [x] packed-artifact 冒烟（全新 profile，基线全部走 npm registry）：
+      `web-app@0.1.2-alpha.3` + 本 tarball 安装 → reconcile 识别 `dsh.bundle` →
+      `--dump-config` 含 md-preview 行 → 启动零告警 → boot graph entry 以新包名为主键、
+      inject 边 scoped → `/plugins` combo 路由 200 提供工厂 bundle（180.6kB，banner id
+      正确）→ SIGINT 干净退出 → remove 往返干净（依赖/层/行全消失）
+- [x] 发布：`@benz-ai-x/dsh-md-preview@0.1.0` 已上线
+      https://www.npmjs.com/package/@benz-ai-x/dsh-md-preview
+      （2FA 走 tmux 真终端 + 浏览器授权完成；tarball 49.6kB / 22 files）
+- [x] web profile 切换到发布包：旧 `dsh-md-preview` link 行移除，改为
+      `@benz-ai-x/dsh-md-preview@^0.1.0`（npm 源），`--dump-config` 复核通过
+- 备注：pnpm 11 supply-chain 策略会给刚发布的包记 `minimumReleaseAgeExclude`
+      （新鲜度门槛），其它 profile 安装新发布的版本时可能遇到同类提示，属预期行为
 
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 
