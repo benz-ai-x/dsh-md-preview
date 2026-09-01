@@ -12,7 +12,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
-import { basename } from './preview-state.ts'
+import { basename, isEditable } from './preview-state.ts'
 import { MarkdownEditor } from './editor.tsx'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { usePanelDocumentSession } from './use-preview-session.ts'
@@ -126,7 +126,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               </svg>
             </button>
           )}
-          {face === 'document' && state.face === 'view' && state.content.state === 'ready' && (
+          {face === 'document' && state.face === 'view' && state.content.state === 'ready' && isEditable(target.path) && (
             <button
               type="button" className="dsh-md-preview-icon" aria-label={t('panel.edit')}
               title={t('panel.edit')} onClick={actions.enterEdit}
@@ -233,7 +233,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                 </div>
               )}
               {state.content.state === 'ready' && (
-                <MarkdownText text={state.content.file.content} labels={labels} />
+                isEditable(target.path)
+                  ? <MarkdownText text={state.content.file.content} labels={labels} />
+                  : <pre className="dsh-md-preview-plaintext">{state.content.file.content}</pre>
               )}
             </>
           )}

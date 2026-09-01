@@ -4,13 +4,13 @@
  * module only owns the Host-side read authority.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import { DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES } from './constants.ts'
+import { DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES, DEFAULT_PREVIEW_EXTENSIONS } from './constants.ts'
 import { type Config as ConfigType } from './config.ts'
 import { MdPreviewService } from './remote.ts'
 
 export { Config } from './config.ts'
 export type { Config as ConfigInterface } from './config.ts'
-export { DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES } from './constants.ts'
+export { DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES, DEFAULT_PREVIEW_EXTENSIONS } from './constants.ts'
 export { isAllowedExtension, MdPreviewService } from './remote.ts'
 export type { MdPreviewFile, MdPreviewFailureCode, MdPreviewReadRequest } from './protocol.ts'
 export { MD_PREVIEW_FAILURE_CODES } from './protocol.ts'
@@ -28,7 +28,11 @@ export const inject = ['fs', 'typert', 'sessions']
  */
 export function apply(
   ctx: Context,
-  config: ConfigType = { maxBytes: DEFAULT_MAX_BYTES, allowedExtensions: [...DEFAULT_ALLOWED_EXTENSIONS] },
+  config: ConfigType = {
+    maxBytes: DEFAULT_MAX_BYTES,
+    allowedExtensions: [...DEFAULT_ALLOWED_EXTENSIONS],
+    previewExtensions: [...DEFAULT_PREVIEW_EXTENSIONS],
+  },
 ): void {
   ctx.plugin(MdPreviewService, config)
 }

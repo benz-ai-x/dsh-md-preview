@@ -34,10 +34,19 @@ function extensionOf(path: string): string {
 /** Extensions the client offers to preview (kept in sync with the Host default). */
 const PREVIEWABLE_EXTENSIONS: readonly string[] = [...DEFAULT_ALLOWED_EXTENSIONS]
 
+/** The editable set mirror (Host config cannot reach the browser bundle). */
+const EDITABLE_EXTENSIONS: readonly string[] = [...DEFAULT_ALLOWED_EXTENSIONS]
+
 /** Whether the client treats a produced path as a previewable markdown document. */
 export function isPreviewable(path: string): boolean {
   const extension = extensionOf(path)
   return extension !== '' && PREVIEWABLE_EXTENSIONS.includes(extension)
+}
+
+/** Whether a path may enter an edit session (the markdown-only editable set). */
+export function isEditable(path: string): boolean {
+  const extension = extensionOf(path)
+  return extension !== '' && EDITABLE_EXTENSIONS.includes(extension)
 }
 
 /** Produced paths of one turn split into previewable and externally-opened groups, first-seen order preserved. */

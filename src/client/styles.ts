@@ -276,6 +276,16 @@ const CSS = `
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
 }
+.dsh-md-preview-plaintext {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--dsw-alias-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--dsw-alias-label-primary);
+}
 .dsh-md-preview-toast {
   position: absolute;
   top: 44px;

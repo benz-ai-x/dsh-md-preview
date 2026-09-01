@@ -62,7 +62,13 @@ async function renderBrowse(script: Map<string, ListScript>): Promise<BrowseHarn
       close={() => { store.set(null) }}
       read={((sessionId: string, path: string) => {
         harness.reads.push({ path })
-        return Promise.resolve({ ok: true, value: { path, content: `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+        if (/\.(md|markdown)$/.test(path)) {
+          return Promise.resolve({ ok: true as const, value: { path, content: `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+        }
+        if (/\.txt$/.test(path)) {
+          return Promise.resolve({ ok: true as const, value: { path, content: `plain:${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+        }
+        return Promise.resolve({ ok: false as const, error: { code: 'md-preview/unsupported-extension', message: `refuses "${path}"` } })
       }) as never}
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={harness.list as never}
@@ -99,6 +105,46 @@ const enterBrowse = async (harness: BrowseHarness): Promise<void> => {
 }
 
 afterEach(() => { document.body.replaceChildren() })
+
+describe('preview rendering by type', () => {
+  const TREE = new Map([
+    ['', { entries: [
+      { name: 'notes.txt', type: 'file', path: 'notes.txt' },
+      { name: 'logo.bin', type: 'file', path: 'logo.bin' },
+      { name: 'run.md', type: 'file', path: 'run.md' },
+    ] }],
+  ])
+
+  const openFile = async (harness: BrowseHarness, name: string): Promise<void> => {
+    await enterBrowse(harness)
+    const row = [...harness.container.querySelectorAll<HTMLElement>('[role="treeitem"] .dsh-md-preview-treerow')]
+      .find(node => node.textContent === name)!
+    await act(async () => { row.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await flush()
+  }
+
+  it('renders a text file as plain monospace text with no edit action', async () => {
+    const harness = await renderBrowse(TREE)
+    await openFile(harness, 'notes.txt')
+    const plain = harness.container.querySelector('pre.dsh-md-preview-plaintext')
+    expect(plain?.textContent).toContain('plain:notes.txt')
+    expect(buttonByLabel(harness, 'panel.edit')).toBeUndefined()
+  })
+
+  it('renders a markdown file with the rich renderer and an edit action', async () => {
+    const harness = await renderBrowse(TREE)
+    await openFile(harness, 'run.md')
+    expect(harness.container.querySelector('pre.dsh-md-preview-plaintext')).toBeNull()
+    expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toContain('run.md')
+    expect(buttonByLabel(harness, 'panel.edit')).toBeDefined()
+  })
+
+  it('lands a non-previewable file on the unsupported state', async () => {
+    const harness = await renderBrowse(TREE)
+    await openFile(harness, 'logo.bin')
+    expect(harness.container.textContent).toContain('md-preview/unsupported-extension')
+  })
+})
 
 describe('browser face connectivity', () => {
   it('highlights the current target, auto-reveals its ancestors, and keeps expansion across face switches', async () => {

@@ -86,7 +86,8 @@ export class MdPreviewService extends TypertRemoteService {
    */
   @Remote
   async read(sessionId: SessionId, path: string, signal: AbortSignal): Promise<MdPreviewFile> {
-    const { target, info } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'read')
+    // Reads admit the preview union; writes (below) stay markdown-only.
+    const { target, info } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'read', [...this.config.allowedExtensions, ...this.config.previewExtensions])
     if (info.size !== undefined && info.size > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/read refuses "${path}" above the configured byte cap`)
     }
@@ -124,7 +125,7 @@ export class MdPreviewService extends TypertRemoteService {
     force: boolean,
     signal: AbortSignal,
   ): Promise<MdPreviewWriteResult> {
-    const { target, cwd } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write')
+    const { target, cwd } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write', this.config.allowedExtensions)
     if (content.length > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/write refuses "${path}" above the configured byte cap`)
     }
@@ -219,11 +220,12 @@ export class MdPreviewService extends TypertRemoteService {
     path: string,
     signal: AbortSignal,
     op: 'read' | 'write',
+    extensions: readonly string[],
   ): Promise<{ target: FsTarget; info: FsInfo; cwd: string }> {
     if (path.trim().length === 0) {
       throw failure('md-preview/bad-request', `mdPreview/${op} requires a non-empty path`)
     }
-    if (!isAllowedExtension(path, this.config.allowedExtensions)) {
+    if (!isAllowedExtension(path, extensions)) {
       throw failure('md-preview/unsupported-extension', `mdPreview/${op} refuses non-previewable path "${path}"`)
     }
     const contained = await this.resolveContainedTarget(sessionId, path, signal, op)
