@@ -29,6 +29,14 @@ dsh --profile <name>                 # 打开 Web GUI;回合产出 .md 后点击
 dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
 ```
 
+### 三种安装形态(依 [DSH 打包与安装规范](https://github.com/deepseek-ai/deepseek-harness/blob/main/docs/user/develop/basic/publish.zh.md))
+
+| 形态 | 命令 | 状态 |
+| --- | --- | --- |
+| npm(推荐) | `dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview` | ✅ 预构建产物,即装即用 |
+| tarball | `dsh plugin --profile <name> add ./benz-ai-x-dsh-md-preview-<ver>.tgz`(tarball 由源码 `pnpm pack:publishable` 产出) | ✅ 预构建产物,无需任何构建授权 |
+| Git 直装 | `dsh plugin --profile <name> add github:benz-ai-x/dsh-md-preview` | ❌ **暂不支持**:git 安装拉取源码并要求包自带自包含 `prepare` 构建脚本,而本仓库的源码构建依赖本地 `link:` 的 Harness 检出(见 #8)。请用 npm 或 tarball |
+
 ## 配置
 
 ```yaml
