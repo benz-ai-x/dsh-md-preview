@@ -93,7 +93,7 @@ contexts.
   conflict/unsaved prompts are UI-local viewing state; the draft never
   reaches the workspace except through an explicit guarded `write`. The
   panel's dragged width persists across opens for the app session (clamped
-  320–960); the target itself resets per open. Session data, turn membership,
+  320–1280, opening at 500); the target itself resets per open. Session data, turn membership,
   and deliverables vocabulary stay in their owning services.
 
 ## Cancellation and disposal

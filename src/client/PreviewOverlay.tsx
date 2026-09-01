@@ -58,8 +58,8 @@ export type PreviewOverlayProps =
 
 /** Docked width bounds in CSS pixels. */
 const MIN_WIDTH = 320
-const MAX_WIDTH = 960
-const DEFAULT_WIDTH = 440
+const MAX_WIDTH = 1280
+const DEFAULT_WIDTH = 500
 
 function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
   return {

@@ -113,6 +113,31 @@ describe('PreviewOverlay edit mode', () => {
     expect(harness.container.querySelector('.dsh-md-preview-version')?.textContent).toBe(`v${version}`)
   })
 
+  it('opens at the default width and clamps drags to the configured bounds', async () => {
+    const harness = await renderPanel()
+    const panel = harness.container.querySelector<HTMLElement>('.dsh-md-preview-panel')
+    expect(panel?.style.width).toBe('500px')
+    const handle = harness.container.querySelector<HTMLElement>('.dsh-md-preview-handle')
+    expect(handle).toBeTruthy()
+    const dragTo = async (from: number, to: number): Promise<void> => {
+      const down = new MouseEvent('pointerdown', { bubbles: true, clientX: from })
+      Object.assign(down, { pointerId: 1 })
+      await act(async () => { handle!.dispatchEvent(down) })
+      const move = new MouseEvent('pointermove', { bubbles: true, clientX: to })
+      Object.assign(move, { pointerId: 1 })
+      await act(async () => {
+        handle!.dispatchEvent(move)
+        await new Promise(resolve => { setTimeout(resolve, 40) })
+      })
+      const up = new MouseEvent('pointerup', { bubbles: true, clientX: to })
+      Object.assign(up, { pointerId: 1 })
+      await act(async () => { handle!.dispatchEvent(up) })
+    }
+    // Dragging the left-edge handle leftward widens; far past the cap clamps to 1280.
+    await dragTo(100, -1500)
+    expect(harness.container.querySelector<HTMLElement>('.dsh-md-preview-panel')?.style.width).toBe('1280px')
+  })
+
   it('enters edit mode from a loaded document', async () => {
     const harness = await renderPanel()
     await enterEdit(harness)
