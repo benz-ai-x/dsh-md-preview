@@ -168,4 +168,38 @@ describe('PreviewOverlay edit mode', () => {
     expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toBe('Hi')
     expect(harness.write).not.toHaveBeenCalled()
   })
+
+  it('flashes a saved toast after a successful save', async () => {
+    vi.useFakeTimers()
+    try {
+      const harness = await renderPanel()
+      await enterEdit(harness)
+      await typeInto(harness, ' more')
+      await click(harness, 'panel.save')
+      const toast = harness.container.querySelector('.dsh-md-preview-toast')
+      expect(toast?.getAttribute('role')).toBe('status')
+      expect(toast?.textContent).toContain('panel.saved')
+      await act(async () => { vi.advanceTimersByTime(2100) })
+      expect(harness.container.querySelector('.dsh-md-preview-toast')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows a persistent error bar when the write fails for a non-conflict reason', async () => {
+    const harness = await renderPanel()
+    harness.writeResult = { ok: false, error: { code: 'md-preview/unavailable', message: 'disk on fire' } }
+    await enterEdit(harness)
+    await typeInto(harness, ' x')
+    await click(harness, 'panel.save')
+    // Still editing, with the failure spelled out and retryable.
+    expect(harness.container.querySelector('.cm-editor')).toBeTruthy()
+    const bar = harness.container.querySelector('.dsh-md-preview-bar[role="alert"]')
+    expect(bar?.textContent).toContain('panel.saveError')
+    expect(bar?.textContent).toContain('md-preview/unavailable')
+    harness.writeResult = { ok: true, value: { path: 'README.md', fingerprint: 'v9' } }
+    await click(harness, 'panel.save.retry')
+    expect(harness.write).toHaveBeenCalledTimes(2)
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+  })
 })

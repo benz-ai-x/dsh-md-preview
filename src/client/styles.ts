@@ -197,6 +197,20 @@ const CSS = `
 }
 .dsh-md-preview-bar button:hover { background: var(--dsw-alias-fill-secondary); }
 .dsh-md-preview-bar button:disabled { opacity: 0.5; cursor: default; }
+.dsh-md-preview-toast {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  border-radius: 999px;
+  padding: 4px 14px;
+  background: var(--dsw-alias-fill-inverted, #2f2f2f);
+  color: var(--dsw-alias-label-inverted, #f5f5f5);
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+}
 `
 
 let injected = false

@@ -89,7 +89,15 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
   const [conflicted, setConflicted] = useState(false)
   const [unsavedPrompt, setUnsavedPrompt] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savedFlash, setSavedFlash] = useState(false)
+  const [saveError, setSaveError] = useState<{ code: string; message: string } | null>(null)
   const saveController = useRef<AbortController | null>(null)
+  const flashTimer = useRef<number | null>(null)
+
+  // The saved toast is a transient overlay; its timer dies with the panel.
+  useEffect(() => () => {
+    if (flashTimer.current !== null) window.clearTimeout(flashTimer.current)
+  }, [])
 
   // One read per target identity (plus retry revision); the previous read is
   // aborted by the effect cleanup when the identity changes or the panel unmounts.
@@ -132,13 +140,21 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
 
   const dirty = mode === 'edit' && content.state === 'ready' && draft !== content.file.content
 
-  /** Persist the draft; a conflict keeps the edit face and raises its bar. */
+  /** Flash the saved toast; one in-flight timer, replaced on re-entry. */
+  const flashSaved = useCallback((): void => {
+    setSavedFlash(true)
+    if (flashTimer.current !== null) window.clearTimeout(flashTimer.current)
+    flashTimer.current = window.setTimeout(() => { setSavedFlash(false) }, 2000)
+  }, [])
+
+  /** Persist the draft; conflicts and failures keep the edit face with their bars. */
   const save = useCallback((force: boolean): void => {
     if (target === null || content.state !== 'ready' || saving) return
     const file = content.file
     const controller = new AbortController()
     saveController.current = controller
     setSaving(true)
+    setSaveError(null)
     void write(target.sessionId, target.path, draft, force ? undefined : file.fingerprint, force, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return
@@ -146,15 +162,18 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
           setMode('view')
           setConflicted(false)
           setUnsavedPrompt(false)
+          flashSaved()
           setRevision(value => value + 1)
         } else if (result.error.code === 'md-preview/conflict') {
           setConflicted(true)
+        } else {
+          setSaveError({ code: result.error.code, message: result.error.message })
         }
       })
       .finally(() => {
         if (!controller.signal.aborted) setSaving(false)
       })
-  }, [content, draft, saving, target, write])
+  }, [content, draft, flashSaved, saving, target, write])
 
   /** Close request: an unsaved draft asks first, everything else closes. */
   const requestClose = useCallback((): void => {
@@ -175,6 +194,7 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
               title={t('panel.edit')} onClick={() => {
                 setDraft(content.file.content)
                 setConflicted(false)
+                setSaveError(null)
                 setUnsavedPrompt(false)
                 setMode('edit')
               }}
@@ -197,7 +217,7 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
               </button>
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.cancel')}
-                title={t('panel.cancel')} onClick={() => { setMode('view'); setConflicted(false); setUnsavedPrompt(false) }}
+                title={t('panel.cancel')} onClick={() => { setMode('view'); setConflicted(false); setSaveError(null); setUnsavedPrompt(false) }}
               >
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
                   <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -215,11 +235,25 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
           </button>
         </div>
         <div className="dsh-md-preview-body">
+          {savedFlash && mode === 'view' && (
+            <div className="dsh-md-preview-toast" role="status">✓ {t('panel.saved')}</div>
+          )}
           {unsavedPrompt && (
             <div className="dsh-md-preview-bar" role="alert">
               <span>{t('panel.unsaved.title')}</span>
               <button type="button" onClick={() => { close() }}>{t('panel.unsaved.discard')}</button>
               <button type="button" onClick={() => { setUnsavedPrompt(false) }}>{t('panel.unsaved.keep')}</button>
+            </div>
+          )}
+          {saveError !== null && mode === 'edit' && (
+            <div className="dsh-md-preview-bar" role="alert">
+              <span>
+                {t('panel.saveError')} · {saveError.code}
+                {saveError.message.length > 0 ? ` — ${saveError.message}` : ''}
+              </span>
+              <button type="button" disabled={saving} onClick={() => { save(false) }}>
+                {t('panel.save.retry')}
+              </button>
             </div>
           )}
           {conflicted && mode === 'edit' && (
