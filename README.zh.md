@@ -91,8 +91,10 @@ pnpm watch:client           # 客户端 bundle 热构建
 | Host Remote | `src/remote.ts` | `mdPreview/read(sessionId, path, signal)`;工作区限域、扩展名白名单、字节上限 |
 | Remote contribution | `src/typert/remote-client.ts` | 手工维护的浏览器端描述符(生成器产物的等价物) |
 | 浏览器入口 | `src/client/index.ts` | 挂载 Remote + 注册三个 Slot 贡献 |
-| 预览面板 | `src/client/PreviewOverlay.tsx` | `shell.overlay`(list,增量);编辑/冲突/未保存状态机 |
+| 预览面板 | `src/client/PreviewOverlay.tsx` | `shell.overlay`(list,增量);仅渲染 + 几何 |
+| 会话机器 | `src/client/preview-session.ts` | 纯 reducer:读取/编辑/保存/提示的完整状态代数 |
 | 编辑器 | `src/client/editor.tsx` | CodeMirror 6(精选扩展集,构建期内联,client bundle ~400 kB minified) |
+| 工作区树 | `src/client/WorkspaceBrowser.tsx` | 懒树:高亮/自动定位/键盘遍历 |
 | chip 行接管 | `src/client/MdChips.tsx` | `conversation.chat.turnTail`(chain,仅认领含 Markdown 的回合) |
 | 消息操作 | `src/client/PreviewAction.tsx` | `conversation.chat.assistant-actions`(list,增量) |
 
