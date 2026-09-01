@@ -20,6 +20,15 @@ const original = readFileSync(manifestPath, 'utf8')
 const publish = process.argv.includes('--publish')
 const extraArgs = process.argv.slice(2).filter(argument => argument !== '--publish')
 
+// Self-defending gate: the 0.2.4 release shipped a stale lib/ because an
+// upstream `pnpm verify` failure was hidden by a display pipeline. The pack
+// path itself must refuse to ship a lib that is stale or does not embed the
+// manifest's version.
+execFileSync(process.execPath, [join(projectRoot, 'scripts/verify-built.mjs')], {
+  cwd: projectRoot,
+  stdio: 'inherit',
+})
+
 let packedName
 try {
   const manifest = JSON.parse(original)

@@ -332,7 +332,11 @@ function ResizeHandle(props: { onResize: (deltaX: number) => void }) {
   }, [])
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!active.current) return
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+    // Best effort, like the capture in pointerDown: a partial pointer API
+    // (synthetic events, jsdom) must not break the drag's completion.
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch { /* release is advisory; the gesture is over either way */ }
     if (frame.current !== null) { cancelAnimationFrame(frame.current); frame.current = null }
     active.current = false
     setDragging(false)

@@ -101,6 +101,22 @@
       tsdown 客户端 face `define` 注入完整 v 前缀标签（vitest define 镜像供测试）；
       verify-built 新增门：bundle 必须内嵌当前版本字面量。56/56 测试
 
+## 0.2.4 坏包事故与修复（2026-09-01，0.2.5）
+
+- [x] 现象：页面显示 v0.2.3，用户质疑是否发布。实查：registry 上 0.2.4 的
+      manifest=0.2.4 但 client.js 是 0.2.3 旧构建（宽度改动也缺失）
+- [x] 根因链：拖拽测试的 pointerup 处理器在 jsdom 抛
+      `hasPointerCapture is not a function`（未捕获异常）→ 测试断言全过但
+      vitest 退出 1 → `pnpm verify` 在 build 之前失败 → lib 停留旧版 →
+      而我外层 `pnpm verify | grep | head` 管道吞掉了非零退出码 →
+      pack/publish 带着旧 lib 静默发布
+- [x] 修复：pointerup 的指针捕获释放改为 best-effort try/catch（与
+      pointerDown 的容错一致）；pack.mjs 打包前强制运行 verify-built
+      （版本内嵌 + 新鲜度自防御门，不再依赖外层 shell 链）
+- [x] 0.2.4 在 npm 上 deprecate 标注；教训：verify 输出经管道过滤时必须
+      `set -o pipefail`，发布路径必须自带门
+- 宽度（500/1280）随 0.2.5 真正生效——0.2.4 里是旧的 440/960
+
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 
 - [x] profile 级 remove → re-add 往返：dump 中行消失/恢复
