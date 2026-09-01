@@ -20,3 +20,15 @@ DSH Client UI 插件（Markdown 预览）。开发前必读：
 - Client bundle 为 lazy-CJS factory 协议（见 `tsdown.config.ts`）；构建
   配置是本仓库自有的，禁止改成引用 Harness 仓库内部 preset。
 - 会话/事实状态归 owning service；面板只持有 UI 局部 viewing state。
+
+## Agent skills
+
+### Issue tracker
+
+Issue 与 spec 跟踪在本仓库的 GitHub Issues（`gh` CLI）。见
+`docs/agents/issue-tracker.md`。
+
+### Domain docs
+
+单上下文布局：根 `CONTEXT.md` 词汇表 + `docs/adr/` 决策记录；输出命名
+须用词汇表术语。见 `docs/agents/domain.md`。
