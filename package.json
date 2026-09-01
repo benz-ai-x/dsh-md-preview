@@ -13,9 +13,16 @@
   "keywords": [
     "deepseek-harness",
     "dsh",
-    "plugin",
+    "dsh-plugin",
+    "cordis",
     "markdown",
-    "preview"
+    "markdown-preview",
+    "markdown-editor",
+    "codemirror",
+    "file-browser",
+    "workspace",
+    "preview-panel",
+    "react"
   ],
   "type": "module",
   "main": "./lib/index.js",

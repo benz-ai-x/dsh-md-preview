@@ -1,6 +1,8 @@
 # @benz-ai-x/dsh-md-preview
 
-DSH Web GUI 插件:点击对话中出现的 Markdown 文档,在对话右侧打开渲染后的预览面板。
+**DSH (DeepSeek Harness) Web GUI plugin — markdown preview, editing & workspace file browser beside the chat.** Preview rendered markdown and plain-text files, edit with conflict-guarded saves, and browse the session workspace tree without leaving the conversation.
+
+DSH Web GUI 插件:点击对话中出现的 Markdown 文档,在对话右侧打开渲染后的预览面板;支持受守卫编辑与工作区目录树浏览。
 
 [![npm](https://img.shields.io/npm/v/@benz-ai-x/dsh-md-preview)](https://www.npmjs.com/package/@benz-ai-x/dsh-md-preview)
 [![GitHub](https://img.shields.io/badge/repo-benz--ai--x%2Fdsh--md--preview-24292e?logo=github)](https://github.com/benz-ai-x/dsh-md-preview)
