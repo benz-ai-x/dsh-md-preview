@@ -11,7 +11,8 @@
 import { defineConfig } from 'tsdown'
 import { standardDecoratorPlugin } from './scripts/build-plugins.ts'
 
-const ID = 'dsh-md-preview'
+/** Module-table id: must equal the npm package name (the boot graph keys rows by package name). */
+const ID = '@benz-ai-x/dsh-md-preview'
 
 /** The module specifiers the DSH web shell shares into the frozen module table. */
 const PLATFORM_MODULES = new Set([

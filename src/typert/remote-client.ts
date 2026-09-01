@@ -35,10 +35,10 @@ const readResult$schema = z.object({
 
 /** The MdPreview contribution mounted by this package's browser entry. */
 export const TYPERT_REMOTE: TypertRemoteContribution = {
-  package: 'dsh-md-preview',
+  package: '@benz-ai-x/dsh-md-preview',
   descriptors: [
     {
-      id: 'dsh-md-preview#mdPreview/read',
+      id: '@benz-ai-x/dsh-md-preview#mdPreview/read',
       service: 'mdPreview',
       namespace: 'mdPreview',
       method: 'read',
@@ -60,7 +60,7 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
           source: 'json',
           codec: {
             mode: 'strict',
-            typeSymbol: 'dsh-md-preview#mdPreview/read:path',
+            typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/read:path',
             schema: readPath$schema,
           },
         },
@@ -68,7 +68,7 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
-        typeSymbol: 'dsh-md-preview#mdPreview/read:result',
+        typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/read:result',
         schema: readResult$schema,
       },
     },

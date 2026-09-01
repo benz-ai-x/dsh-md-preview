@@ -190,8 +190,9 @@ try {
 }
 
 if (manifest) {
-  check(manifest.name === 'dsh-md-preview', 'package name matches the project contract')
-  check(manifest.private === true, 'source-linked package remains private')
+  check(manifest.name === '@benz-ai-x/dsh-md-preview', 'package name matches the project contract')
+  check(manifest.private === undefined, 'publishable package is not private')
+  check(manifest.publishConfig?.access === 'public', 'scoped package publishes with public access')
   check(manifest.type === 'module', 'package uses ESM')
   check(manifest.engines?.node === '^22.19.0 || >=24.0.0', 'package Node engine matches the pinned Harness')
   check(manifest.dsh?.bundle?.patch === './cordis.patch.yml', 'package declares its DSH bundle patch')

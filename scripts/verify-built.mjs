@@ -48,7 +48,7 @@ for (const artifact of artifacts) {
 const client = join(projectRoot, 'lib/client.js')
 if (existsSync(client)) {
   const head = readFileSync(client, 'utf8').slice(0, 400)
-  if (!head.startsWith('window.__ModuleLoader__.load(') || !head.includes('"dsh-md-preview"')) {
+  if (!head.startsWith('window.__ModuleLoader__.load(') || !head.includes('"@benz-ai-x/dsh-md-preview"')) {
     failures.push('lib/client.js does not open with the lazy-CJS factory registration')
   }
 }

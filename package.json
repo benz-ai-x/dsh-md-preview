@@ -1,8 +1,22 @@
 {
-  "name": "dsh-md-preview",
+  "name": "@benz-ai-x/dsh-md-preview",
   "version": "0.1.0",
-  "private": true,
   "description": "DSH markdown preview: clicking a markdown document in the conversation opens a rendered preview panel docked to the right of the chat.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benz-ai-x/dsh-md-preview.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "plugin",
+    "markdown",
+    "preview"
+  ],
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/types/index.d.ts",
@@ -37,9 +51,9 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-api-remotes",
-        "dsh-client-locale",
-        "dsh-client-ui-chat",
-        "dsh-client-ui-renderer"
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-renderer"
       ],
       "platform": "web"
     }
@@ -59,6 +73,8 @@
     "build:client": "tsdown",
     "watch:client": "tsdown --watch",
     "built:check": "node scripts/verify-built.mjs",
+    "pack:publishable": "node scripts/pack.mjs",
+    "publish:registry": "node scripts/pack.mjs --publish",
     "verify": "pnpm context:check:strict && pnpm typecheck && pnpm test && pnpm build && pnpm built:check"
   },
   "dependencies": {
@@ -67,11 +83,11 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-client-store": "0.1.2-alpha.1",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.2-alpha.1",
-    "@deepseek-ai/dsh-client-ui-slots": "0.1.2-alpha.1",
-    "@deepseek-ai/dsh-session": "0.1.2-alpha.1",
-    "@deepseek-ai/dsh-typert-protocol": "0.1.2-alpha.1"
+    "@deepseek-ai/dsh-client-store": "0.1.2-alpha.3",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.2-alpha.3",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.2-alpha.3",
+    "@deepseek-ai/dsh-session": "0.1.2-alpha.3",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.2-alpha.3"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "link:../deepseek-harness/vendor/cordis",

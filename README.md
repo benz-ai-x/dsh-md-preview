@@ -1,4 +1,4 @@
-# dsh-md-preview
+# @benz-ai-x/dsh-md-preview
 
 DSH web GUI 插件：点击对话中出现的 Markdown 文档，在对话右侧打开渲染后的预览面板。
 
@@ -24,11 +24,22 @@ DSH web GUI 插件：点击对话中出现的 Markdown 文档，在对话右侧�
 
 ```yaml
 - id: md-preview
-  name: 'dsh-md-preview'
+  name: '@benz-ai-x/dsh-md-preview'
   config:
     maxBytes: 1048576        # 单文件读取上限（字节）
     allowedExtensions: ['.md', '.markdown']
 ```
+
+## 安装（npm 发布形态）
+
+```sh
+dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview
+dsh --profile <name> --dump-config   # 确认 md-preview 行
+dsh --profile <name>                 # 打开 Web GUI，回合产出 .md 后点击 chip 预览
+dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
+```
+
+要求 DSH 基线 `0.1.2-alpha.3`（见 peerDependencies）。
 
 ## 开发（source-linked）
 
@@ -38,16 +49,16 @@ pnpm verify                 # context:check:strict + typecheck + test + build + 
 pnpm context:sync           # Harness 检出移动后重写 link 并刷新 lockfile
 ```
 
-## 真实 profile 验证
+## 真实 profile 验证（本地检出）
 
 ```sh
 pnpm build
 dsh plugin --profile <name> add ./dsh-md-preview
 dsh --profile <name> --dump-config
 dsh --profile <name>        # 打开 Web GUI，写一个 README.md 产出并点击 chip
-dsh plugin --profile <name> remove dsh-md-preview
+dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
 ```
 
-注意：本项目为 source-linked 私有包（`private: true`）。验证证明与固定
-Harness 检出（见 `dsh-reference.lock.json`）的兼容性，不证明 npm 发布
-就绪。
+source-linked 验证证明与固定 Harness 检出（见 `dsh-reference.lock.json`）
+的兼容性；发布形态以 packed tarball 在干净 profile 中的安装/启动/移除
+冒烟为准。

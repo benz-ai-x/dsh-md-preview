@@ -9,7 +9,7 @@ if (descriptor === undefined) throw new Error('contribution must carry the read 
 
 describe('TYPERT_REMOTE', () => {
   it('names this package and exactly one read method', () => {
-    expect(TYPERT_REMOTE.package).toBe('dsh-md-preview')
+    expect(TYPERT_REMOTE.package).toBe('@benz-ai-x/dsh-md-preview')
     expect(TYPERT_REMOTE.descriptors).toHaveLength(1)
     expect(descriptor.method).toBe('read')
     expect(descriptor.mode).toBeUndefined()
@@ -18,7 +18,7 @@ describe('TYPERT_REMOTE', () => {
   it('carries wire-legal segments', () => {
     expect(isTypertRemoteSegment(descriptor.namespace)).toBe(true)
     expect(isTypertRemoteSegment(descriptor.method)).toBe(true)
-    expect(descriptor.id).toBe('dsh-md-preview#mdPreview/read')
+    expect(descriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/read')
     expect(descriptor.service).toBe('mdPreview')
   })
 
