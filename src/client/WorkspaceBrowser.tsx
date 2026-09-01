@@ -71,6 +71,77 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
   const controllers = useRef(new Map<string, AbortController>())
   const dirsRef = useRef<ReadonlyMap<string, DirState>>(new Map())
   dirsRef.current = dirs
+  // Roving focus (one tab stop): the workspace-relative path of the focused node.
+  const [focusPath, setFocusPath] = useState<string | null>(null)
+  const treeRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    if (focusPath !== null) return
+    const first = treeRef.current?.querySelector<HTMLElement>('[role="treeitem"]') ?? null
+    if (first !== null) setFocusPath(first.dataset.path ?? null)
+  }, [focusPath, dirs])
+
+  /** Visible treeitems in document order (collapsed children are absent). */
+  const visibleItems = (): HTMLElement[] =>
+    Array.from(treeRef.current?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [])
+
+  const onKeyDown = useCallback((event: React.KeyboardEvent<HTMLUListElement>): void => {
+    const items = visibleItems()
+    const current = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]')
+    if (current === null || items.length === 0) return
+    const index = items.indexOf(current)
+    const isBranch = current.classList.contains('dsh-md-preview-treebranch')
+    const focusAt = (next: number): void => {
+      const clamped = items[Math.min(Math.max(next, 0), items.length - 1)]
+      if (clamped === undefined) return
+      setFocusPath(clamped.dataset.path ?? null)
+      clamped.focus()
+    }
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault()
+        focusAt(index + 1)
+        break
+      case 'ArrowUp':
+        event.preventDefault()
+        focusAt(index - 1)
+        break
+      case 'ArrowRight':
+        event.preventDefault()
+        if (isBranch && current.getAttribute('aria-expanded') !== 'true') toggleRef.current(current.dataset.path ?? '')
+        else focusAt(index + 1)
+        break
+      case 'ArrowLeft': {
+        event.preventDefault()
+        if (isBranch && current.getAttribute('aria-expanded') === 'true') {
+          toggleRef.current(current.dataset.path ?? '')
+          break
+        }
+        const parent = current.parentElement?.closest<HTMLElement>('[role="treeitem"]') ?? null
+        if (parent !== null) {
+          setFocusPath(parent.dataset.path ?? null)
+          parent.focus()
+        }
+        break
+      }
+      case 'Home':
+        event.preventDefault()
+        focusAt(0)
+        break
+      case 'End':
+        event.preventDefault()
+        focusAt(items.length - 1)
+        break
+      case 'Enter': {
+        event.preventDefault()
+        const path = current.dataset.path ?? ''
+        if (path.length === 0) return
+        if (isBranch) toggleRef.current(path)
+        else onOpenFile(path)
+        break
+      }
+    }
+  }, [onOpenFile])
 
   const load = useCallback((path: string): void => {
     setDirs(current => new Map(current).set(path, { state: 'loading' }))
@@ -116,6 +187,7 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
       return next
     })
   }, [load])
+  const toggleRef = useRef(toggle)
 
   const renderEntries = (entries: readonly MdPreviewEntry[], level: number) => entries.map(entry => {
     const state = dirs.get(entry.path)
@@ -130,6 +202,8 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
       <li
         key={entry.path}
         role="treeitem"
+        data-path={entry.path}
+        tabIndex={focusPath === entry.path ? 0 : -1}
         aria-level={level}
         aria-expanded={entry.type === 'directory' ? state !== undefined : undefined}
         aria-selected={isCurrent || inherits ? 'true' : undefined}
@@ -138,7 +212,12 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
         className={entry.type === 'directory' ? 'dsh-md-preview-treeitem dsh-md-preview-treebranch' : 'dsh-md-preview-treeitem dsh-md-preview-treeleaf'}
         title={entry.path}
       >
-        <div className="dsh-md-preview-treerow" onClick={entry.type === 'file' ? () => { onOpenFile(entry.path) } : undefined}>
+        <div
+          className="dsh-md-preview-treerow"
+          onClick={entry.type === 'file'
+            ? () => { setFocusPath(entry.path); onOpenFile(entry.path) }
+            : () => { setFocusPath(entry.path) }}
+        >
           {entry.type === 'directory' ? (
             <button
               type="button"
@@ -181,7 +260,13 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
 
   const root = dirs.get('')
   return (
-    <ul role="tree" className="dsh-md-preview-tree" aria-label={t('browse.open')}>
+    <ul
+      ref={treeRef}
+      role="tree"
+      className="dsh-md-preview-tree"
+      aria-label={t('browse.open')}
+      onKeyDown={onKeyDown}
+    >
       {root?.state === 'loading' && <li className="dsh-md-preview-treehint" role="presentation">{t('browse.loading')}</li>}
       {root?.state === 'failed' && (
         <li className="dsh-md-preview-treehint" role="presentation">

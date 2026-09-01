@@ -146,6 +146,67 @@ describe('preview rendering by type', () => {
   })
 })
 
+describe('breadcrumb and keyboard traversal', () => {
+  const TREE = new Map([
+    ['', { entries: [
+      { name: 'alpha', type: 'directory', path: 'alpha' },
+      { name: 'README.md', type: 'file', path: 'README.md' },
+    ] }],
+    ['alpha', { entries: [{ name: 'guide.md', type: 'file', path: 'alpha/guide.md' }] }],
+  ])
+
+  const treeitem = (harness: BrowseHarness, path: string) =>
+    harness.container.querySelector<HTMLElement>(`[role="treeitem"][data-path="${path}"]`)
+
+  const key = async (harness: BrowseHarness, target: HTMLElement, keyName: string): Promise<void> => {
+    await act(async () => {
+      target.dispatchEvent(new KeyboardEvent('keydown', { key: keyName, bubbles: true }))
+    })
+    await act(async () => { await Promise.resolve() })
+  }
+
+  it('renders the preview target as a breadcrumb path', async () => {
+    const harness = await renderBrowse(TREE)
+    harness.setTarget({ sessionId: 'session-1', path: 'alpha/guide.md' })
+    await flush()
+    const crumbs = [...harness.container.querySelectorAll('.dsh-md-preview-crumb')].map(node => node.textContent)
+    expect(crumbs).toEqual(['alpha', 'guide.md'])
+    expect(harness.container.querySelector('.dsh-md-preview-crumb:last-child')?.getAttribute('aria-current')).toBe('page')
+  })
+
+  it('walks the tree with the keyboard and opens a file with Enter', async () => {
+    const harness = await renderBrowse(TREE)
+    await enterBrowse(harness)
+    await flush()
+    // Single tab stop: exactly one treeitem carries tabindex 0.
+    const stops = harness.container.querySelectorAll('[role="treeitem"][tabindex="0"]')
+    expect(stops.length).toBe(1)
+    const first = stops[0] as HTMLElement
+    expect(first.dataset.path).toBe('alpha')
+    // ArrowDown moves the roving focus to the next visible node.
+    await key(harness, first, 'ArrowDown')
+    expect(document.activeElement?.getAttribute('data-path')).toBe('README.md')
+    expect(treeitem(harness, 'README.md')?.tabIndex).toBe(0)
+    // ArrowRight on the collapsed directory expands it (children fetched).
+    await key(harness, treeitem(harness, 'alpha')!, 'ArrowRight')
+    await flush()
+    expect(treeitem(harness, 'alpha')?.getAttribute('aria-expanded')).toBe('true')
+    // End jumps to the last visible node (README.md itself); ArrowUp then
+    // walks into the expanded directory's child; ArrowLeft collapses it.
+    await key(harness, treeitem(harness, 'README.md')!, 'End')
+    expect(document.activeElement?.getAttribute('data-path')).toBe('README.md')
+    await key(harness, treeitem(harness, 'README.md')!, 'ArrowUp')
+    expect(document.activeElement?.getAttribute('data-path')).toBe('alpha/guide.md')
+    await key(harness, treeitem(harness, 'alpha')!, 'ArrowLeft')
+    expect(treeitem(harness, 'alpha')?.getAttribute('aria-expanded')).toBe('false')
+    // Enter on a file opens it as the preview target.
+    await key(harness, treeitem(harness, 'README.md')!, 'Enter')
+    await flush()
+    expect(harness.reads.at(-1)).toEqual({ path: 'README.md' })
+    expect(harness.container.querySelector('.dsh-md-preview-browser')?.hasAttribute('hidden')).toBe(true)
+  })
+})
+
 describe('browser face connectivity', () => {
   it('highlights the current target, auto-reveals its ancestors, and keeps expansion across face switches', async () => {
     const harness = await renderBrowse(new Map([
@@ -268,7 +329,7 @@ describe('browser face', () => {
     expect(harness.container.querySelector('.dsh-md-preview-browser')?.hasAttribute('hidden')).toBe(true)
     expect(harness.container.querySelector('.dsh-md-preview-document')?.hasAttribute('hidden')).toBe(false)
     expect(harness.reads.at(-1)).toEqual({ path: 'docs/guide.md' })
-    expect(harness.container.querySelector('.dsh-md-preview-title')?.textContent).toContain('guide.md')
+    expect(harness.container.querySelector('.dsh-md-preview-crumb:last-child')?.textContent).toBe('guide.md')
   })
 
   it('carries the tree semantics: tree/treeitem/group with level and expanded', async () => {

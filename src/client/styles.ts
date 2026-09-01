@@ -61,6 +61,29 @@ const CSS = `
   color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
   user-select: none;
 }
+.dsh-md-preview-crumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+}
+.dsh-md-preview-crumb { flex: none; }
+.dsh-md-preview-crumb + .dsh-md-preview-crumb::before {
+  content: '/';
+  margin: 0 4px;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+}
+.dsh-md-preview-crumb:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
 .dsh-md-preview-title {
   flex: 1;
   overflow: hidden;

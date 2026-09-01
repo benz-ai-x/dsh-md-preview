@@ -12,7 +12,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
-import { basename, isEditable } from './preview-state.ts'
+import { isEditable } from './preview-state.ts'
 import { MarkdownEditor } from './editor.tsx'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { usePanelDocumentSession } from './use-preview-session.ts'
@@ -102,7 +102,15 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
       <div className="dsh-md-preview-panel" style={{ width: `${width}px` }}>
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
-          <div className="dsh-md-preview-title" title={target.path}>{basename(target.path)}</div>
+          <div className="dsh-md-preview-crumbs" title={target.path}>
+            {target.path.split('/').map((segment, index, all) => (
+              <span
+                key={`${index}-${segment}`}
+                className="dsh-md-preview-crumb"
+                aria-current={index === all.length - 1 ? 'page' : undefined}
+              >{segment}</span>
+            ))}
+          </div>
           <span className="dsh-md-preview-version" aria-hidden>{process.env.MD_PREVIEW_VERSION}</span>
           {face === 'document' ? (
             <button
