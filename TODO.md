@@ -85,6 +85,8 @@
 - [x] 修复（TDD，54/54）：成功 → 面板内「✓ 已保存」toast（2 秒淡出，role=status，
       卸载清定时器）；非冲突失败 → 持久错误条（`保存失败 · md-preview/<code>` + 重试）
 - [x] 词条 zh/en 同步；README 效果节更新
+- [x] 发布 0.2.1：冒烟通过（boot graph + bundle 含 panel.saved 词条）→ npm
+      `latest` → web profile 升级 `^0.2.1` 并重启（3080，零告警）
 
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 
