@@ -35,6 +35,15 @@ describe('MdPreviewService.write specifics', () => {
     })
   })
 
+  it('refuses a preview-only extension: text files are not editable', async () => {
+    const { service, fs } = await makeService({
+      files: new Map([['/workspace/project/notes.txt', markdownFile('plain')]]),
+    })
+    await expect(service.write(SESSION as never, 'notes.txt', 'edited', 'v1', false, new AbortController().signal))
+      .rejects.toThrow(/non-previewable/)
+    expect(fs.writes).toHaveLength(0)
+  })
+
   it('refuses a blind write without fingerprint or force', async () => {
     const { service, fs } = await makeService({
       files: new Map([['/workspace/project/README.md', markdownFile()]]),

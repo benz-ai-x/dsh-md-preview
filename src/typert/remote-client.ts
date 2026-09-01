@@ -11,7 +11,7 @@
 import { z } from 'zod'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MdPreviewFile, MdPreviewWriteResult } from '../protocol.ts'
+import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
 
 /** Browser face of the mounted `mdPreview` Remote namespace. */
 export interface MdPreviewRemote {
@@ -30,6 +30,8 @@ export interface MdPreviewRemote {
     force?: boolean,
     signal?: AbortSignal,
   ): Promise<RemoteResult<MdPreviewWriteResult>>
+  /** List one workspace directory for the browser face (blank path = root). */
+  list(sessionId: SessionId, path: string, signal?: AbortSignal): Promise<RemoteResult<MdPreviewListResult>>
 }
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -52,6 +54,16 @@ const writeForce$schema = z.boolean().optional()
 const writeResult$schema = z.object({
   path: z.string(),
   fingerprint: z.string(),
+})
+const listPath$schema = z.string()
+const listEntry$schema = z.object({
+  name: z.string(),
+  type: z.enum(['file', 'directory', 'other']),
+  path: z.string(),
+})
+const listResult$schema = z.object({
+  path: z.string(),
+  entries: z.array(listEntry$schema),
 })
 
 /** The MdPreview contribution mounted by this package's browser entry. */
@@ -156,6 +168,41 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
         mode: 'strict',
         typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/write:result',
         schema: writeResult$schema,
+      },
+    },
+    {
+      id: '@benz-ai-x/dsh-md-preview#mdPreview/list',
+      service: 'mdPreview',
+      namespace: 'mdPreview',
+      method: 'list',
+      invocation: { kind: 'direct' },
+      parameters: [
+        {
+          name: 'sessionId',
+          wire: 'sessionId',
+          source: 'json',
+          codec: {
+            mode: 'strict',
+            typeSymbol: '@deepseek-ai/dsh-session/types#SessionId',
+            schema: readSessionId$schema,
+          },
+        },
+        {
+          name: 'path',
+          wire: 'path',
+          source: 'json',
+          codec: {
+            mode: 'strict',
+            typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/list:path',
+            schema: listPath$schema,
+          },
+        },
+      ],
+      cancellation: { parameter: 'signal' },
+      result: {
+        mode: 'strict',
+        typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/list:result',
+        schema: listResult$schema,
       },
     },
   ],

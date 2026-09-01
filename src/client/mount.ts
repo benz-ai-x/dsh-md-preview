@@ -10,7 +10,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MdPreviewFile, MdPreviewWriteResult } from '../protocol.ts'
+import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
+import type { MdPreviewTarget } from './preview-state.ts'
 import { MdChips } from './MdChips.tsx'
 import { PreviewAction } from './PreviewAction.tsx'
 import { PreviewOverlay } from './PreviewOverlay.tsx'
@@ -50,6 +51,13 @@ function registerUi(ctx: ClientContext): void {
     signal: AbortSignal,
   ): Promise<RemoteResult<MdPreviewWriteResult>> =>
     ctx.remote.mdPreview.write(sessionId, path, content, fingerprint, force, signal)
+  const list = (
+    sessionId: SessionId,
+    path: string,
+    signal: AbortSignal,
+  ): Promise<RemoteResult<MdPreviewListResult>> =>
+    ctx.remote.mdPreview.list(sessionId, path, signal)
+  const setTarget = (target: MdPreviewTarget | null): void => { previewTarget.set(target) }
 
   // The right-docked panel: an additive shell.overlay entry, mounted for the
   // whole app lifetime and idle (renders null) while no target is set.
@@ -61,8 +69,10 @@ function registerUi(ctx: ClientContext): void {
     inject: () => ({
       hooks: { previewTarget },
       close: () => { previewTarget.set(null) },
+      setTarget,
       read,
       write,
+      list,
     }),
   }, PreviewOverlay))
 

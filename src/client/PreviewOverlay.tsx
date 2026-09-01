@@ -10,13 +10,14 @@ import { MarkdownText, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-pr
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MdPreviewFile, MdPreviewWriteResult } from '../protocol.ts'
-import type { MdPreviewState } from './preview-state.ts'
-import { basename } from './preview-state.ts'
+import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
+import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
+import { isEditable } from './preview-state.ts'
 import { MarkdownEditor } from './editor.tsx'
+import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { usePanelDocumentSession } from './use-preview-session.ts'
 
-/** Read/write RPCs and panel dismissal, created in the plugin's apply world. */
+/** Read/write/list RPCs and panel dismissal, created in the plugin's apply world. */
 export interface PreviewOverlayInjected {
   hooks: {
     /** Current preview target; null while the panel is closed. */
@@ -24,6 +25,8 @@ export interface PreviewOverlayInjected {
   }
   /** Dismiss the panel and drop the target. */
   close(): void
+  /** Set the preview target (the browser face's file-open handoff). */
+  setTarget(target: MdPreviewTarget | null): void
   /** One bounded read; the transport carries the AbortSignal. */
   read(
     sessionId: SessionId,
@@ -39,6 +42,12 @@ export interface PreviewOverlayInjected {
     force: boolean,
     signal: AbortSignal,
   ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewWriteResult>>
+  /** One workspace directory listing; blank path lists the root. */
+  list(
+    sessionId: SessionId,
+    path: string,
+    signal: AbortSignal,
+  ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewListResult>>
 }
 
 /** Full composed panel props. */
@@ -64,12 +73,22 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write, list, t }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
   const session = usePanelDocumentSession({ read, write, close }, target)
   const { state, canSave, actions } = session
   const [width, setWidth] = useState(DEFAULT_WIDTH)
+  // The browser face: entered from the header, kept mounted once entered so
+  // its expansion state survives face switches (UI-local viewing state).
+  const [face, setFace] = useState<'document' | 'browse'>('document')
+  const [browserEverOpened, setBrowserEverOpened] = useState(false)
   const labels = markdownLabels(t)
+
+  const openFromBrowser = useCallback((path: string): void => {
+    if (target === null) return
+    setTarget({ sessionId: target.sessionId, path })
+    setFace('document')
+  }, [setTarget, target])
 
   // The panel stays mounted across targets and opens; the user's width
   // persists for the whole app session (min/max clamped in the handler).
@@ -83,9 +102,39 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
       <div className="dsh-md-preview-panel" style={{ width: `${width}px` }}>
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
-          <div className="dsh-md-preview-title" title={target.path}>{basename(target.path)}</div>
+          <div className="dsh-md-preview-crumbs" title={target.path}>
+            {target.path.split('/').map((segment, index, all) => (
+              <span
+                key={`${index}-${segment}`}
+                className="dsh-md-preview-crumb"
+                aria-current={index === all.length - 1 ? 'page' : undefined}
+              >{segment}</span>
+            ))}
+          </div>
           <span className="dsh-md-preview-version" aria-hidden>{process.env.MD_PREVIEW_VERSION}</span>
-          {state.face === 'view' && state.content.state === 'ready' && (
+          {face === 'document' ? (
+            <button
+              type="button" className="dsh-md-preview-icon" aria-label={t('browse.open')}
+              title={t('browse.open')} onClick={() => {
+                setBrowserEverOpened(true)
+                setFace('browse')
+              }}
+            >
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                <path d="M1.5 3.5h4l1.5 2h7.5v7h-13z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              type="button" className="dsh-md-preview-icon" aria-label={t('browse.back')}
+              title={t('browse.back')} onClick={() => { setFace('document') }}
+            >
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                <path d="M9.5 3.5L5 8l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+          {face === 'document' && state.face === 'view' && state.content.state === 'ready' && isEditable(target.path) && (
             <button
               type="button" className="dsh-md-preview-icon" aria-label={t('panel.edit')}
               title={t('panel.edit')} onClick={actions.enterEdit}
@@ -95,7 +144,7 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
               </svg>
             </button>
           )}
-          {state.face === 'edit' && (
+          {face === 'document' && state.face === 'edit' && (
             <>
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.save')}
@@ -126,6 +175,20 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
           </button>
         </div>
         <div className="dsh-md-preview-body">
+          {browserEverOpened && (
+            <div className="dsh-md-preview-browser" hidden={face !== 'browse'}>
+              {target !== null && (
+                <WorkspaceBrowser
+                  sessionId={target.sessionId}
+                  list={list}
+                  onOpenFile={openFromBrowser}
+                  currentPath={target.path}
+                  t={t}
+                />
+              )}
+            </div>
+          )}
+          <div className="dsh-md-preview-document" hidden={face !== 'document'}>
           {state.toast && state.face === 'view' && (
             <div className="dsh-md-preview-toast" role="status">✓ {t('panel.saved')}</div>
           )}
@@ -167,7 +230,9 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
               {state.content.state === 'loading' && <div className="dsh-md-preview-state">{t('panel.loading')}</div>}
               {state.content.state === 'failed' && (
                 <div className="dsh-md-preview-state">
-                  <div className="dsh-md-preview-error">{t('panel.error')} · {state.content.code}</div>
+                  <div className="dsh-md-preview-error">
+                    {t(state.content.code === 'md-preview/unsupported-extension' ? 'panel.unsupported' : 'panel.error')} · {state.content.code}
+                  </div>
                   <div>{state.content.message}</div>
                   <button
                     type="button" className="dsh-md-preview-retry"
@@ -178,10 +243,13 @@ export function PreviewOverlay({ usePreviewTarget, close, read, write, t }: Prev
                 </div>
               )}
               {state.content.state === 'ready' && (
-                <MarkdownText text={state.content.file.content} labels={labels} />
+                isEditable(target.path)
+                  ? <MarkdownText text={state.content.file.content} labels={labels} />
+                  : <pre className="dsh-md-preview-plaintext">{state.content.file.content}</pre>
               )}
             </>
           )}
+          </div>
         </div>
         <ResizeHandle onResize={onResize} />
       </div>
