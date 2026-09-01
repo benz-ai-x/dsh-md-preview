@@ -42,8 +42,8 @@ async function renderBrowse(script: Map<string, ListScript>): Promise<BrowseHarn
   const store = createPreviewStore()
   const harness: BrowseHarness = {
     container: document.createElement('div'),
-    list: vi.fn((_sessionId: string, path: string) => {
-      const page = script.get(path) ?? { entries: [] }
+    list: vi.fn((sessionId: string, path: string) => {
+      const page = script.get(`${sessionId}:${path}`) ?? script.get(path) ?? { entries: [] }
       if (page.fail) {
         return Promise.resolve({ ok: false as const, error: { code: 'md-preview/unavailable', message: 'boom' } })
       }
@@ -139,10 +139,38 @@ describe('preview rendering by type', () => {
     expect(buttonByLabel(harness, 'panel.edit')).toBeDefined()
   })
 
-  it('lands a non-previewable file on the unsupported state', async () => {
+  it('lands a non-previewable file on the unsupported state with its own copy', async () => {
     const harness = await renderBrowse(TREE)
     await openFile(harness, 'logo.bin')
+    expect(harness.container.textContent).toContain('panel.unsupported')
     expect(harness.container.textContent).toContain('md-preview/unsupported-extension')
+    expect(harness.container.textContent).not.toContain('panel.error')
+  })
+})
+
+describe('session switch', () => {
+  it('resets the tree when the owning session changes', async () => {
+    const script = new Map<string, ListScript>([
+      ['session-1:docs', { entries: [{ name: 'old.md', type: 'file', path: 'docs/old.md' }] }],
+      ['session-2:', { entries: [{ name: 'fresh.md', type: 'file', path: 'fresh.md' }] }],
+    ])
+    const harness = await renderBrowse(new Map([
+      ['', { entries: [{ name: 'docs', type: 'directory', path: 'docs' }] }],
+      ['docs', { entries: [{ name: 'old.md', type: 'file', path: 'docs/old.md' }] }],
+    ]))
+    await enterBrowse(harness)
+    const caret = harness.container.querySelector('[data-expander="docs"]')!
+    await act(async () => { caret.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await flush()
+    expect(harness.container.textContent).toContain('old.md')
+    // Retarget the panel to another session's document: the tree must not
+    // keep the old session's expansion content.
+    harness.setTarget({ sessionId: 'session-2', path: 'fresh.md' })
+    await flush()
+    await flush()
+    expect(harness.container.textContent).toContain('fresh.md')
+    expect(harness.container.textContent).not.toContain('old.md')
+    expect(harness.list).toHaveBeenCalledWith('session-2', '', expect.anything())
   })
 })
 

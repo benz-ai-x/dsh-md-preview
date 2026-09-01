@@ -230,7 +230,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               {state.content.state === 'loading' && <div className="dsh-md-preview-state">{t('panel.loading')}</div>}
               {state.content.state === 'failed' && (
                 <div className="dsh-md-preview-state">
-                  <div className="dsh-md-preview-error">{t('panel.error')} · {state.content.code}</div>
+                  <div className="dsh-md-preview-error">
+                    {t(state.content.code === 'md-preview/unsupported-extension' ? 'panel.unsupported' : 'panel.error')} · {state.content.code}
+                  </div>
                   <div>{state.content.message}</div>
                   <button
                     type="button" className="dsh-md-preview-retry"

@@ -85,63 +85,6 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
   const visibleItems = (): HTMLElement[] =>
     Array.from(treeRef.current?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [])
 
-  const onKeyDown = useCallback((event: React.KeyboardEvent<HTMLUListElement>): void => {
-    const items = visibleItems()
-    const current = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]')
-    if (current === null || items.length === 0) return
-    const index = items.indexOf(current)
-    const isBranch = current.classList.contains('dsh-md-preview-treebranch')
-    const focusAt = (next: number): void => {
-      const clamped = items[Math.min(Math.max(next, 0), items.length - 1)]
-      if (clamped === undefined) return
-      setFocusPath(clamped.dataset.path ?? null)
-      clamped.focus()
-    }
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault()
-        focusAt(index + 1)
-        break
-      case 'ArrowUp':
-        event.preventDefault()
-        focusAt(index - 1)
-        break
-      case 'ArrowRight':
-        event.preventDefault()
-        if (isBranch && current.getAttribute('aria-expanded') !== 'true') toggleRef.current(current.dataset.path ?? '')
-        else focusAt(index + 1)
-        break
-      case 'ArrowLeft': {
-        event.preventDefault()
-        if (isBranch && current.getAttribute('aria-expanded') === 'true') {
-          toggleRef.current(current.dataset.path ?? '')
-          break
-        }
-        const parent = current.parentElement?.closest<HTMLElement>('[role="treeitem"]') ?? null
-        if (parent !== null) {
-          setFocusPath(parent.dataset.path ?? null)
-          parent.focus()
-        }
-        break
-      }
-      case 'Home':
-        event.preventDefault()
-        focusAt(0)
-        break
-      case 'End':
-        event.preventDefault()
-        focusAt(items.length - 1)
-        break
-      case 'Enter': {
-        event.preventDefault()
-        const path = current.dataset.path ?? ''
-        if (path.length === 0) return
-        if (isBranch) toggleRef.current(path)
-        else onOpenFile(path)
-        break
-      }
-    }
-  }, [onOpenFile])
 
   const load = useCallback((path: string): void => {
     setDirs(current => new Map(current).set(path, { state: 'loading' }))
@@ -157,6 +100,13 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
   }, [list, sessionId])
 
   useEffect(() => {
+    // The root load also owns the session boundary: a new owning session
+    // (load's identity changes with it) starts a fresh tree — stale
+    // expansion content from the previous session must not survive.
+    for (const controller of controllers.current.values()) controller.abort()
+    controllers.current.clear()
+    setFocusPath(null)
+    setDirs(new Map([['', { state: 'loading' }]]))
     load('')
     return () => {
       for (const controller of controllers.current.values()) controller.abort()
@@ -187,7 +137,63 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
       return next
     })
   }, [load])
-  const toggleRef = useRef(toggle)
+  const onKeyDown = useCallback((event: React.KeyboardEvent<HTMLUListElement>): void => {
+    const items = visibleItems()
+    const current = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]')
+    if (current === null || items.length === 0) return
+    const index = items.indexOf(current)
+    const isBranch = current.classList.contains('dsh-md-preview-treebranch')
+    const focusAt = (next: number): void => {
+      const clamped = items[Math.min(Math.max(next, 0), items.length - 1)]
+      if (clamped === undefined) return
+      setFocusPath(clamped.dataset.path ?? null)
+      clamped.focus()
+    }
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault()
+        focusAt(index + 1)
+        break
+      case 'ArrowUp':
+        event.preventDefault()
+        focusAt(index - 1)
+        break
+      case 'ArrowRight':
+        event.preventDefault()
+        if (isBranch && current.getAttribute('aria-expanded') !== 'true') toggle(current.dataset.path ?? '')
+        else focusAt(index + 1)
+        break
+      case 'ArrowLeft': {
+        event.preventDefault()
+        if (isBranch && current.getAttribute('aria-expanded') === 'true') {
+          toggle(current.dataset.path ?? '')
+          break
+        }
+        const parent = current.parentElement?.closest<HTMLElement>('[role="treeitem"]') ?? null
+        if (parent !== null) {
+          setFocusPath(parent.dataset.path ?? null)
+          parent.focus()
+        }
+        break
+      }
+      case 'Home':
+        event.preventDefault()
+        focusAt(0)
+        break
+      case 'End':
+        event.preventDefault()
+        focusAt(items.length - 1)
+        break
+      case 'Enter': {
+        event.preventDefault()
+        const path = current.dataset.path ?? ''
+        if (path.length === 0) return
+        if (isBranch) toggle(path)
+        else onOpenFile(path)
+        break
+      }
+    }
+  }, [onOpenFile, toggle])
 
   const renderEntries = (entries: readonly MdPreviewEntry[], level: number) => entries.map(entry => {
     const state = dirs.get(entry.path)
