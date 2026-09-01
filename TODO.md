@@ -72,7 +72,11 @@
       built:check
 - [x] 文档同步：PROJECT_CONTRACT（写权威、conflict 码、验收断言、已知限制）、
       README（编辑效果、失败码表、结构表）、本 TODO
-- [ ] 0.2.0：packed 冒烟 + npm 发布 + web profile 升级 + 浏览器端到端走查
+- [x] 0.2.0 发布（2026-09-01）：packed 冒烟通过（干净 profile 装tarball → dump 行 →
+      启动零告警 → boot graph entry → /plugins 411 kB 工厂 bundle → 会话清理）；
+      npm 发布（web 授权前两次因未及时点授权超时 404，第三次完成）；web profile
+      升级 `^0.2.0`
+- [ ] 浏览器端到端走查：编辑 → 保存 → 冲突 → 强制覆盖四路径（下次真实使用时顺带）
 
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 
