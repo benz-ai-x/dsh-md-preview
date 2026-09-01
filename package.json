@@ -1,0 +1,104 @@
+{
+  "name": "dsh-md-preview",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH markdown preview: clicking a markdown document in the conversation opens a rendered preview panel docked to the right of the chat.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./remote": {
+      "types": "./lib/types/typert/remote-client.d.ts",
+      "default": "./lib/typert/remote-client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/typert/remote-client.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "dsh-client-locale",
+        "dsh-client-ui-chat",
+        "dsh-client-ui-renderer"
+      ],
+      "platform": "web"
+    }
+  },
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "context:check": "node scripts/verify-dsh-context.mjs",
+    "context:check:strict": "node scripts/verify-dsh-context.mjs --require-source",
+    "context:sync": "node scripts/verify-dsh-context.mjs --sync-links --require-source && pnpm install --no-frozen-lockfile",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json && tsdown",
+    "build:host": "tsc -p tsconfig.json",
+    "build:client": "tsdown",
+    "watch:client": "tsdown --watch",
+    "built:check": "node scripts/verify-built.mjs",
+    "verify": "pnpm context:check:strict && pnpm typecheck && pnpm test && pnpm build && pnpm built:check"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.1",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-client-store": "0.1.2-alpha.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.2-alpha.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.2-alpha.1",
+    "@deepseek-ai/dsh-session": "0.1.2-alpha.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.2-alpha.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "link:../deepseek-harness/vendor/cordis",
+    "@deepseek-ai/cordis-plugin-include": "link:../deepseek-harness/vendor/include",
+    "@deepseek-ai/cordis-plugin-loader": "link:../deepseek-harness/vendor/loader",
+    "@deepseek-ai/dsh-agent": "link:../deepseek-harness/packages/core/agent",
+    "@deepseek-ai/dsh-api-remotes": "link:../deepseek-harness/packages/api/remotes",
+    "@deepseek-ai/dsh-client-locale": "link:../deepseek-harness/packages/client/locale",
+    "@deepseek-ai/dsh-client-store": "link:../deepseek-harness/packages/client/store",
+    "@deepseek-ai/dsh-client-test-runtime": "link:../deepseek-harness/packages/test-support/client-runtime",
+    "@deepseek-ai/dsh-client-ui-chat": "link:../deepseek-harness/packages/client/ui-chat",
+    "@deepseek-ai/dsh-client-ui-conversation": "link:../deepseek-harness/packages/client/ui-conversation",
+    "@deepseek-ai/dsh-client-ui-deliverables": "link:../deepseek-harness/packages/client/ui-deliverables",
+    "@deepseek-ai/dsh-client-ui-layout": "link:../deepseek-harness/packages/client/ui-layout",
+    "@deepseek-ai/dsh-client-ui-primitives": "link:../deepseek-harness/packages/client/ui-primitives",
+    "@deepseek-ai/dsh-client-ui-renderer": "link:../deepseek-harness/packages/client/ui-renderer",
+    "@deepseek-ai/dsh-client-ui-slots": "link:../deepseek-harness/packages/client/ui-slots",
+    "@deepseek-ai/dsh-fs": "link:../deepseek-harness/packages/fs/fs",
+    "@deepseek-ai/dsh-session": "link:../deepseek-harness/packages/core/session",
+    "@deepseek-ai/dsh-typert-protocol": "link:../deepseek-harness/packages/typert/protocol",
+    "@types/node": "22.20.0",
+    "jsdom": "29.1.1",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.22.2",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

@@ -1,0 +1,8 @@
+- insert:
+    - id: md-preview
+      name: 'dsh-md-preview'
+      config:
+        maxBytes: 1048576
+        allowedExtensions:
+          - .md
+          - .markdown

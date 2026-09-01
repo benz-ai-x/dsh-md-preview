@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "upstream": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
+    "version": "0.1.2-alpha.3",
+    "node": "^22.19.0 || >=24.0.0",
+    "commit": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+    "docsDigest": "a57975cf6f331daef2e84daf9c70ba94145cd26a786cc5052accab04325da34d"
+  },
+  "localResolution": {
+    "environmentVariable": "DSH_HARNESS_ROOT",
+    "fallbackRelativePath": "../deepseek-harness"
+  },
+  "verifiedOn": "2026-09-01"
+}
