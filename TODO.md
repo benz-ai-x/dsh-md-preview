@@ -87,6 +87,13 @@
 - [x] 词条 zh/en 同步；README 效果节更新
 - [x] 发布 0.2.1：冒烟通过（boot graph + bundle 含 panel.saved 词条）→ npm
       `latest` → web profile 升级 `^0.2.1` 并重启（3080，零告警）
+- [x] 用户实报错误条 `md-preview/unavailable — file access denied under
+      workspace-write mode` → 根因：沙箱后端对未传策略的 writeText 按全局
+      standing root 拦截（非会话工作区）。修复：write 显式传 per-call
+      `SandboxExecutionPolicy = { mode: 'workspace-write', workspaceRoot:
+      会话 cwd, sessionId }`（tool-fs 同惯例）；`FS_SANDBOX_DENIED` 映射
+      `md-preview/forbidden`；`@deepseek-ai/dsh-sandbox` 仅 type-only 依赖
+      （host bundle 无运行时引用）。0.2.2 发布（55/55 测试）
 
 ## 浏览器端到端走查（2026-08-30，真实 LLM 回合）
 

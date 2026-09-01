@@ -37,7 +37,7 @@ interface FakeFsOptions {
 function fakeFs(options: FakeFsOptions = {}) {
   const root = options.root ?? WORKSPACE
   const files = new Map(options.files ?? [])
-  const writes: Array<{ path: string; content: string; expected: unknown; signal: AbortSignal | undefined }> = []
+  const writes: Array<{ path: string; content: string; expected: unknown; signal: AbortSignal | undefined; sandboxPolicy?: { mode: string; workspaceRoot: string; sessionId?: string } }> = []
   for (const file of files.values()) file.version ??= 'v1'
   return {
     resolve: async (path: string, opts?: { cwd?: string; signal?: AbortSignal }) => {
@@ -62,6 +62,7 @@ function fakeFs(options: FakeFsOptions = {}) {
       content: string,
       expected?: { kind: 'replaceIfVersion'; version: string },
       signal?: AbortSignal,
+      sandboxPolicy?: { mode: string; workspaceRoot: string; sessionId?: string },
     ) => {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
       if (options.writeFailure?.has(target.path)) {
@@ -75,7 +76,7 @@ function fakeFs(options: FakeFsOptions = {}) {
       file.content = content
       file.size = content.length
       file.version = `${file.version}+w${writes.length + 1}`
-      writes.push({ path: target.path, content, expected, signal })
+      writes.push({ path: target.path, content, expected, signal, sandboxPolicy })
       return { operation: 'update', version: file.version, before: null, after: content } as never
     },
     writes,
@@ -108,8 +109,18 @@ describe('MdPreviewService.write', () => {
     const result = await service.write(SESSION as never, 'README.md', '# Edited\n', 'v1', false, new AbortController().signal)
     expect(result).toEqual({ path: 'README.md', fingerprint: 'v1+w1' })
     expect(fs.writes).toEqual([
-      { path: '/workspace/project/README.md', content: '# Edited\n', expected: { kind: 'replaceIfVersion', version: 'v1' }, signal: expect.anything() },
+      { path: '/workspace/project/README.md', content: '# Edited\n', expected: { kind: 'replaceIfVersion', version: 'v1' }, signal: expect.anything(), sandboxPolicy: expect.anything() },
     ])
+  })
+
+  it('roots the write sandbox policy at the session workspace', async () => {
+    const { service, fs } = await makeService({ files: new Map([['/workspace/project/README.md', { type: 'file', version: 'v1', content: '# Hello\n' }]]) })
+    await service.write(SESSION as never, 'README.md', '# Edited\n', 'v1', false, new AbortController().signal)
+    expect(fs.writes[0]?.sandboxPolicy).toEqual({
+      mode: 'workspace-write',
+      workspaceRoot: WORKSPACE,
+      sessionId: SESSION,
+    })
   })
 
   it('refuses a blind write without fingerprint or force', async () => {

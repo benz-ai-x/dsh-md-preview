@@ -1,6 +1,6 @@
 {
   "name": "@benz-ai-x/dsh-md-preview",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "DSH markdown preview: clicking a markdown document in the conversation opens a rendered preview panel docked to the right of the chat.",
   "license": "MIT",
   "repository": {
@@ -110,6 +110,7 @@
     "@deepseek-ai/dsh-client-ui-renderer": "link:../deepseek-harness/packages/client/ui-renderer",
     "@deepseek-ai/dsh-client-ui-slots": "link:../deepseek-harness/packages/client/ui-slots",
     "@deepseek-ai/dsh-fs": "link:../deepseek-harness/packages/fs/fs",
+    "@deepseek-ai/dsh-sandbox": "link:../deepseek-harness/packages/sandbox/sandbox",
     "@deepseek-ai/dsh-session": "link:../deepseek-harness/packages/core/session",
     "@deepseek-ai/dsh-typert-protocol": "link:../deepseek-harness/packages/typert/protocol",
     "@lezer/lr": "^1.4.10",

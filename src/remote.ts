@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-session'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
+import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Config } from './config.ts'
 import type { MdPreviewFile, MdPreviewFailureCode, MdPreviewWriteResult } from './protocol.ts'
@@ -189,9 +190,18 @@ export class MdPreviewService extends TypertRemoteService {
     const expected = fingerprint === undefined
       ? undefined
       : { kind: 'replaceIfVersion' as const, version: fingerprint as FsVersion }
+    // Per-call sandbox policy carrying the session's cwd as the workspace
+    // root — the same convention as the tool layer's mutating tools. Without
+    // it a confining backend fences against its global standing root, which
+    // is not this session's workspace.
+    const sandboxPolicy: SandboxExecutionPolicy = {
+      mode: 'workspace-write',
+      workspaceRoot: cwd,
+      sessionId,
+    }
     let outcome: { version: string }
     try {
-      outcome = await this.ctx.fs.writeText(target, content, expected, signal) as { version: string }
+      outcome = await this.ctx.fs.writeText(target, content, expected, signal, sandboxPolicy) as { version: string }
     } catch (error) {
       if (signal.aborted) throw error
       const code = fsErrorCode(error)
@@ -200,6 +210,9 @@ export class MdPreviewService extends TypertRemoteService {
       }
       if (code === 'FS_NOT_FOUND') {
         throw failure('md-preview/not-found', `mdPreview/write cannot find "${path}"`)
+      }
+      if (code === 'FS_SANDBOX_DENIED') {
+        throw failure('md-preview/forbidden', `mdPreview/write is not permitted inside the session workspace for "${path}"`)
       }
       throw failure('md-preview/unavailable', `mdPreview/write failed for "${path}": ${error instanceof Error ? error.message : String(error)}`)
     }

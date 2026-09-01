@@ -75,6 +75,9 @@ importers:
       '@deepseek-ai/dsh-fs':
         specifier: link:../deepseek-harness/packages/fs/fs
         version: link:../deepseek-harness/packages/fs/fs
+      '@deepseek-ai/dsh-sandbox':
+        specifier: link:../deepseek-harness/packages/sandbox/sandbox
+        version: link:../deepseek-harness/packages/sandbox/sandbox
       '@deepseek-ai/dsh-session':
         specifier: link:../deepseek-harness/packages/core/session
         version: link:../deepseek-harness/packages/core/session

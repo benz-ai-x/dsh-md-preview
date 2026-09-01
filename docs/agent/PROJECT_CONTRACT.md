@@ -63,7 +63,12 @@ allowed extension, and stay under `maxBytes` (which caps both the read size
 and the written content length). Writes additionally target an existing
 regular file and carry either the backing read's fingerprint (the fs
 service's opaque `FsVersion` from `stat`, passed back through
-`writeText`'s `replaceIfVersion` guard) or an explicit `force`. Stable
+`writeText`'s `replaceIfVersion` guard) or an explicit `force`. The write
+passes an explicit per-call sandbox policy (`workspace-write` rooted at the
+session cwd, mirroring the tool layer's mutating-tool convention); a
+confined backend otherwise fences against its global standing root, which is
+not the session workspace, and `FS_SANDBOX_DENIED` maps to
+`md-preview/forbidden`. Stable
 failure codes (declared in `RemoteErrorDetailsMap`, thrown as `RemoteError`):
 `md-preview/bad-request`, `md-preview/unknown-session`,
 `md-preview/no-workspace`, `md-preview/unsupported-extension`,
