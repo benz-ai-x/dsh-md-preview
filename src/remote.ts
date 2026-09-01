@@ -8,7 +8,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-session'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import type { FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
+import type { FsInfo, FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Config } from './config.ts'
@@ -79,39 +79,7 @@ export class MdPreviewService extends TypertRemoteService {
    */
   @Remote
   async read(sessionId: SessionId, path: string, signal: AbortSignal): Promise<MdPreviewFile> {
-    if (path.trim().length === 0) {
-      throw failure('md-preview/bad-request', 'mdPreview/read requires a non-empty path')
-    }
-    if (!isAllowedExtension(path, this.config.allowedExtensions)) {
-      throw failure('md-preview/unsupported-extension', `mdPreview/read refuses non-previewable path "${path}"`)
-    }
-    const session = this.ctx.sessions.get(sessionId)
-    if (session === undefined) {
-      throw failure('md-preview/unknown-session', `mdPreview/read cannot resolve session "${sessionId}"`)
-    }
-    const cwd = session.header.cwd
-    if (cwd === undefined) {
-      throw failure('md-preview/no-workspace', `mdPreview/read session "${sessionId}" has no working directory`)
-    }
-    const root = await this.resolveWorkspacePath(cwd, signal)
-    let target: FsTarget
-    try {
-      target = await this.resolveWorkspacePath(path, signal, cwd)
-    } catch (error) {
-      // Caller cancellation is an outcome of the call, not a missing file.
-      if (signal.aborted) throw error
-      throw failure('md-preview/not-found', `mdPreview/read cannot resolve path "${path}"`)
-    }
-    if (!this.ctx.fs.contains(root, target)) {
-      throw failure('md-preview/forbidden', 'mdPreview/read refuses paths outside the session workspace')
-    }
-    const info = await this.ctx.fs.stat(target, signal)
-    if (info === undefined) {
-      throw failure('md-preview/not-found', `mdPreview/read cannot find "${path}"`)
-    }
-    if (info.type !== 'file') {
-      throw failure('md-preview/unsupported-extension', `mdPreview/read target "${path}" is not a regular file`)
-    }
+    const { target, info } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'read')
     if (info.size !== undefined && info.size > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/read refuses "${path}" above the configured byte cap`)
     }
@@ -149,38 +117,7 @@ export class MdPreviewService extends TypertRemoteService {
     force: boolean,
     signal: AbortSignal,
   ): Promise<MdPreviewWriteResult> {
-    if (path.trim().length === 0) {
-      throw failure('md-preview/bad-request', 'mdPreview/write requires a non-empty path')
-    }
-    if (!isAllowedExtension(path, this.config.allowedExtensions)) {
-      throw failure('md-preview/unsupported-extension', `mdPreview/write refuses non-previewable path "${path}"`)
-    }
-    const session = this.ctx.sessions.get(sessionId)
-    if (session === undefined) {
-      throw failure('md-preview/unknown-session', `mdPreview/write cannot resolve session "${sessionId}"`)
-    }
-    const cwd = session.header.cwd
-    if (cwd === undefined) {
-      throw failure('md-preview/no-workspace', `mdPreview/write session "${sessionId}" has no working directory`)
-    }
-    const root = await this.resolveWorkspacePath(cwd, signal)
-    let target: FsTarget
-    try {
-      target = await this.resolveWorkspacePath(path, signal, cwd)
-    } catch (error) {
-      if (signal.aborted) throw error
-      throw failure('md-preview/not-found', `mdPreview/write cannot resolve path "${path}"`)
-    }
-    if (!this.ctx.fs.contains(root, target)) {
-      throw failure('md-preview/forbidden', 'mdPreview/write refuses paths outside the session workspace')
-    }
-    const info = await this.ctx.fs.stat(target, signal)
-    if (info === undefined) {
-      throw failure('md-preview/not-found', `mdPreview/write cannot find "${path}"`)
-    }
-    if (info.type !== 'file') {
-      throw failure('md-preview/unsupported-extension', `mdPreview/write target "${path}" is not a regular file`)
-    }
+    const { target, cwd } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write')
     if (content.length > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/write refuses "${path}" above the configured byte cap`)
     }
@@ -219,8 +156,57 @@ export class MdPreviewService extends TypertRemoteService {
     return { path, fingerprint: outcome.version }
   }
 
-  /** Resolve one path against the workspace, with a plain not-found mapping. */
-  private async resolveWorkspacePath(path: string, signal: AbortSignal, cwd?: string): Promise<FsTarget> {
-    return await this.ctx.fs.resolve(path, cwd === undefined ? { signal } : { cwd, signal })
+  /**
+   * The shared authority preamble of the remote methods: resolve a path to a
+   * live, contained, regular workspace file, or reject it with the stable
+   * failure code. One home for the check order and the aborted-rethrow
+   * convention; `op` only names the calling method in diagnostics.
+   * @param sessionId - owning session; its header cwd roots the resolution.
+   * @param path - path as it appeared in the conversation.
+   * @param signal - caller cancellation carried through every fs call.
+   * @param op - calling method name for diagnostic messages.
+   * @returns the resolved target, its stat info, and the workspace cwd.
+   * @throws RemoteError with a stable MdPreview failure code.
+   */
+  private async resolveWorkspaceTarget(
+    sessionId: SessionId,
+    path: string,
+    signal: AbortSignal,
+    op: 'read' | 'write',
+  ): Promise<{ target: FsTarget; info: FsInfo; cwd: string }> {
+    if (path.trim().length === 0) {
+      throw failure('md-preview/bad-request', `mdPreview/${op} requires a non-empty path`)
+    }
+    if (!isAllowedExtension(path, this.config.allowedExtensions)) {
+      throw failure('md-preview/unsupported-extension', `mdPreview/${op} refuses non-previewable path "${path}"`)
+    }
+    const session = this.ctx.sessions.get(sessionId)
+    if (session === undefined) {
+      throw failure('md-preview/unknown-session', `mdPreview/${op} cannot resolve session "${sessionId}"`)
+    }
+    const cwd = session.header.cwd
+    if (cwd === undefined) {
+      throw failure('md-preview/no-workspace', `mdPreview/${op} session "${sessionId}" has no working directory`)
+    }
+    const root = await this.ctx.fs.resolve(cwd, { signal })
+    let target: FsTarget
+    try {
+      target = await this.ctx.fs.resolve(path, { cwd, signal })
+    } catch (error) {
+      // Caller cancellation is an outcome of the call, not a missing file.
+      if (signal.aborted) throw error
+      throw failure('md-preview/not-found', `mdPreview/${op} cannot resolve path "${path}"`)
+    }
+    if (!this.ctx.fs.contains(root, target)) {
+      throw failure('md-preview/forbidden', `mdPreview/${op} refuses paths outside the session workspace`)
+    }
+    const info = await this.ctx.fs.stat(target, signal)
+    if (info === undefined) {
+      throw failure('md-preview/not-found', `mdPreview/${op} cannot find "${path}"`)
+    }
+    if (info.type !== 'file') {
+      throw failure('md-preview/unsupported-extension', `mdPreview/${op} target "${path}" is not a regular file`)
+    }
+    return { target, info, cwd }
   }
 }
