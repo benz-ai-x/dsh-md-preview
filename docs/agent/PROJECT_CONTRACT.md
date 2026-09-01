@@ -51,7 +51,11 @@ Service dependencies:
 
 - Host: `inject = ['fs', 'typert', 'sessions']` — read/write authority via
   `ctx.fs`, Gateway publication via `ctx.typert`, workspace root via
-  `ctx.sessions.get(id).header.cwd`.
+  `ctx.sessions.get(id).header.cwd`. Runtime peer: only
+  `@deepseek-ai/dsh-typert-protocol` (the sole external import of the host
+  bundle; cordis arrives type-only through the Loader, and the browser-side
+  platform modules come from the shell's frozen module table, so neither
+  belongs in peerDependencies).
 - Client: `inject = ['remote', 'slots', 'locale']`; the UI fiber additionally
   waits for the mounted `remote.mdPreview` namespace.
 
