@@ -220,3 +220,30 @@
 - 备注：用户 web profile 的第三方 `@benz-ai-x/dsh-client-ui-session-graph`
       依赖缺失（预存问题）当前会阻塞整个 profile 启动；本次冒烟改用独立
       干净 profile 完成，用户侧需修复该项目或禁用该行后 3080 才能起来
+
+## 功能四连（2026-09-06，目标 0.6.0）
+
+- [x] **大纲导航**：`src/client/outline.ts` 纯函数（ATX 扫描跳过围栏；闭合
+      `#` 序列要求前置空格，对齐 commonmark）+ 头部弹层；查看脸按「同文本
+      出现序数」定位渲染标题并滚动，编辑脸经 `onView` 句柄跳光标到源行。
+      修复过程实录：惰性正则误配空串、`undefined`/`null` 守卫穿透、两个
+      「face」变量遮蔽（浏览脸 face vs 会话脸 state.face）——均由红测试逼出
+- [x] **树刷新**：`refreshPath` 静默重验（新结果到达前保留现列表、失败不变
+      任何内容）；重进浏览脸自动重验（激活效应钉在 `active`、refreshAll 走
+      ref——否则 sessionId 变化会用旧展开集对新会话补刷，冲掉会话边界重置，
+      红测试实证）+ 树工具栏手动刷新按钮
+- [x] **编辑器查找**：`@codemirror/search` + searchKeymap（Mod-F）+ 编辑脸
+      头部按钮 `openSearchPanel`
+- [x] **Mermaid 图表增强**：`src/client/diagrams.ts` 渲染后增强——源码围栏
+      序 ↔ `.md-code-block` 渲染序**对齐校验**（平台 banner 类名被 css-module
+      哈希，只有 `md-code-block` 是稳定类；数量不符整体放弃），横幅保留、
+      代码隐藏、SVG 就位，失败回退源码 + 一行说明；mermaid `securityLevel:
+      strict`。**构建关键**：动态 import 默认被 rolldown 拆成 180 个旁路
+      chunk（单文件工厂协议下运行时必然找不到）→ client face 开
+      `inlineDynamicImports`：单文件内联但保留惰性求值。**体积 426 kB →
+      3.89 MB minified（gzip 131 kB → 1.06 MB）**；本地服务 + rev 戳缓存 +
+      首图才求值的部署上下文下可接受，已写入契约与 README 已知限制
+- [x] 测试 116/116（+15：outline 6、refresh 3、find 2、diagrams 4）；
+      mermaid 经 vi.mock 在 import seam 打桩（其自身渲染归上游测试）
+- [ ] 发布 0.6.0：verify → packed 冒烟 → npm publish（2FA）→ profile 升级
+      → git push + gh release

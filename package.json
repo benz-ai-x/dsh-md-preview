@@ -88,9 +88,9 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "3.18.2",
-    "zod": "^4.4.3",
     "tsdown": "^0.22.2",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-typert-protocol": "0.1.2-rc.1"
@@ -98,6 +98,7 @@
   "devDependencies": {
     "@codemirror/commands": "^6.11.0",
     "@codemirror/language": "^6.12.4",
+    "@codemirror/search": "^6.7.2",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.9",
     "@deepseek-ai/cordis": "4.0.2",
@@ -124,6 +125,7 @@
     "@types/node": "22.20.0",
     "@types/react": "~18.3.1",
     "jsdom": "29.1.1",
+    "mermaid": "^11.17.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.2",

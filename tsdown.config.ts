@@ -89,6 +89,10 @@ export default defineConfig([
     },
     outputOptions: {
       entryFileNames: 'client.js',
+      // One self-contained factory file (the module loader serves exactly
+      // client.js): the mermaid dynamic import inlines but stays lazy to
+      // evaluate, instead of exploding into unservable sibling chunks.
+      inlineDynamicImports: true,
       banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(ID)}, factory: (require) => {`,
       footer: 'return module.exports; } });',
       intro: 'var module = { exports: {} }; var exports = module.exports;',

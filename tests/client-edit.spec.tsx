@@ -271,3 +271,20 @@ describe('PreviewOverlay edit mode', () => {
     expect(harness.container.querySelector('.cm-editor')).toBeNull()
   })
 })
+
+describe('editor find', () => {
+  it('opens the CodeMirror search panel from the header action', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const find = byText(harness, 'panel.find')
+    expect(find).toBeDefined()
+    await act(async () => { find!.click() })
+    await act(async () => { await Promise.resolve() })
+    const input = harness.container.querySelector<HTMLInputElement>('.cm-panel.cm-search input')
+    expect(input).toBeTruthy()
+  })
+  it('offers no find action outside the edit face', async () => {
+    const harness = await renderPanel()
+    expect(byText(harness, 'panel.find')).toBeUndefined()
+  })
+})

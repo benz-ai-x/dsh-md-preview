@@ -76,6 +76,8 @@ export default defineConfig([
     },
     outputOptions: {
       entryFileNames: 'client.js',
+      // One self-contained factory file (see the shipped tsdown.config.ts).
+      inlineDynamicImports: true,
       banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(ID)}, factory: (require) => {`,
       footer: 'return module.exports; } });',
       intro: 'var module = { exports: {} }; var exports = module.exports;',

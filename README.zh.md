@@ -16,7 +16,10 @@ DSH Web GUI 插件:点击对话中出现的 Markdown 文档,在对话右侧打�
 - 没有预览目标时面板不渲染。
 - **编辑**:面板「编辑」进入 CodeMirror 编辑器(行号、GFM 高亮、Cmd/Ctrl-S 保存),「保存」写回工作区、显示「✓ 已保存」提示并回到渲染视图,「取消编辑」丢弃草稿;只编辑已存在的文件。保存失败(非冲突)会显示错误码并提供【重试】。
 - **冲突保护**:保存时若文件已被其它方(agent、其它会话、外部编辑器)修改,提示「文件已变化」,由你选择【重新加载】或【强制覆盖】;带未保存修改关闭面板会先询问。
-- **工作区浏览**:面板头部「工作区」进入目录树(懒展开、加载/空/失败三态);单击 `.md` 富渲染、`.txt` 等纯文本等宽展示、其它类型明确提示不支持;当前文档在树中高亮并自动定位;支持方向键/Enter 键盘遍历;头部路径面包屑。
+- **工作区浏览**:面板头部「工作区」进入目录树(懒展开、加载/空/失败三态);单击 `.md` 富渲染、`.txt` 等纯文本等宽展示、其它类型明确提示不支持;当前文档在树中高亮并自动定位;支持方向键/Enter 键盘遍历;头部路径面包屑。已展开目录在每次重进浏览脸时**静默重验**(树工具栏也有刷新按钮)——agent 会在会话中途持续产出文件,刷新失败绝不清空现有列表。
+- **大纲导航**:头部「大纲」弹层列出文档的 ATX 标题(代码围栏内的 `#` 不算);点击后查看脸滚动到渲染标题、编辑脸跳转光标到源行。
+- **编辑器查找**:编辑脸带 CodeMirror 搜索面板(头部按钮与 Mod/Ctrl-F)。
+- **Mermaid 图表**:` ```mermaid ` 围栏块在文档渲染定型后增强为图表;块横幅保留(复制仍取源码),任何失败回退纯代码块。mermaid 内联进 client bundle 但**惰性求值**(首个图表才付解析成本;bundle 约 3.9 MB minified / 1.1 MB gzip)。
 
 ## 安装
 
@@ -83,6 +86,8 @@ allowBuilds:
 - 正文中内联提到的 `.md` 文件名仍走系统打开(归 ui-deliverables 所有,不归本插件)。
 - 面板悬浮在对话右侧,不替换三栏布局。
 - 用户上传的文档附件不可预览(目前没有对应的会话面)。
+- 大纲只收 ATX 标题(setext 下划线式标题会渲染但不进弹层)。
+- Mermaid 用默认主题;混用缩进代码块与围栏块的文档整体跳过图表增强(顺序对齐安全检查)。
 
 ## 开发(source-linked)
 
@@ -102,8 +107,10 @@ pnpm watch:client           # 客户端 bundle 热构建
 | 浏览器入口 | `src/client/index.ts` | 挂载 Remote + 注册三个 Slot 贡献 |
 | 预览面板 | `src/client/PreviewOverlay.tsx` | `shell.overlay`(list,增量);仅渲染 + 几何 |
 | 会话机器 | `src/client/preview-session.ts` | 纯 reducer:读取/编辑/保存/提示的完整状态代数 |
-| 编辑器 | `src/client/editor.tsx` | CodeMirror 6(精选扩展集,构建期内联,client bundle ~400 kB minified) |
-| 工作区树 | `src/client/WorkspaceBrowser.tsx` | 懒树:高亮/自动定位/键盘遍历 |
+| 编辑器 | `src/client/editor.tsx` | CodeMirror 6(精选扩展集含搜索面板,构建期内联) |
+| 工作区树 | `src/client/WorkspaceBrowser.tsx` | 懒树:高亮/自动定位/键盘遍历 + 静默重验 |
+| 大纲 | `src/client/outline.ts` | ATX 标题扫描 + 渲染标题定位 |
+| 图表增强 | `src/client/diagrams.ts` | 渲染后 mermaid 增强,失败回退代码块 |
 | chip 行接管 | `src/client/MdChips.tsx` | `conversation.chat.turnTail`(chain,仅认领含 Markdown 的回合) |
 | 消息操作 | `src/client/PreviewAction.tsx` | `conversation.chat.assistant-actions`(list,增量) |
 

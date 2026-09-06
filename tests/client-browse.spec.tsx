@@ -378,3 +378,68 @@ describe('browser face', () => {
     expect(child?.getAttribute('aria-level')).toBe('2')
   })
 })
+
+describe('workspace refresh', () => {
+  const TREE = () => new Map<string, ListScript>([
+    ['', { entries: [
+      { name: 'docs', type: 'directory', path: 'docs' },
+      { name: 'README.md', type: 'file', path: 'README.md' },
+    ] }],
+    ['docs', { entries: [{ name: 'guide.md', type: 'file', path: 'docs/guide.md' }] }],
+  ])
+
+  const openTree = async (harness: BrowseHarness): Promise<void> => {
+    await enterBrowse(harness)
+    const caret = harness.container.querySelector('[data-expander="docs"]')!
+    await act(async () => { caret.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await flush()
+  }
+
+  const toDocumentFace = async (harness: BrowseHarness): Promise<void> => {
+    const row = [...harness.container.querySelectorAll<HTMLElement>('[role="treeitem"] .dsh-md-preview-treerow')]
+      .find(node => node.textContent === 'README.md')!
+    await act(async () => { row.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    await flush()
+  }
+
+  it('revalidates the expanded directories on browse-face re-entry', async () => {
+    const script = TREE()
+    const harness = await renderBrowse(script)
+    await openTree(harness)
+    expect(harness.container.textContent).toContain('guide.md')
+    script.set('docs', { entries: [{ name: 'renamed.md', type: 'file', path: 'docs/renamed.md' }] })
+    await toDocumentFace(harness)
+    await enterBrowse(harness)
+    await flush()
+    expect(harness.container.textContent).toContain('renamed.md')
+    expect(harness.container.textContent).not.toContain('guide.md')
+  })
+
+  it('keeps the current listing when a refresh fails', async () => {
+    const script = TREE()
+    const harness = await renderBrowse(script)
+    await openTree(harness)
+    script.set('docs', { entries: [], fail: true })
+    await toDocumentFace(harness)
+    await enterBrowse(harness)
+    await flush()
+    // The stale-but-present listing wins over a blank or error tree.
+    expect(harness.container.textContent).toContain('guide.md')
+    expect(harness.container.textContent).not.toContain('browse.error')
+  })
+
+  it('refreshes the expanded directories from the toolbar button', async () => {
+    const script = TREE()
+    const harness = await renderBrowse(script)
+    await openTree(harness)
+    script.set('', { entries: [
+      { name: 'docs', type: 'directory', path: 'docs' },
+      { name: 'fresh.md', type: 'file', path: 'fresh.md' },
+    ] })
+    script.set('docs', { entries: [{ name: 'renamed.md', type: 'file', path: 'docs/renamed.md' }] })
+    await click(harness, 'browse.refresh')
+    await flush()
+    expect(harness.container.textContent).toContain('fresh.md')
+    expect(harness.container.textContent).toContain('renamed.md')
+  })
+})

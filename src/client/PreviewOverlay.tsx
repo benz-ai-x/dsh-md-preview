@@ -5,14 +5,18 @@
  * PreviewSession machine behind usePanelDocumentSession. The panel renders
  * null while no preview target is set.
  */
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MarkdownText, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { EditorView } from '@codemirror/view'
+import { openSearchPanel } from '@codemirror/search'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
 import { isEditable } from './preview-state.ts'
+import { extractOutline, findHeadingElement } from './outline.ts'
+import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
 import { MarkdownEditor } from './editor.tsx'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { usePanelDocumentSession } from './use-preview-session.ts'
@@ -82,7 +86,48 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // its expansion state survives face switches (UI-local viewing state).
   const [face, setFace] = useState<'document' | 'browse'>('document')
   const [browserEverOpened, setBrowserEverOpened] = useState(false)
+  const [outlineOpen, setOutlineOpen] = useState(false)
+  const documentRef = useRef<HTMLDivElement>(null)
+  const editorViewRef = useRef<EditorView | null>(null)
   const labels = markdownLabels(t)
+
+  const outline = useMemo(
+    () => state.content.state === 'ready' ? extractOutline(state.content.file.content) : [],
+    [state.content],
+  )
+  // The outline popover dies with the face switch and the editor view with
+  // its mount; both are navigation aids, not session state.
+  useEffect(() => { setOutlineOpen(false) }, [face])
+  const onEditorView = useCallback((view: EditorView | null): void => { editorViewRef.current = view }, [])
+
+  // The diagram pass rides the settled rendered document; a replaced DOM (new
+  // read, edit round-trip) simply runs it again over the fresh blocks.
+  const renderedFences = useMemo(
+    () => state.content.state === 'ready' ? fenceLanguages(state.content.file.content) : [],
+    [state.content],
+  )
+  useEffect(() => {
+    const container = documentRef.current
+    if (container === null || face !== 'document' || state.face !== 'view' || state.content.state !== 'ready') return
+    if (findDiagramBlocks(container, renderedFences).length === 0) return
+    void enhanceDiagrams(container, state.content.file.content, { error: t('diagram.error') })
+  }, [face, state.face, state.content, renderedFences, t])
+
+  const jumpToOutline = useCallback((index: number): void => {
+    setOutlineOpen(false)
+    const entry = outline[index]
+    if (entry === undefined) return
+    // The session's edit face (state.face), not the panel's browse face.
+    if (state.face === 'edit') {
+      const view = editorViewRef.current
+      if (view === null) return
+      const line = Math.min(Math.max(entry.line, 1), view.state.doc.lines)
+      view.dispatch({ selection: { anchor: view.state.doc.line(line).from }, scrollIntoView: true })
+      view.focus()
+      return
+    }
+    findHeadingElement(documentRef.current, outline, index)?.scrollIntoView({ block: 'start' })
+  }, [outline, state.face])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
@@ -112,6 +157,33 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
             ))}
           </div>
           <span className="dsh-md-preview-version" aria-hidden>{process.env.MD_PREVIEW_VERSION}</span>
+          {outline.length > 0 && state.content.state === 'ready' && (
+            <span className="dsh-md-preview-anchor">
+              <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('outline.open')}
+                aria-expanded={outlineOpen} title={t('outline.open')}
+                onClick={() => { setOutlineOpen(value => !value) }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M2.5 3.5h11M5 8h8.5M2.5 12.5h11M2.5 8h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </button>
+              {outlineOpen && (
+                <div className="dsh-md-preview-outline" role="menu">
+                  {outline.map((entry, index) => (
+                    <button
+                      key={`${entry.line}-${entry.text}`} type="button" role="menuitem"
+                      style={{ paddingLeft: `${8 + (entry.level - 1) * 12}px` }}
+                      title={entry.text}
+                      onClick={() => { jumpToOutline(index) }}
+                    >
+                      {entry.text}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </span>
+          )}
           {face === 'document' ? (
             <button
               type="button" className="dsh-md-preview-icon" aria-label={t('browse.open')}
@@ -147,6 +219,17 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           {face === 'document' && state.face === 'edit' && (
             <>
               <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('panel.find')}
+                title={t('panel.find')} onClick={() => {
+                  const view = editorViewRef.current
+                  if (view !== null) openSearchPanel(view)
+                }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M7 12a5 5 0 1 1 4.3-2.5L14 12.2 12.2 14l-2.7-2.7A5 5 0 0 1 7 12zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor" opacity="0.9" />
+                </svg>
+              </button>
+              <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.save')}
                 title={t('panel.save')} disabled={!canSave}
                 onClick={() => { actions.save(false) }}
@@ -180,6 +263,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               {target !== null && (
                 <WorkspaceBrowser
                   sessionId={target.sessionId}
+                  active={face === 'browse'}
                   list={list}
                   onOpenFile={openFromBrowser}
                   currentPath={target.path}
@@ -188,7 +272,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               )}
             </div>
           )}
-          <div className="dsh-md-preview-document" hidden={face !== 'document'}>
+          <div className="dsh-md-preview-document" hidden={face !== 'document'} ref={documentRef}>
           {state.toast && state.face === 'view' && (
             <div className="dsh-md-preview-toast" role="status">✓ {t('panel.saved')}</div>
           )}
@@ -224,6 +308,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               initialValue={state.content.state === 'ready' ? state.content.file.content : ''}
               onChange={actions.edit}
               onSave={() => { actions.save(false) }}
+              onView={onEditorView}
             />
           ) : (
             <>

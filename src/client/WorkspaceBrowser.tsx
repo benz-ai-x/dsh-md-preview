@@ -14,6 +14,8 @@ import type { MdPreviewEntry, MdPreviewListResult } from '../protocol.ts'
 export interface WorkspaceBrowserProps {
   /** Owning session whose workspace the tree roots at. */
   sessionId: SessionId
+  /** Whether the browse face is showing (refreshes revalidate on entry). */
+  active: boolean
   /** One directory listing; the transport carries the AbortSignal. */
   list(
     sessionId: SessionId,
@@ -65,7 +67,7 @@ function EntryIcon({ type }: { type: MdPreviewEntry['type'] }) {
  * @param props - session identity, listing RPC, file-open handoff, locale seat.
  * @returns the tree element.
  */
-export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }: WorkspaceBrowserProps) {
+export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentPath, t }: WorkspaceBrowserProps) {
   // Keyed by workspace-relative directory path; presence means expanded.
   const [dirs, setDirs] = useState<ReadonlyMap<string, DirState>>(new Map([['', { state: 'loading' }]]))
   const controllers = useRef(new Map<string, AbortController>())
@@ -74,6 +76,8 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
   // Roving focus (one tab stop): the workspace-relative path of the focused node.
   const [focusPath, setFocusPath] = useState<string | null>(null)
   const treeRef = useRef<HTMLUListElement>(null)
+  // The mount itself lists the root; only later activations revalidate.
+  const everActive = useRef(false)
 
   useEffect(() => {
     if (focusPath !== null) return
@@ -112,6 +116,35 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
       for (const controller of controllers.current.values()) controller.abort()
     }
   }, [load])
+
+  /** Silent revalidation: refetch one listing, keeping the current one until
+   * the fresh answer lands (a failed refresh never blanks the tree). */
+  const refreshPath = useCallback((path: string): void => {
+    controllers.current.get(path)?.abort()
+    const controller = new AbortController()
+    controllers.current.set(path, controller)
+    void list(sessionId, path, controller.signal).then((result) => {
+      if (controller.signal.aborted || !result.ok) return
+      setDirs(current => new Map(current).set(path, { state: 'ready', entries: result.value.entries }))
+    })
+  }, [list, sessionId])
+
+  const refreshAll = useCallback((): void => {
+    for (const path of dirsRef.current.keys()) refreshPath(path)
+  }, [refreshPath])
+  // Through a ref: the effect must key on `active` alone, or a session change
+  // (new refreshAll identity) would revalidate against the stale expansion
+  // set and resurrect directories the session-boundary reset just dropped.
+  const refreshAllRef = useRef(refreshAll)
+  refreshAllRef.current = refreshAll
+
+  // The agent keeps producing files mid-conversation; every re-entry into the
+  // browse face revalidates the expanded directories (mount already loaded).
+  useEffect(() => {
+    if (!active) return
+    if (everActive.current) refreshAllRef.current()
+    else everActive.current = true
+  }, [active])
 
   // Auto-reveal: a target set outside the tree (chip row, message action)
   // walks its ancestor directories open so the file is already located.
@@ -266,26 +299,41 @@ export function WorkspaceBrowser({ sessionId, list, onOpenFile, currentPath, t }
 
   const root = dirs.get('')
   return (
-    <ul
-      ref={treeRef}
-      role="tree"
-      className="dsh-md-preview-tree"
-      aria-label={t('browse.open')}
-      onKeyDown={onKeyDown}
-    >
-      {root?.state === 'loading' && <li className="dsh-md-preview-treehint" role="presentation">{t('browse.loading')}</li>}
-      {root?.state === 'failed' && (
-        <li className="dsh-md-preview-treehint" role="presentation">
-          {t('browse.error')}
-          <button type="button" className="dsh-md-preview-treeretry" onClick={() => { load('') }}>
-            {t('browse.retry')}
-          </button>
-        </li>
-      )}
-      {root?.state === 'ready' && root.entries.length === 0 && (
-        <li className="dsh-md-preview-treehint" role="presentation">{t('browse.empty')}</li>
-      )}
-      {root?.state === 'ready' && root.entries.length > 0 && renderEntries(root.entries, 1)}
-    </ul>
+    <>
+      <div className="dsh-md-preview-toolbar">
+        <button
+          type="button"
+          className="dsh-md-preview-refresh"
+          aria-label={t('browse.refresh')}
+          title={t('browse.refresh')}
+          onClick={refreshAll}
+        >
+          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+            <path d="M13.5 8a5.5 5.5 0 1 1-1.7-4M13.5 1.8v2.7h-2.7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <ul
+        ref={treeRef}
+        role="tree"
+        className="dsh-md-preview-tree"
+        aria-label={t('browse.open')}
+        onKeyDown={onKeyDown}
+      >
+        {root?.state === 'loading' && <li className="dsh-md-preview-treehint" role="presentation">{t('browse.loading')}</li>}
+        {root?.state === 'failed' && (
+          <li className="dsh-md-preview-treehint" role="presentation">
+            {t('browse.error')}
+            <button type="button" className="dsh-md-preview-treeretry" onClick={() => { load('') }}>
+              {t('browse.retry')}
+            </button>
+          </li>
+        )}
+        {root?.state === 'ready' && root.entries.length === 0 && (
+          <li className="dsh-md-preview-treehint" role="presentation">{t('browse.empty')}</li>
+        )}
+        {root?.state === 'ready' && root.entries.length > 0 && renderEntries(root.entries, 1)}
+      </ul>
+    </>
   )
 }

@@ -11,6 +11,7 @@
 import { useEffect, useRef } from 'react'
 import { EditorState } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { search, searchKeymap } from '@codemirror/search'
 import {
   EditorView,
   drawSelection,
@@ -40,20 +41,24 @@ export interface MarkdownEditorProps {
   onChange: (value: string) => void
   /** Cmd/Ctrl-S from the editor's keymap. */
   onSave: () => void
+  /** Reports the mounted editor view (null on unmount) for panel-side calls. */
+  onView?: (view: EditorView | null) => void
 }
 
 /**
  * Render one CodeMirror editor bound to the panel's edit session.
- * @param props - initial document plus change and save callbacks.
+ * @param props - initial document plus change, save, and view callbacks.
  * @returns the editor host element.
  */
-export function MarkdownEditor({ initialValue, onChange, onSave }: MarkdownEditorProps) {
+export function MarkdownEditor({ initialValue, onChange, onSave, onView }: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null)
   // Refs keep the extension closures stable without remounting on callback identity.
   const changeRef = useRef(onChange)
   changeRef.current = onChange
   const saveRef = useRef(onSave)
   saveRef.current = onSave
+  const viewRef = useRef(onView)
+  viewRef.current = onView
 
   useEffect(() => {
     const parent = host.current
@@ -67,6 +72,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave }: MarkdownEdito
           highlightActiveLine(),
           syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
           EditorView.lineWrapping,
+          search({ top: true }),
           // Fenced blocks and inline HTML edit as plain text; rendered
           // highlighting stays the preview face's job.
           markdownLanguage,
@@ -75,6 +81,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave }: MarkdownEdito
               key: 'Mod-s',
               run: () => { saveRef.current(); return true },
             },
+            ...searchKeymap,
             ...defaultKeymap,
             ...historyKeymap,
           ]),
@@ -89,7 +96,11 @@ export function MarkdownEditor({ initialValue, onChange, onSave }: MarkdownEdito
       }),
       ...(parent === null ? {} : { parent }),
     })
-    return () => { view.destroy() }
+    viewRef.current?.(view)
+    return () => {
+      viewRef.current?.(null)
+      view.destroy()
+    }
     // A new edit session (different initial document) mounts a fresh editor;
     // callbacks travel through refs, so this effect otherwise runs once.
   }, [initialValue])

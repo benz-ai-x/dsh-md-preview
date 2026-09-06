@@ -16,7 +16,10 @@
 - The panel renders nothing while no preview target is set.
 - **Editing** — the panel's Edit action enters a CodeMirror editor (line numbers, GFM highlighting, Cmd/Ctrl-S save); Save writes back to the workspace, flashes a "Saved" toast, and returns to the rendered view; Cancel discards the draft. Only existing files edit. Non-conflict save failures show the failure code with a Retry action.
 - **Conflict guard** — saving over a file that changed elsewhere (another session, the agent, an external editor) prompts "the file changed elsewhere": Reload or Overwrite; closing with unsaved edits asks first.
-- **Workspace browser** — the panel header's Workspace action enters a directory tree of the session workspace (lazy expansion, loading/empty/failed states); single-click renders `.md` rich, `.txt` and other text monospace, other types a clear unsupported notice; the current document highlights and auto-reveals in the tree; full keyboard traversal (arrows/Enter); the header shows the path breadcrumb.
+- **Workspace browser** — the panel header's Workspace action enters a directory tree of the session workspace (lazy expansion, loading/empty/failed states); single-click renders `.md` rich, `.txt` and other text monospace, other types a clear unsupported notice; the current document highlights and auto-reveals in the tree; full keyboard traversal (arrows/Enter); the header shows the path breadcrumb. Expanded directories silently revalidate on every re-entry (and from the tree's refresh button) — the agent keeps producing files mid-conversation, and a failed refresh never blanks what's on screen.
+- **Outline** — the header's outline popover lists the document's ATX headings (fenced code never counts); clicking scrolls the rendered heading in the view face and jumps the cursor to the source line in the edit face.
+- **Editor find** — the edit face carries a CodeMirror search panel (header button and Mod/Ctrl-F).
+- **Mermaid diagrams** — fenced ` ```mermaid ` blocks render as diagrams after the document settles; the block banner stays (copy still reads the source), and any failure falls back to the plain code block. Mermaid is inlined into the client bundle but evaluated lazily (first diagram pays the parse cost; bundle ~3.9 MB minified / ~1.1 MB gzip).
 
 ## Install
 
@@ -83,6 +86,8 @@ The panel shows `md-preview/<reason>` on failure. All codes:
 - Inline prose mentions of `.md` files still open on the desktop (owned by ui-deliverables, not this plugin).
 - The panel floats above the details column; it does not replace the three-column grid.
 - Uploaded document attachments are not previewable (no transcript surface today).
+- The outline lists ATX headings only (setext forms render but stay out of the popover).
+- Mermaid renders with its default theme; documents mixing indented code blocks with fenced ones skip the diagram pass entirely (order-parity safety check).
 
 ## Development (source-linked)
 
@@ -102,8 +107,10 @@ pnpm watch:client           # client bundle watch build
 | Browser entry | `src/client/index.ts` | mounts the Remote + registers three Slot contributions |
 | Preview panel | `src/client/PreviewOverlay.tsx` | `shell.overlay` (list, additive); rendering + geometry only |
 | Session machine | `src/client/preview-session.ts` | pure reducer for read/edit/save/prompts |
-| Editor | `src/client/editor.tsx` | CodeMirror 6 (curated extensions, inlined at build; client bundle ~426 kB minified) |
-| Workspace tree | `src/client/WorkspaceBrowser.tsx` | lazy tree with highlight/auto-reveal/keyboard |
+| Editor | `src/client/editor.tsx` | CodeMirror 6 (curated extensions incl. the search panel, inlined at build) |
+| Workspace tree | `src/client/WorkspaceBrowser.tsx` | lazy tree with highlight/auto-reveal/keyboard and silent revalidation |
+| Outline | `src/client/outline.ts` | ATX heading scan + rendered-heading resolution |
+| Diagram pass | `src/client/diagrams.ts` | post-render mermaid enhancement, fail-soft to the code block |
 | Chip row | `src/client/MdChips.tsx` | `conversation.chat.turnTail` (chain; claims markdown-bearing turns) |
 | Message action | `src/client/PreviewAction.tsx` | `conversation.chat.assistant-actions` (list, additive) |
 

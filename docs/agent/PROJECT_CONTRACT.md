@@ -23,7 +23,18 @@ CodeMirror 6 editor (line numbers, GFM highlighting, Cmd/Ctrl-S) whose
 rendered view; 「取消编辑」 discards the draft. Saving over a file that
 changed since the read raises a conflict bar (重新加载 / 强制覆盖), and
 closing with unsaved edits asks first (放弃修改 / 继续编辑). Editing targets
-existing files only — no creation.
+existing files only — no creation. The edit face carries a CodeMirror search
+panel (header button and Mod-F). The header's outline popover navigates the
+document's ATX headings — scrolling the rendered heading in the view face,
+jumping the cursor to the source line in the edit face. The browse face
+silently revalidates every expanded directory on re-entry (and from its
+refresh button): fresh listings replace current ones, a failed refresh
+changes nothing. After the platform renderer settles the document, a diagram
+pass enhances mermaid code blocks inside the panel's own rendered subtree —
+the block banner stays (copy keeps the source), the code hides, mermaid's
+SVG shows; every failure falls back to the plain code block with a one-line
+note, and the pass is refused wholesale when rendered blocks and source
+fences disagree in count.
 
 ## Plugin form and topology
 
@@ -42,15 +53,21 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   three Slot contributions: `shell.overlay` (list, id `md-preview`, the
   docked panel), `conversation.chat.turnTail` (chain, order -100, claims
   markdown-bearing turns), and `conversation.chat.assistant-actions`
-  (list, id `md-preview`). CodeMirror 6 (curated extension set; the GFM
-  grammar assembled directly from `@lezer/markdown` to avoid
-  `lang-markdown`'s static html/css/js chain) is a build-time devDependency
-  inlined into the client bundle. The panel's whole state — read lifecycle,
+  (list, id `md-preview`). CodeMirror 6 (curated extension set — line
+  numbers, history, the search panel, and the GFM grammar assembled directly
+  from `@lezer/markdown` to avoid `lang-markdown`'s static html/css/js
+  chain) is a build-time devDependency inlined into the client bundle, as is
+  mermaid (dynamic-import inlined but lazily evaluated: the diagram pass
+  only pays mermaid's parse cost when a document actually carries a mermaid
+  block; the client bundle grows to ~3.9 MB minified / ~1.1 MB gzip for it).
+  The panel's whole state — read lifecycle,
   edit session, guarded save, prompts — is one pure machine
   (`src/client/preview-session.ts`, `READ_STARTED` on a new target being the
   single full reset) behind the effectful adapter
   `src/client/use-preview-session.ts`; the component renders and owns only
-  geometry and locale.
+  geometry and locale. The outline (`src/client/outline.ts`) and the diagram
+  pass (`src/client/diagrams.ts`) are UI-local modules over the settled
+  document — no service state involved.
 
 Service dependencies:
 
@@ -158,3 +175,11 @@ compose, boot, serve the client bundle, remove.
 - The editor face highlights markdown structure only: fenced code blocks
   and inline HTML edit as plain text (rendered highlighting stays with the
   preview face), and the panel edits existing files only — no creation.
+- The outline lists ATX headings only: setext (underlined) headings appear
+  in the rendered document but not in the popover, and heading text is
+  matched against the rendered DOM by normalized text with occurrence
+  ordering (inlines that alter text can miss their target).
+- The diagram pass keys on order parity between source fences and rendered
+  `.md-code-block`s: any document mixing indented code blocks with fenced
+  ones refuses the pass wholesale, mermaid renders with its default theme,
+  and only fenced ` ```mermaid ` blocks qualify.
