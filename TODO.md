@@ -16,7 +16,7 @@
 - [ ] HMR 验证：`pnpm watch:client` + 浏览器 bundle 热替换
 - [x] packed-artifact 冒烟（发布前置条件）→ 已通过，见下节
 - [ ] 评估：正文内联 `.md` 文件提及（chatFileMentions 仍归 ui-deliverables 所有）是否值得提供包装层
-- [ ] 用户环境已知问题：web profile 中第三方插件 `@benz-ai-x/dsh-client-ui-session-graph`（link 自 ~/Dev-Space/dsh-session-graph）自身依赖缺失，会在插件树加载时 fail-loud；与本插件无关，需在源项目修复或禁用该行
+- [ ] 用户环境已知问题：web profile 中第三方插件 `@benz-ai-x/dsh-client-ui-session-graph`（link 自 ~/Dev-Space/dsh-session-graph）自身依赖缺失，会在插件树加载时 fail-loud；与本插件无关，需在源项目修复或禁用该行。根因（2026-09-06 实查）：其 lib import `@deepseek-ai/dsh-llm` 但 package.json 未声明；临时绕过 = 启动时带一次性 `--patch` 禁用该行（见 0.6.0 发布节）
 
 ## 发布 0.1.0（2026-09-01）
 
@@ -215,11 +215,15 @@
       其 stdout 污染 `--json` 解析（0.4.0 发布时 prepare 尚不存在，0.5.0 首
       次暴露）→ pack.mjs 两条路径加 `--ignore-scripts`（新鲜度已由
       verify-built 门保证）
-- [ ] npm publish 0.5.0（tmux 真终端 + 浏览器 2FA 授权）→ 验货 registry
-      tarball → web profile 升 `^0.5.0` → git push + gh release
+- [x] npm publish 0.5.0 → **决定跳过**：0.5.0 从未单独发布，rc.1 对齐内容随
+      0.6.0 一并上线（registry 0.4.0 → 0.6.0 直跳）。修正记录：上节曾勾
+      「v0.5.0 commit+tag 已落」，但本地 tag 实际只有 v0.4.0/v0.6.0，v0.5.0
+      tag 从未存在
 - 备注：用户 web profile 的第三方 `@benz-ai-x/dsh-client-ui-session-graph`
       依赖缺失（预存问题）当前会阻塞整个 profile 启动；本次冒烟改用独立
-      干净 profile 完成，用户侧需修复该项目或禁用该行后 3080 才能起来
+      干净 profile 完成，用户侧需修复该项目或禁用该行后 3080 才能起来。
+      2026-09-06 实查根因：该项目 lib import 了 `@deepseek-ai/dsh-llm` 但
+      package.json 未声明该依赖（源项目 bug，非安装缺失）
 
 ## 功能四连（2026-09-06，目标 0.6.0）
 
@@ -245,5 +249,14 @@
       首图才求值的部署上下文下可接受，已写入契约与 README 已知限制
 - [x] 测试 116/116（+15：outline 6、refresh 3、find 2、diagrams 4）；
       mermaid 经 vi.mock 在 import seam 打桩（其自身渲染归上游测试）
-- [ ] 发布 0.6.0：verify → packed 冒烟 → npm publish（2FA）→ profile 升级
-      → git push + gh release
+- [x] 发布 0.6.0（2026-09-06）：verify 全链 + packed 冒烟（干净 profile：
+      装 tarball → dump 行 → 启动零告警 → /plugins 200 服务 3.89 MB 工厂
+      bundle 内嵌 v0.6.0 → remove 往返干净）→ npm publish 完成（排障三连：
+      自防御门拦 mtime 陈旧 d.ts，`tsc -b --force` 重建；~/.npmrc 陈旧
+      npmjs token 致 404，摘除后 `npm login --auth-type=web` 重授权；tmux
+      会话 stdout 重定向到文件会让 npm 判非交互直抛 EOTP —— 必须
+      **不重定向、让 npm 拥有真 pty**，再 send-keys Enter 开浏览器授权）；
+      验货 registry tarball（1,080,680 B、29 files、无 devDeps、内嵌
+      v0.6.0 + mermaid）→ web profile 升 `^0.6.0`（minimumReleaseAgeExclude
+      自动加条目）→ 带禁用 session-graph 的一次性 `--patch` 启动验证
+      bundle → git push + gh release v0.6.0

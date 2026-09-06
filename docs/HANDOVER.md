@@ -1,16 +1,21 @@
-# 交接文档 — dsh-md-preview(2026-09-01)
+# 交接文档 — dsh-md-preview(2026-09-06)
 
 面向接手本仓库的开发者或 AI 会话。目标:读完这一份即可继续开发、验证、发布。
 
 ## 当前状态
 
-**v0.5.0 已完成发布前置、待 npm publish（2FA 浏览器授权）**：基线升级
-`0.1.2-alpha.3` → `0.1.2-rc.1`（漂移审查 305 commits 零 API 破坏，纯版本
-对齐，见 TODO「基线升级 alpha.3 → rc.1」节）；verify 全链 + packed 冒烟全
-绿；v0.5.0 commit+tag 已落。用户 web profile 已装本地 0.5.0 tarball
-（file: 引用，publish 后切 `^0.5.0`）。
-只读预览 → 受守卫编辑（乐观锁+沙箱）→ 工作区浏览（目录树/文本预览/面包屑/键盘）。
-测试 **101 项**全绿;`pnpm verify` 全链通过是唯一发布前置。
+**v0.6.0 已发布上线(2026-09-06,registry latest)**:rc.1 基线对齐(0.5.0
+内容,跳过未单独发布)+ 功能四连(大纲导航 / 工作区树刷新 / 编辑器查找 /
+mermaid 图表增强)。测试 **116 项**全绿;发布链全过(verify → packed 冒烟 →
+npm publish → 验货 → web profile `^0.6.0`)。client bundle 3.89 MB
+minified(mermaid 内联,惰性求值)。
+只读预览 → 受守卫编辑(乐观锁+沙箱)→ 工作区浏览 → 大纲/查找/mermaid。
+`pnpm verify` 全链通过是唯一发布前置。
+发布实操坑(2026-09-06 实录):verify-built 是 mtime 门,pack.mjs 每次运行
+都会重写 package.json → 重试发布前必须 `tsc -b --force` 重建;~/.npmrc 里
+registry.npmjs.org 的陈旧 token 会以 404 伪装失败,摘掉后
+`npm login --auth-type=web` 重授权;tmux 里跑 publish **不要重定向
+stdout**(否则 npm 判非交互直抛 EOTP),保持真 pty 再 send-keys Enter。
 
 ## 文档地图(哪个问题查哪份)
 
