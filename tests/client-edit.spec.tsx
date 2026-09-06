@@ -9,7 +9,7 @@ import { useSyncExternalStore } from 'react'
 import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
 import { closeSearchPanel, SearchQuery, setSearchQuery } from '@codemirror/search'
-import { EditorView } from '@codemirror/view'
+import { EditorView, keymap } from '@codemirror/view'
 import { readFileSync } from 'node:fs'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
@@ -26,6 +26,9 @@ beforeAll(() => {
     unobserve(): void {}
     disconnect(): void {}
   } as unknown as typeof ResizeObserver
+  // jsdom ships no layout either: CM's measure pass reads Range.getClientRects,
+  // and an orphaned rAF after a test would surface it as an unhandled error.
+  ;(Range.prototype as unknown as { getClientRects?: () => [] }).getClientRects ??= () => []
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 })
 
@@ -69,6 +72,7 @@ async function renderPanel(): Promise<PanelHarness> {
       close={() => { store.set(null) }}
       read={read as never}
       write={harness.write as never}
+      list={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } })) as never}
       t={t as never}
     />
   )
@@ -149,7 +153,7 @@ describe('PreviewOverlay edit mode', () => {
     await enterEdit(harness)
     expect(harness.container.querySelector('.cm-content')?.textContent).toContain('# Hi')
     expect(byText(harness, 'panel.save')).toBeDefined()
-    expect(byText(harness, 'panel.cancel')).toBeDefined()
+    expect(byText(harness, 'panel.view')).toBeDefined()
   })
 
   it('saves through write with the read fingerprint and returns to the view', async () => {
@@ -197,11 +201,12 @@ describe('PreviewOverlay edit mode', () => {
     expect(harness.write).not.toHaveBeenCalled()
   })
 
-  it('cancel discards the draft without writing', async () => {
+  it('switching to the preview discards the draft through the guard without writing', async () => {
     const harness = await renderPanel()
     await enterEdit(harness)
     await typeInto(harness, ' draft')
-    await click(harness, 'panel.cancel')
+    await click(harness, 'panel.view')
+    await click(harness, 'panel.unsaved.discard')
     expect(harness.container.querySelector('.cm-editor')).toBeNull()
     // Back on the rendered document: the heading is markup now, not source text.
     expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toBe('Hi')
@@ -352,5 +357,151 @@ describe('find count', () => {
     await act(async () => { closeSearchPanel(view) })
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     expect(harness.container.querySelector('.dsh-md-preview-findcount')).toBeNull()
+  })
+})
+
+describe('edit status bar and history buttons (#15)', () => {
+  it('reports Ln/Col and the character count live', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const bar = harness.container.querySelector('.dsh-md-preview-statusbar') as HTMLElement
+    expect(bar).toBeTruthy()
+    expect(bar.textContent).toContain('Ln 1, Col 1')
+    await act(async () => {
+      harness.view!.dispatch({
+        changes: { from: 4, insert: ' there' },
+        selection: { anchor: 10 },
+      })
+    })
+    await act(async () => { await Promise.resolve() })
+    expect(bar.textContent).toContain('status.chars')
+    // anchor 10 in "# Hi there" is line 1, column 11 (exact, not substring).
+    expect(bar.querySelector('span')?.textContent).toBe('Ln 1, Col 11')
+  })
+
+  it('undoes and redoes from the header buttons with disabled states', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const undoBtn = () => harness.container.querySelector('button[aria-label="panel.undo"]') as HTMLButtonElement
+    const redoBtn = () => harness.container.querySelector('button[aria-label="panel.redo"]') as HTMLButtonElement
+    expect(undoBtn().disabled).toBe(true)
+    expect(redoBtn().disabled).toBe(true)
+    await typeInto(harness, ' there')
+    expect(undoBtn().disabled).toBe(false)
+    await click(harness, 'panel.undo')
+    expect(harness.container.querySelector('.cm-content')?.textContent).not.toContain('there')
+    expect(redoBtn().disabled).toBe(false)
+    await click(harness, 'panel.redo')
+    expect(harness.container.querySelector('.cm-content')?.textContent).toContain('there')
+  })
+
+  it('keeps the saved time resident after the toast fades', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const bar = harness.container.querySelector('.dsh-md-preview-statusbar') as HTMLElement
+    expect(bar.textContent).toContain('status.clean')
+    await typeInto(harness, ' there')
+    expect(bar.textContent).toContain('status.unsaved')
+    await click(harness, 'panel.save')
+    // Saving returns to the view face (the statusbar unmounts with the
+    // editor); re-entering edit shows the resident saved stamp for the
+    // same target — it outlives the 2s toast.
+    await enterEdit(harness)
+    const barAgain = harness.container.querySelector('.dsh-md-preview-statusbar') as HTMLElement
+    expect(barAgain.textContent).toContain('status.saved')
+    expect(barAgain.textContent).toMatch(/\d{2}:\d{2}/)
+  })
+})
+
+describe('markup keymaps and the key help popover (#16)', () => {
+  const pressKey = async (harness: PanelHarness, init: KeyboardEventInit, on: HTMLElement): Promise<void> => {
+    await act(async () => { on.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init })) })
+    await act(async () => { await Promise.resolve() })
+  }
+
+  it('binds Mod-B/I/K and wraps selections (empty selections get pairs)', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    // CM ignores synthetic key events under jsdom (its key path needs real
+    // focus/layout), so the binding is exercised through the public keymap
+    // facet: the key must be bound, and its command must wrap. Real-key
+    // delivery rides the browser walkthrough checklist (#18).
+    const view = EditorView.findFromDOM(harness.container.querySelector('.cm-editor') as HTMLElement)!
+    const binding = (key: string) => view.state.facet(keymap).flat().find(b => b.key === key)
+    expect(binding('Mod-b')).toBeDefined()
+    expect(binding('Mod-i')).toBeDefined()
+    expect(binding('Mod-k')).toBeDefined()
+    // The key help opens from inside the editor via its command form (#16 fix).
+    expect(binding('Mod-/')).toBeDefined()
+    // Select "Hi" (offsets 2–4 in "# Hi").
+    await act(async () => { view.dispatch({ selection: { anchor: 2, head: 4 } }) })
+    await act(async () => { binding('Mod-b')!.run!(view) })
+    expect(view.state.doc.toString()).toBe('# **Hi**')
+    // Undo reverts the wrap (history consistency).
+    await act(async () => { binding('Mod-z')!.run!(view) })
+    expect(view.state.doc.toString()).toBe('# Hi')
+    // Empty selection inserts an empty marker pair with the cursor inside.
+    await act(async () => { view.dispatch({ selection: { anchor: 4 } }) })
+    await act(async () => { binding('Mod-i')!.run!(view) })
+    expect(view.state.doc.toString()).toBe('# Hi**')
+    expect(view.state.selection.main.head).toBe(5)
+  })
+
+  it('opens the key help from the button and ?, and closes on Esc', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const pop = () => harness.container.querySelector('.dsh-md-preview-keypop')
+    expect(pop()).toBeNull()
+    await click(harness, 'panel.keys')
+    expect(pop()).toBeTruthy()
+    expect(pop()!.textContent).toContain('Mod-B')
+    expect(pop()!.textContent).toContain('keys.bold')
+    await pressKey(harness, { key: 'Escape' }, harness.container.querySelector('.dsh-md-preview-panel') as HTMLElement)
+    expect(pop()).toBeNull()
+    // '?' outside the editor toggles it; inside the editor it must type.
+    const panel = harness.container.querySelector('.dsh-md-preview-panel') as HTMLElement
+    await pressKey(harness, { key: '?' }, panel)
+    expect(pop()).toBeTruthy()
+    const content = harness.container.querySelector('.cm-content') as HTMLElement
+    await pressKey(harness, { key: 'Escape' }, panel)
+    await pressKey(harness, { key: '?' }, content)
+    expect(pop()).toBeNull()
+    expect(harness.view!.state.doc.toString()).not.toContain('?')
+  })
+})
+
+describe('inline-HTML warning bar (#17)', () => {
+  async function renderWith(content: string): Promise<PanelHarness> {
+    const harness = await renderPanel()
+    harness.readResult = { ok: true, value: { path: 'README.md', content, fingerprint: 'v1' } }
+    // Force a re-read of the (mutated) result: a fresh target read.
+    harness.setTarget({ sessionId: 'session-1', path: 'README.md' })
+    await harness.rerender()
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    return harness
+  }
+
+  it('warns for inline HTML once per edit session and returns on re-entry', async () => {
+    const harness = await renderWith('# Hi\n\n<div align="center">x</div>\n')
+    const bar = () => harness.container.querySelector('.dsh-md-preview-warnbar')
+    expect(bar()).toBeNull()
+    await enterEdit(harness)
+    expect(bar()).toBeTruthy()
+    expect(bar()!.textContent).toContain('warn.html')
+    await act(async () => {
+      (bar()!.querySelector('button[aria-label="warn.dismiss"]') as HTMLElement).click()
+    })
+    await act(async () => { await Promise.resolve() })
+    expect(bar()).toBeNull()
+    // Dismissed for this session; leaving and re-entering edit shows it again.
+    await click(harness, 'panel.view')
+    await click(harness, 'panel.edit')
+    expect(bar()).toBeTruthy()
+  })
+
+  it('stays silent without inline HTML', async () => {
+    const harness = await renderWith('# plain markdown only\n')
+    await enterEdit(harness)
+    expect(harness.container.querySelector('.dsh-md-preview-warnbar')).toBeNull()
   })
 })

@@ -5,7 +5,7 @@
  * children are fetched when its caret opens it and discarded when it closes.
  * Single-clicking a file hands its path to the panel as a preview target.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewEntry, MdPreviewListResult } from '../protocol.ts'
@@ -44,6 +44,42 @@ function fileKind(name: string): 'markdown' | 'image' | 'text' | 'file' {
   if (/\.(?:png|jpe?g|gif|svg|webp|bmp|avif)$/i.test(name)) return 'image'
   if (/\.(?:txt|text|log|csv|json|ya?ml|toml)$/i.test(name)) return 'text'
   return 'file'
+}
+
+/**
+ * Entries visible under a filter query (#13): a name match, or a loaded
+ * descendant match, keeps an entry. A name-matched directory keeps its
+ * whole subtree (the caller renders children unfiltered from there).
+ * @param entries - one directory level, in listing order.
+ * @param query - the raw filter text; blank shows everything.
+ * @param childrenOf - resolves a loaded directory's entries (undefined
+ *   while unloaded or failed).
+ * @returns the entries this level should render.
+ */
+export function filterEntries(
+  entries: readonly MdPreviewEntry[],
+  query: string,
+  childrenOf: (path: string) => readonly MdPreviewEntry[] | undefined,
+): readonly MdPreviewEntry[] {
+  const q = query.trim().toLowerCase()
+  if (q.length === 0) return entries
+  return entries.filter(entry => {
+    if (entry.name.toLowerCase().includes(q)) return true
+    if (entry.type !== 'directory') return false
+    const kids = childrenOf(entry.path)
+    return kids !== undefined && filterEntries(kids, q, childrenOf).length > 0
+  })
+}
+
+/** The file name with its filter hit wrapped in <mark> (nothing when no hit). */
+function highlightName(name: string, normalized: string): ReactNode {
+  const at = normalized.length === 0 ? -1 : name.toLowerCase().indexOf(normalized)
+  if (at < 0) return name
+  return <>
+    {name.slice(0, at)}
+    <mark>{name.slice(at, at + normalized.length)}</mark>
+    {name.slice(at + normalized.length)}
+  </>
 }
 
 /** One SVG glyph per entry kind (aria-hidden; the name is the accessible label). */
@@ -102,6 +138,10 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
   dirsRef.current = dirs
   // Roving focus (one tab stop): the workspace-relative path of the focused node.
   const [focusPath, setFocusPath] = useState<string | null>(null)
+  // The tree filter (#13): UI-local; blank shows the whole tree. The
+  // normalized form is computed once and feeds every consumer.
+  const [filter, setFilter] = useState('')
+  const normalizedFilter = filter.trim().toLowerCase()
   const treeRef = useRef<HTMLUListElement>(null)
   // The mount itself lists the root; only later activations revalidate.
   const everActive = useRef(false)
@@ -255,8 +295,18 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
     }
   }, [onOpenFile, toggle])
 
-  const renderEntries = (entries: readonly MdPreviewEntry[], level: number) => entries.map(entry => {
+  const childrenOf = useCallback((path: string): readonly MdPreviewEntry[] | undefined => {
+    const state = dirsRef.current.get(path)
+    return state?.state === 'ready' ? state.entries : undefined
+  }, [])
+
+  const renderEntries = (entries: readonly MdPreviewEntry[], level: number, ancestorMatched = false) => {
+    const visible = ancestorMatched
+      ? entries
+      : filterEntries(entries, filter, childrenOf)
+    return visible.map(entry => {
     const state = dirs.get(entry.path)
+    const nameMatched = normalizedFilter.length > 0 && entry.name.toLowerCase().includes(normalizedFilter)
     const isCurrent = currentPath !== null && entry.path === currentPath
     // A collapsed directory whose subtree holds the current target inherits
     // the selection, so the location reads even before it opens.
@@ -302,7 +352,7 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
             <span className="dsh-md-preview-treespacer" aria-hidden />
           )}
           <EntryIcon type={entry.type} name={entry.name} />
-          <span className="dsh-md-preview-treename">{entry.name}</span>
+          <span className="dsh-md-preview-treename">{highlightName(entry.name, normalizedFilter)}</span>
         </div>
         {entry.type === 'directory' && state !== undefined && (
           <ul role="group" className="dsh-md-preview-treegroup">
@@ -318,17 +368,25 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
             {state.state === 'ready' && state.entries.length === 0 && (
               <li className="dsh-md-preview-treehint" role="presentation">{t('browse.empty')}</li>
             )}
-            {state.state === 'ready' && state.entries.length > 0 && renderEntries(state.entries, level + 1)}
+            {state.state === 'ready' && state.entries.length > 0 && renderEntries(state.entries, level + 1, ancestorMatched || nameMatched)}
           </ul>
         )}
       </li>
     )
   })
+  }
 
   const root = dirs.get('')
   return (
     <>
       <div className="dsh-md-preview-toolbar">
+        <input
+          type="text"
+          className="dsh-md-preview-treefilter"
+          placeholder={t('browse.filter')}
+          value={filter}
+          onChange={event => { setFilter(event.target.value) }}
+        />
         <button
           type="button"
           className="dsh-md-preview-refresh"
@@ -359,6 +417,10 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
         )}
         {root?.state === 'ready' && root.entries.length === 0 && (
           <li className="dsh-md-preview-treehint" role="presentation">{t('browse.empty')}</li>
+        )}
+        {root?.state === 'ready' && root.entries.length > 0
+          && filterEntries(root.entries, filter, childrenOf).length === 0 && (
+          <li className="dsh-md-preview-treehint" role="presentation">{t('browse.noMatch')}</li>
         )}
         {root?.state === 'ready' && root.entries.length > 0 && renderEntries(root.entries, 1)}
       </ul>
