@@ -9,4 +9,3 @@ proto-*.png
 .env
 .env.*
 !.env.example
-*.tgz
