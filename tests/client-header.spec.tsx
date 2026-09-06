@@ -152,3 +152,12 @@ describe('header information architecture', () => {
     expect(harness.container.textContent).not.toContain('panel.unsaved.title')
   })
 })
+
+describe('panel footer version (user feedback)', () => {
+  it('shows the version in a resident footer at the panel bottom', async () => {
+    const harness = await renderHeaderPanel('# T')
+    const foot = harness.container.querySelector('.dsh-md-preview-foot') as HTMLElement
+    expect(foot).toBeTruthy()
+    expect(foot.textContent).toMatch(/v\d+\.\d+\.\d+/)
+  })
+})

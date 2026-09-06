@@ -23,6 +23,15 @@ const CSS = `
   border-left: 1px solid var(--dsw-alias-border-l2);
   background: var(--dsw-alias-bg-base);
 }
+.dsh-md-preview-foot {
+  flex: none;
+  padding: 2px 12px 4px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  user-select: none;
+}
 .dsh-md-preview-handle {
   position: absolute;
   left: -4px;
@@ -372,6 +381,7 @@ const CSS = `
 .dsh-md-preview-bar button:disabled { opacity: 0.5; cursor: default; }
 .dsh-md-preview-browser { flex: 1; min-height: 0; overflow: auto; }
 .dsh-md-preview-browser[data-open] {
+  position: relative;
   flex: none;
   width: 148px;
   overflow: hidden;
@@ -396,6 +406,17 @@ const CSS = `
   border-bottom-color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
   font-weight: 500;
 }
+.dsh-md-preview-railhandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 2;
+}
+.dsh-md-preview-railhandle:hover { background: var(--dsw-alias-fill-secondary); }
 .dsh-md-preview-railfiles, .dsh-md-preview-railoutline {
   flex: 1;
   min-height: 0;

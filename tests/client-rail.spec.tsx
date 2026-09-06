@@ -268,3 +268,55 @@ describe('dirty-draft guard on tree file opens (#10 story 5)', () => {
     expect(harness.container.querySelector('.dsh-md-preview-dirty')).toBeNull()
   })
 })
+
+describe('rail resize handle (user feedback)', () => {
+  const dragRailHandle = async (harness: RailHarness, dx: number): Promise<void> => {
+    const handle = harness.container.querySelector('.dsh-md-preview-railhandle') as HTMLElement
+    expect(handle).toBeTruthy()
+    const down = new MouseEvent('pointerdown', { bubbles: true, clientX: 200 })
+    Object.assign(down, { pointerId: 2 })
+    await act(async () => { handle.dispatchEvent(down) })
+    const move = new MouseEvent('pointermove', { bubbles: true, clientX: 200 + dx })
+    Object.assign(move, { pointerId: 2 })
+    await act(async () => {
+      handle.dispatchEvent(move)
+      await new Promise(resolve => { setTimeout(resolve, 40) })
+    })
+    const up = new MouseEvent('pointerup', { bubbles: true, clientX: 200 + dx })
+    Object.assign(up, { pointerId: 2 })
+    await act(async () => { handle.dispatchEvent(up) })
+  }
+
+  it('widens the rail from its right edge and clamps to bounds', async () => {
+    const harness = await renderRail(TREE)
+    await dragHandle(harness, 100, -600)
+    await flush()
+    const browser = () => harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement
+    const width = () => parseInt(browser().style.width, 10)
+    expect(width()).toBe(148)
+    await dragRailHandle(harness, 60)
+    expect(width()).toBe(208)
+    await dragRailHandle(harness, 400)
+    expect(width()).toBe(320)
+    await dragRailHandle(harness, -900)
+    expect(width()).toBe(120)
+  })
+
+  it('keeps the rail width across collapse and below-threshold round trips', async () => {
+    const harness = await renderRail(TREE)
+    await dragHandle(harness, 100, -600)
+    await flush()
+    await dragRailHandle(harness, 52)
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
+    const browser = () => harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement
+    expect(parseInt(browser().style.width, 10)).toBe(200)
+    await dragHandle(harness, -600, 200)
+    await flush()
+    await dragHandle(harness, 200, -600)
+    await flush()
+    expect(parseInt((harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement).style.width, 10)).toBe(200)
+  })
+})

@@ -98,6 +98,8 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); remembered across collapses.
   const [railTab, setRailTab] = useState<'files' | 'outline'>('files')
+  // The rail's dragged width (user feedback): persists like the panel width.
+  const [railWidth, setRailWidth] = useState(148)
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [activeOutline, setActiveOutline] = useState(-1)
   const documentRef = useRef<HTMLDivElement>(null)
@@ -274,6 +276,39 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
 
   // The panel stays mounted across targets and opens; the user's width
   // persists for the whole app session (min/max clamped in the handler).
+  // Rail-edge drag (user feedback): the same best-effort capture pattern as
+  // the panel handle, reporting dx that widens/narrows the rail.
+  const railDrag = useRef<{ active: boolean; origin: number; latest: number; frame: number | null }>({
+    active: false, origin: 0, latest: 0, frame: null,
+  })
+  const onRailResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = railDrag.current
+    if (e.type === 'pointerdown') {
+      e.preventDefault()
+      try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* drag over the strip */ }
+      drag.active = true
+      drag.origin = e.clientX
+      drag.latest = e.clientX
+      return
+    }
+    if (!drag.active) return
+    if (e.type === 'pointermove') {
+      drag.latest = e.clientX
+      drag.frame ??= requestAnimationFrame(() => {
+        drag.frame = null
+        const next = drag.latest - drag.origin
+        drag.origin = drag.latest
+        setRailWidth(current => Math.min(320, Math.max(120, current + next)))
+      })
+      return
+    }
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch { /* release is advisory */ }
+    if (drag.frame !== null) { cancelAnimationFrame(drag.frame); drag.frame = null }
+    drag.active = false
+  }, [])
+
   const onResize = useCallback((deltaX: number) => {
     setWidth(current => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, current - deltaX)))
   }, [])
@@ -446,7 +481,17 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               className="dsh-md-preview-browser"
               data-open={railVisible || undefined}
               hidden={!railVisible && face !== 'browse'}
+              style={railVisible ? { width: `${railWidth}px` } : undefined}
             >
+              {railVisible && (
+                <div
+                  aria-hidden
+                  className="dsh-md-preview-railhandle"
+                  onPointerDown={onRailResize}
+                  onPointerMove={onRailResize}
+                  onPointerUp={onRailResize}
+                />
+              )}
               {railVisible && (
                 <div className="dsh-md-preview-railtabs" role="tablist">
                   <button type="button" role="tab" aria-selected={railTab === 'files' ? 'true' : 'false'} onClick={() => { setRailTab('files') }}>{t('rail.files')}</button>
@@ -574,6 +619,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           )}
           </div>
         </div>
+        <div className="dsh-md-preview-foot" aria-hidden>{process.env.MD_PREVIEW_VERSION}</div>
         <ResizeHandle onResize={onResize} />
       </div>
     </div>
