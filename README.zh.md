@@ -20,7 +20,7 @@ DSH Web GUI 插件:点击对话中出现的 Markdown 文档,在对话右侧打�
 
 ## 安装
 
-要求 DSH 基线 `0.1.2-alpha.3`(即 peerDependencies 所列版本)和 web profile。
+要求 DSH 基线 `0.1.2-rc.1`(即 peerDependencies 所列版本)和 web profile。
 
 ```sh
 dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview

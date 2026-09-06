@@ -185,3 +185,25 @@
 - [x] 浏览器自动化验证：手柄几何贴面板左缘 ✓；左拖 +100 → +100 ✓；右拖 600 → 夹到 321（min 320+边框）✓；
       左拖至 721（max 720+边框）夹取 ✓；关闭重开宽度保持 ✓；32 项测试复跑全绿
 - [x] 用户反馈"再宽一点"：MAX_WIDTH 720 → 960；新上限夹取 961 ✓，收缩方向 961→811 ✓
+
+## 基线升级 alpha.3 → rc.1（2026-09-06，目标 0.5.0）
+
+- [x] 漂移审查（dd6322d6..a66e470204，305 commits）：fs/typert/cordis API 零变化
+      （fs 仅版本号；typert 只删本插件不引用的 `./invariant` 导出）；slots/locale/
+      renderer 全部纯增量（keyedHooks 机制 + 各包 invariant 伴生删除，`hooks` 注入
+      面行为保留）；bundle 工厂协议/冻结模块表/web boot/CLI 装载/manifest 解析/
+      发布规范零 diff；deliverables `produced` 形状不变（buildLocationData 仅加
+      结构共享）
+- [x] 唯一类型漂移：`TurnLocation.data` 从 `Map` 收紧为
+      `ConversationLocationDataStore`（新增 `source(key)`，`get(key)` 保留）——
+      生产代码只用 `.get()`，rc.1 类型面对 src/ 零报错；测试 fake 补 `source()`
+      桩防将来 typecheck 纳入 tests
+- [x] 运行时实证：rc.1 构建产物跑全套 **101/101 全绿**（含真实 SlotRegistry/
+      LocaleRuntime 注册回滚）；npm registry 上 rc.1 各包均已存在
+- [x] 版本对齐（方案 A：精确 pin）：peer + 16 devDeps → `0.1.2-rc.1`；lock 三
+      字段更新（commit a66e470204…/docsDigest 重算/verifiedOn 2026-09-06）；
+      README ×2、PROJECT_CONTRACT、HANDOVER 基线文案同步
+- [x] 顺手修复：vitest.config 回退路径 `../../deepseek-harness` →
+      `../deepseek-harness`（与 lock 的 fallbackRelativePath 一致；此前未设
+      DSH_HARNESS_ROOT 时 4 个测试文件直接 resolve 失败）
+- [ ] 发布 0.5.0（peer 要求变更，minor 级）：verify → packed 冒烟 → npm publish

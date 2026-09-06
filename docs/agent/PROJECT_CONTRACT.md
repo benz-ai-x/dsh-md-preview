@@ -1,7 +1,7 @@
 # Project Contract: dsh-md-preview
 
 Pinned DSH baseline: `dsh-reference.lock.json` (commit
-`dd6322d604e00eec1ba5e0c8541159906a21094a`, version `0.1.2-alpha.3`).
+`a66e4702047846cdaa10c66c9d3df3951f5ea70d`, version `0.1.2-rc.1`).
 
 ## User-visible outcome
 

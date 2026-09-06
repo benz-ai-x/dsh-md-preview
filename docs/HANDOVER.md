@@ -42,7 +42,7 @@
 
 ## 本机环境事实(换机器/新会话必读)
 
-- `dsh` 不在 PATH:`node ~/Dev-Space/deepseek-harness/apps/cli/lib/bin.js`(基线 0.1.2-alpha.3,锁定见 `dsh-reference.lock.json`;Harness 检出移动后跑 `pnpm context:sync`)
+- `dsh` 不在 PATH:`node ~/Dev-Space/deepseek-harness/apps/cli/lib/bin.js`(基线 0.1.2-rc.1,锁定见 `dsh-reference.lock.json`;Harness 检出移动后跑 `pnpm context:sync`)
 - npm:`~/.npmrc` 指向 npmmirror(只读),发布/查询必须 `--registry https://registry.npmjs.org/` + 代理 `127.0.0.1:8888`;账号 `benz.ai.coder` 开 2FA 但用户拿不出 TOTP,唯一可行授权 = 浏览器 web auth(tmux 模式)
 - hoisted profile 里 `pnpm peers check` 报 typert-protocol missing 属预期噪音(DSH boot 模块治愈层满足 peer)
 - 通知:飞书 bot(BloomAI CLI)直发用户 `ou_e4e49d75c1cc297851cb63814663ce76`(梁鹏程);`lark-cli im +messages-send --user-id ... --as bot`

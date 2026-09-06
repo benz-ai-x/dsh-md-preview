@@ -20,7 +20,7 @@
 
 ## Install
 
-Requires DSH baseline `0.1.2-alpha.3` (see peerDependencies) and a web profile.
+Requires DSH baseline `0.1.2-rc.1` (see peerDependencies) and a web profile.
 
 ```sh
 dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview

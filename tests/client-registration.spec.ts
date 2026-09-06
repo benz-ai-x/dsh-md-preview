@@ -124,13 +124,18 @@ describe('client registration lifecycle', () => {
 
 /** Minimal TurnLocation fake carrying deliverables data. */
 function turnWith(produced: ReadonlyArray<{ seq: number; path: string }>) {
+  const values = new Map([['deliverables', { produced }]])
   return {
     turn: 1,
     status: 'closed' as const,
     steps: [],
     start: undefined,
     end: undefined,
-    data: new Map([['deliverables', { produced }]]),
+    // The ConversationLocationDataStore contract (rc.1+) adds `source`; the
+    // fake keeps Map semantics and answers source() from the same values.
+    data: Object.assign(values, {
+      source: (key: string) => ({ getSnapshot: () => values.get(key), subscribe: () => () => {} }),
+    }),
   }
 }
 

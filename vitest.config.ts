@@ -10,7 +10,7 @@ import { defineConfig } from 'vitest/config'
 import { standardDecoratorPlugin } from './scripts/build-plugins.ts'
 
 const projectRoot = resolve(import.meta.dirname)
-const harnessRoot = resolve(process.env.DSH_HARNESS_ROOT ?? projectRoot, process.env.DSH_HARNESS_ROOT ? '.' : '../../deepseek-harness')
+const harnessRoot = resolve(process.env.DSH_HARNESS_ROOT ?? projectRoot, process.env.DSH_HARNESS_ROOT ? '.' : '../deepseek-harness')
 
 /** Package version label, mirrored from the tsdown client-face define for tests. */
 const VERSION = `v${JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8')).version as string}`
