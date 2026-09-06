@@ -79,6 +79,8 @@ export interface MarkdownEditorProps {
   onCursorLine?: (line: number) => void
   /** Status-bar payload at mount and on doc/selection/history change; null on unmount. */
   onStatus?: (status: EditorStatus | null) => void
+  /** Opens the panel's keymap help (bound to Mod-/ inside the editor). */
+  onOpenKeys?: () => void
   /** Search panel localization: CM stock phrase key → panel word. */
   searchPhrases?: Readonly<Record<string, string>>
   /** Match count and 1-based current index; null while search is inactive. */
@@ -90,7 +92,7 @@ export interface MarkdownEditorProps {
  * @param props - initial document plus change, save, and view callbacks.
  * @returns the editor host element.
  */
-export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine, onStatus, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
+export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine, onStatus, onOpenKeys, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null)
   // Refs keep the extension closures stable without remounting on callback identity.
   const changeRef = useRef(onChange)
@@ -105,6 +107,8 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
   statusRef.current = onSearchStatus
   const editStatusRef = useRef(onStatus)
   editStatusRef.current = onStatus
+  const openKeysRef = useRef(onOpenKeys)
+  openKeysRef.current = onOpenKeys
 
   /** Report the status-bar payload: cursor, size, and history availability. */
   const reportEditStatus = (view: EditorView): void => {
@@ -179,6 +183,8 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
             { key: 'Mod-b', run: view => wrapMarkup(view, '**', '**') },
             { key: 'Mod-i', run: view => wrapMarkup(view, '*', '*') },
             { key: 'Mod-k', run: view => wrapMarkup(view, '[', '](url)') },
+            // '?' types inside the document; its command form opens the key help.
+            { key: 'Mod-/', run: () => { openKeysRef.current?.(); return true } },
             ...searchKeymap,
             ...defaultKeymap,
             ...historyKeymap,

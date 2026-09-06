@@ -99,15 +99,16 @@ const buttonByLabel = (harness: RailHarness, label: string): HTMLButtonElement |
 
 afterEach(() => { document.body.replaceChildren() })
 
+const TREE = new Map<string, ListScript>([
+  ['', { entries: [
+    { name: 'guide.md', type: 'file', path: 'guide.md' },
+    { name: 'notes.md', type: 'file', path: 'notes.md' },
+    { name: 'src', type: 'directory', path: 'src' },
+  ] }],
+  ['src', { entries: [{ name: 'deep.md', type: 'file', path: 'src/deep.md' }] }],
+])
+
 describe('rail (#11)', () => {
-  const TREE = new Map<string, ListScript>([
-    ['', { entries: [
-      { name: 'guide.md', type: 'file', path: 'guide.md' },
-      { name: 'notes.md', type: 'file', path: 'notes.md' },
-      { name: 'src', type: 'directory', path: 'src' },
-    ] }],
-    ['src', { entries: [{ name: 'deep.md', type: 'file', path: 'src/deep.md' }] }],
-  ])
 
   it('shows the tree beside the document once widened past 640px', async () => {
     const harness = await renderRail(TREE)
@@ -228,5 +229,42 @@ describe('rail outline tab + navigation shortcuts (#12)', () => {
     await pressPanelKey(harness, { key: 'O', shiftKey: true, metaKey: true })
     expect(harness.container.querySelector('.dsh-md-preview-railoutline')).toBeTruthy()
     expect((harness.container.querySelector('.dsh-md-preview-railoutline') as HTMLElement).hidden).toBe(false)
+  })
+})
+
+describe('dirty-draft guard on tree file opens (#10 story 5)', () => {
+  it('asks before discarding a dirty draft for another file', async () => {
+    const harness = await renderRail(TREE, '# Guide\n\nbody')
+    await dragHandle(harness, 100, -600)
+    await flush()
+    await act(async () => {
+      (harness.container.querySelector('.dsh-md-preview-seg button[aria-label="panel.edit"]') as HTMLElement).click()
+    })
+    await flush()
+    const host = harness.container.querySelector('.cm-editor') as HTMLElement
+    const view = (await import('@codemirror/view')).EditorView.findFromDOM(host)!
+    await act(async () => { view.dispatch({ changes: { from: 0, insert: 'x' } }) })
+    await flush()
+    const row = harness.container.querySelector('[data-path="notes.md"] .dsh-md-preview-treerow') as HTMLElement
+    await act(async () => { row.click() })
+    await flush()
+    // The guard holds the open; the target is unchanged while it asks.
+    expect(harness.container.textContent).toContain('panel.unsaved.title')
+    expect((harness.container.querySelector('.dsh-md-preview-crumbs') as HTMLElement).getAttribute('title')).toContain('guide.md')
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.unsaved.keep"]') as HTMLElement).click()
+    })
+    await flush()
+    expect(harness.container.querySelector('.cm-editor')).toBeTruthy()
+    // Discard releases the held open: target switches, draft dies.
+    await act(async () => { row.click() })
+    await flush()
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.unsaved.discard"]') as HTMLElement).click()
+    })
+    await flush()
+    expect((harness.container.querySelector('.dsh-md-preview-crumbs') as HTMLElement).getAttribute('title')).toContain('notes.md')
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+    expect(harness.container.querySelector('.dsh-md-preview-dirty')).toBeNull()
   })
 })

@@ -10,6 +10,7 @@ import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
+import { filterEntries } from '../src/client/WorkspaceBrowser.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
 import type { MdPreviewEntry, MdPreviewFile, MdPreviewListResult } from '../src/protocol.ts'
 
@@ -529,5 +530,31 @@ describe('tree filter (#13)', () => {
     await setFilter(harness, 'zzz')
     expect(visiblePaths(harness)).toEqual([])
     expect(harness.container.textContent).toContain('browse.noMatch')
+  })
+})
+
+describe('filterEntries (direct, #13)', () => {
+  const kids = new Map([['docs', [
+    { name: 'deep-dive.md', type: 'file' as const, path: 'docs/deep-dive.md' },
+    { name: 'other.md', type: 'file' as const, path: 'docs/other.md' },
+  ]]])
+  const childrenOf = (path: string) => kids.get(path)
+  const ENTRIES = [
+    { name: 'guide.md', type: 'file' as const, path: 'guide.md' },
+    { name: 'docs', type: 'directory' as const, path: 'docs' },
+    { name: 'logo.png', type: 'file' as const, path: 'logo.png' },
+  ]
+  it('blank query passes everything through', () => {
+    expect(filterEntries(ENTRIES, '', childrenOf)).toEqual(ENTRIES)
+    expect(filterEntries(ENTRIES, '   ', childrenOf)).toEqual(ENTRIES)
+  })
+  it('keeps name matches, descendant matches, and nothing else', () => {
+    expect(filterEntries(ENTRIES, 'deep', childrenOf).map(e => e.path)).toEqual(['docs'])
+    expect(filterEntries(ENTRIES, 'docs', childrenOf).map(e => e.path)).toEqual(['docs'])
+    expect(filterEntries(ENTRIES, 'png', childrenOf).map(e => e.path)).toEqual(['logo.png'])
+    expect(filterEntries(ENTRIES, 'zzz', childrenOf)).toEqual([])
+  })
+  it('matches case-insensitively', () => {
+    expect(filterEntries(ENTRIES, 'GUIDE', childrenOf).map(e => e.path)).toEqual(['guide.md'])
   })
 })

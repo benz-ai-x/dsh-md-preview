@@ -94,7 +94,8 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // below the threshold the browse-face swap remains the fallback. Both are
   // component-local geometry state, like the dragged width.
   const [railCollapsed, setRailCollapsed] = useState(false)
-  const railVisible = width >= RAIL_MIN_WIDTH && !railCollapsed
+  const widePanel = width >= RAIL_MIN_WIDTH
+  const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); remembered across collapses.
   const [railTab, setRailTab] = useState<'files' | 'outline'>('files')
   const [outlineOpen, setOutlineOpen] = useState(false)
@@ -110,14 +111,17 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   useEffect(() => { if (state.toast && state.face === 'view') setSavedAt(new Date()) }, [state.toast, state.face])
   useEffect(() => { setSavedAt(null) }, [target])
-  // The mode-switch guard (#14): UI-local — the machine's close guard keeps
-  // its own meaning; this one only gates the segmented control's switch back.
+  // The dirty-draft guard (#14, #10 story 5): UI-local — it gates the
+  // segmented switch back and tree file opens alike, composing the cancel
+  // action; the machine's close-time prompt keeps its own meaning.
   const [switchGuard, setSwitchGuard] = useState(false)
+  // A tree-open held back by that guard; released on 放弃修改.
+  const [pendingFile, setPendingFile] = useState<string | null>(null)
   // The keymap help popover (#16): button or '?' outside the editor.
   const [keysOpen, setKeysOpen] = useState(false)
   // The inline-HTML warning (#17): once per edit session.
   const [htmlWarnDismissed, setHtmlWarnDismissed] = useState(false)
-  useEffect(() => { setSwitchGuard(false); setKeysOpen(false); setHtmlWarnDismissed(false) }, [state.face])
+  useEffect(() => { setSwitchGuard(false); setPendingFile(null); setKeysOpen(false); setHtmlWarnDismissed(false) }, [state.face])
   const searchPhrases = useMemo(() => ({
     Find: t('find.phrases.find'),
     Replace: t('find.phrases.replace'),
@@ -188,6 +192,21 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     outlineRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [activeOutline, outlineOpen])
 
+  /** One outline button list feeds the narrow popover and the rail alike. */
+  const renderOutlineList = (popover: boolean) => outline.map((entry, index) => (
+    <button
+      key={`${entry.line}-${entry.text}`} type="button"
+      role={popover ? 'menuitem' : undefined}
+      className={index === activeOutline ? 'dsh-md-preview-outline-active' : undefined}
+      style={{ paddingLeft: `${8 + (entry.level - 1) * 12}px` }}
+      title={entry.text}
+      aria-current={index === activeOutline ? 'true' : undefined}
+      onClick={() => { jumpToOutline(index) }}
+    >
+      {entry.text}
+    </button>
+  ))
+
   const jumpToOutline = useCallback((index: number): void => {
     setOutlineOpen(false)
     const entry = outline[index]
@@ -221,20 +240,25 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     const key = event.key.toLowerCase()
     if (key === 'o') {
       event.preventDefault()
-      if (width >= RAIL_MIN_WIDTH) { setRailCollapsed(false); setRailTab('outline') }
+      if (widePanel) { setRailCollapsed(false); setRailTab('outline') }
       else setOutlineOpen(true)
     } else if (key === 'e') {
       event.preventDefault()
-      if (width >= RAIL_MIN_WIDTH) { setRailCollapsed(false); setRailTab('files') }
+      if (widePanel) { setRailCollapsed(false); setRailTab('files') }
       else { setBrowserEverOpened(true); setFace('browse') }
     }
   }, [outlineOpen, keysOpen, state.face, width])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
+    // A dirty draft never dies silently: the guard asks first (#10 story 5).
+    if (state.face === 'edit' && isDirty(state)) {
+      setPendingFile(path)
+      return
+    }
     setTarget({ sessionId: target.sessionId, path })
     setFace('document')
-  }, [setTarget, target])
+  }, [setTarget, target, state])
 
   // The tree mounts once anything shows it (rail or browse face) and stays
   // mounted so expansion state survives every switch.
@@ -276,9 +300,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
             <span className="dsh-md-preview-anchor">
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('outline.open')}
-                aria-expanded={outlineOpen} title={t('outline.open')}
+                aria-expanded={widePanel ? undefined : outlineOpen} title={t('outline.open')}
                 onClick={() => {
-                  if (width >= RAIL_MIN_WIDTH) { setRailCollapsed(false); setRailTab('outline') }
+                  if (widePanel) { setRailCollapsed(false); setRailTab('outline') }
                   else setOutlineOpen(value => !value)
                 }}
               >
@@ -288,18 +312,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               </button>
               {outlineOpen && (
                 <div className="dsh-md-preview-outline" role="menu" ref={outlineRef}>
-                  {outline.map((entry, index) => (
-                    <button
-                      key={`${entry.line}-${entry.text}`} type="button" role="menuitem"
-                      className={index === activeOutline ? 'dsh-md-preview-outline-active' : undefined}
-                      style={{ paddingLeft: `${8 + (entry.level - 1) * 12}px` }}
-                      title={entry.text}
-                      aria-current={index === activeOutline ? 'true' : undefined}
-                      onClick={() => { jumpToOutline(index) }}
-                    >
-                      {entry.text}
-                    </button>
-                  ))}
+                  {renderOutlineList(true)}
                 </div>
               )}
             </span>
@@ -311,7 +324,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                 setBrowserEverOpened(true)
                 // Wide: the workspace action folds the rail in and out; the
                 // document stays. Narrow: the browse-face swap remains.
-                if (width >= RAIL_MIN_WIDTH) setRailCollapsed(value => !value)
+                if (widePanel) setRailCollapsed(value => !value)
                 else setFace('browse')
               }}
             >
@@ -330,7 +343,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
             </button>
           )}
           {face === 'document' && state.content.state === 'ready' && isEditable(target.path) && (
-            <div className="dsh-md-preview-seg" role="group" aria-label={t('panel.mode')}>
+            <div className="dsh-md-preview-seg" role="group" aria-label={t('panel.face')}>
               <button
                 type="button" aria-label={t('panel.view')} aria-pressed={state.face === 'view'}
                 onClick={() => {
@@ -411,6 +424,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                     <dt>Mod-Z</dt><dd>{t('keys.undo')}</dd>
                     <dt>Mod-⇧-O</dt><dd>{t('keys.outline')}</dd>
                     <dt>Mod-⇧-E</dt><dd>{t('keys.files')}</dd>
+                    <dt>? / Mod-/</dt><dd>{t('keys.help')}</dd>
                     <dt>Esc</dt><dd>{t('keys.dismiss')}</dd>
                   </dl>
                 </div>
@@ -442,18 +456,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               {railVisible && (
                 <div className="dsh-md-preview-railoutline" hidden={railTab !== 'outline'}>
                   {outline.length === 0 && <div className="dsh-md-preview-treehint" role="presentation">{t('rail.noHeadings')}</div>}
-                  {outline.map((entry, index) => (
-                    <button
-                      key={`${entry.line}-${entry.text}`} type="button"
-                      className={index === activeOutline ? 'dsh-md-preview-outline-active' : undefined}
-                      style={{ paddingLeft: `${8 + (entry.level - 1) * 12}px` }}
-                      title={entry.text}
-                      aria-current={index === activeOutline ? 'true' : undefined}
-                      onClick={() => { jumpToOutline(index) }}
-                    >
-                      {entry.text}
-                    </button>
-                  ))}
+                  {renderOutlineList(false)}
                 </div>
               )}
               {target !== null && (
@@ -474,11 +477,17 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           {state.toast && state.face === 'view' && (
             <div className="dsh-md-preview-toast" role="status">✓ {t('panel.saved')}</div>
           )}
-          {switchGuard && state.face === 'edit' && (
+          {(switchGuard || pendingFile !== null) && state.face === 'edit' && (
             <div className="dsh-md-preview-bar" role="alert">
               <span>{t('panel.unsaved.title')}</span>
-              <button type="button" aria-label={t('panel.unsaved.discard')} onClick={() => { setSwitchGuard(false); actions.cancelEdit() }}>{t('panel.unsaved.discard')}</button>
-              <button type="button" aria-label={t('panel.unsaved.keep')} onClick={() => { setSwitchGuard(false) }}>{t('panel.unsaved.keep')}</button>
+              <button type="button" aria-label={t('panel.unsaved.discard')} onClick={() => {
+                const held = pendingFile
+                setSwitchGuard(false)
+                setPendingFile(null)
+                actions.cancelEdit()
+                if (held !== null && target !== null) setTarget({ sessionId: target.sessionId, path: held })
+              }}>{t('panel.unsaved.discard')}</button>
+              <button type="button" aria-label={t('panel.unsaved.keep')} onClick={() => { setSwitchGuard(false); setPendingFile(null) }}>{t('panel.unsaved.keep')}</button>
             </div>
           )}
           {state.unsavedPrompt && (
@@ -523,6 +532,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               onView={onEditorView}
               onCursorLine={line => { setActiveOutline(activeIndexForLine(outline, line)) }}
               onStatus={setEditorStatus}
+              onOpenKeys={() => { setKeysOpen(true) }}
               searchPhrases={searchPhrases}
               onSearchStatus={setSearchStatus}
             />

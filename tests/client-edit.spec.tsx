@@ -431,6 +431,8 @@ describe('markup keymaps and the key help popover (#16)', () => {
     expect(binding('Mod-b')).toBeDefined()
     expect(binding('Mod-i')).toBeDefined()
     expect(binding('Mod-k')).toBeDefined()
+    // The key help opens from inside the editor via its command form (#16 fix).
+    expect(binding('Mod-/')).toBeDefined()
     // Select "Hi" (offsets 2–4 in "# Hi").
     await act(async () => { view.dispatch({ selection: { anchor: 2, head: 4 } }) })
     await act(async () => { binding('Mod-b')!.run!(view) })

@@ -72,14 +72,13 @@ export function filterEntries(
 }
 
 /** The file name with its filter hit wrapped in <mark> (nothing when no hit). */
-function highlightName(name: string, query: string): ReactNode {
-  const q = query.trim().toLowerCase()
-  const at = q.length === 0 ? -1 : name.toLowerCase().indexOf(q)
+function highlightName(name: string, normalized: string): ReactNode {
+  const at = normalized.length === 0 ? -1 : name.toLowerCase().indexOf(normalized)
   if (at < 0) return name
   return <>
     {name.slice(0, at)}
-    <mark>{name.slice(at, at + q.length)}</mark>
-    {name.slice(at + q.length)}
+    <mark>{name.slice(at, at + normalized.length)}</mark>
+    {name.slice(at + normalized.length)}
   </>
 }
 
@@ -139,8 +138,10 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
   dirsRef.current = dirs
   // Roving focus (one tab stop): the workspace-relative path of the focused node.
   const [focusPath, setFocusPath] = useState<string | null>(null)
-  // The tree filter (#13): UI-local; blank shows the whole tree.
+  // The tree filter (#13): UI-local; blank shows the whole tree. The
+  // normalized form is computed once and feeds every consumer.
   const [filter, setFilter] = useState('')
+  const normalizedFilter = filter.trim().toLowerCase()
   const treeRef = useRef<HTMLUListElement>(null)
   // The mount itself lists the root; only later activations revalidate.
   const everActive = useRef(false)
@@ -305,7 +306,7 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
       : filterEntries(entries, filter, childrenOf)
     return visible.map(entry => {
     const state = dirs.get(entry.path)
-    const nameMatched = filter.trim().length > 0 && entry.name.toLowerCase().includes(filter.trim().toLowerCase())
+    const nameMatched = normalizedFilter.length > 0 && entry.name.toLowerCase().includes(normalizedFilter)
     const isCurrent = currentPath !== null && entry.path === currentPath
     // A collapsed directory whose subtree holds the current target inherits
     // the selection, so the location reads even before it opens.
@@ -351,7 +352,7 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
             <span className="dsh-md-preview-treespacer" aria-hidden />
           )}
           <EntryIcon type={entry.type} name={entry.name} />
-          <span className="dsh-md-preview-treename">{highlightName(entry.name, filter)}</span>
+          <span className="dsh-md-preview-treename">{highlightName(entry.name, normalizedFilter)}</span>
         </div>
         {entry.type === 'directory' && state !== undefined && (
           <ul role="group" className="dsh-md-preview-treegroup">

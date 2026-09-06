@@ -32,7 +32,23 @@ position in the view face and the cursor's source line in the edit face,
 keeping that entry scrolled into view. The header carries a dirty dot while
 the edit draft differs, folds the plugin version into the crumbs tooltip,
 and annotates the find and save shortcuts; the find panel is localized,
-shows a match count, and matches the panel's design language. The browse face
+shows a match count, and matches the panel's design language. Wide panels
+(from 640px) carry a collapsible left rail — a 文件/大纲 mini-tab column
+whose files page hosts the workspace tree beside the document (browsing
+never swaps the document away) and whose outline page hosts the heading
+list with the reading-position highlight; narrow panels fall back to the
+browse-face swap and the outline popover, with Mod-Shift-O/E routing by
+width and Esc dismissing popovers. The header's segmented 预览|编辑 control
+carries the face: switching back with a dirty draft — or opening another
+file from the tree while editing — raises the 放弃修改/继续编辑 guard (a
+panel-level composition of the cancel action; close-time prompts remain
+machine-owned); the edit face's status bar reports cursor position, size,
+and the resident last-saved time; undo/redo buttons surface the editor
+history; Mod-B/I/K wrap selections in markup with the ?/Mod-/ popover
+listing the keys; a document containing inline HTML warns once per edit
+session that the edit face is plain text. The tree's filter box narrows
+entries by substring — hits highlight, a name-matched directory keeps its
+subtree, and clearing restores the tree. The browse face
 silently revalidates every expanded directory on re-entry (and from its
 refresh button): fresh listings replace current ones, a failed refresh
 changes nothing. After the platform renderer settles the document, a diagram
@@ -67,7 +83,7 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   only pays mermaid's parse cost when a document actually carries a mermaid
   block; the client bundle grows to ~3.9 MB minified / ~1.1 MB gzip for it).
   The panel's whole state — read lifecycle,
-  edit session, guarded save, prompts — is one pure machine
+  edit session, guarded save, close-time prompts — is one pure machine
   (`src/client/preview-session.ts`, `READ_STARTED` on a new target being the
   single full reset) behind the effectful adapter
   `src/client/use-preview-session.ts`; the component renders and owns only
