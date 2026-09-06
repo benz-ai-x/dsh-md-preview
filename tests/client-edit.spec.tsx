@@ -109,11 +109,13 @@ afterEach(() => {
 })
 
 describe('PreviewOverlay edit mode', () => {
-  it('shows the plugin version beside the panel title', async () => {
+  it('folds the plugin version into the crumbs tooltip', async () => {
     const harness = await renderPanel()
     // vitest runs from the project root; jsdom's URL global rejects file: bases.
     const version = JSON.parse(readFileSync('package.json', 'utf8')).version
-    expect(harness.container.querySelector('.dsh-md-preview-version')?.textContent).toBe(`v${version}`)
+    const crumbs = harness.container.querySelector('.dsh-md-preview-crumbs') as HTMLElement
+    expect(crumbs.getAttribute('title')).toContain(`v${version}`)
+    expect(harness.container.querySelector('.dsh-md-preview-version')).toBeNull()
   })
 
   it('opens at the default width and clamps drags to the configured bounds', async () => {

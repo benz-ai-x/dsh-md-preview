@@ -53,13 +53,17 @@ const CSS = `
   padding: 14px 12px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
-.dsh-md-preview-version {
+.dsh-md-preview-dirty {
   flex: none;
-  margin-left: 4px;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  margin-left: 2px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
   user-select: none;
+}
+.dsh-md-preview-editcta {
+  border: 1px solid var(--dsw-alias-accent, var(--dsw-alias-border-l2));
+  background: var(--dsw-alias-fill-secondary);
 }
 .dsh-md-preview-crumbs {
   flex: 1;

@@ -15,6 +15,7 @@ import { openSearchPanel } from '@codemirror/search'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
 import { isEditable } from './preview-state.ts'
+import { isDirty } from './preview-session.ts'
 import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from './outline.ts'
 import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
 import { MarkdownEditor } from './editor.tsx'
@@ -182,7 +183,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
       <div className="dsh-md-preview-panel" style={{ width: `${width}px` }}>
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
-          <div className="dsh-md-preview-crumbs" title={target.path}>
+          <div className="dsh-md-preview-crumbs" title={`${target.path} · v${process.env.MD_PREVIEW_VERSION}`}>
             {target.path.split('/').map((segment, index, all) => (
               <span
                 key={`${index}-${segment}`}
@@ -191,7 +192,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               >{segment}</span>
             ))}
           </div>
-          <span className="dsh-md-preview-version" aria-hidden>{process.env.MD_PREVIEW_VERSION}</span>
+          {state.face === 'edit' && isDirty(state) && (
+            <span className="dsh-md-preview-dirty" title={t('panel.unsaved.title')} aria-hidden>●</span>
+          )}
           {outline.length > 0 && state.content.state === 'ready' && (
             <span className="dsh-md-preview-anchor">
               <button
@@ -245,7 +248,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           )}
           {face === 'document' && state.face === 'view' && state.content.state === 'ready' && isEditable(target.path) && (
             <button
-              type="button" className="dsh-md-preview-icon" aria-label={t('panel.edit')}
+              type="button" className="dsh-md-preview-icon dsh-md-preview-editcta" aria-label={t('panel.edit')}
               title={t('panel.edit')} onClick={actions.enterEdit}
             >
               <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
@@ -257,7 +260,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
             <>
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.find')}
-                title={t('panel.find')} onClick={() => {
+                title={`${t('panel.find')} · Mod-F`} onClick={() => {
                   const view = editorViewRef.current
                   if (view !== null) openSearchPanel(view)
                 }}
@@ -268,7 +271,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               </button>
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.save')}
-                title={t('panel.save')} disabled={!canSave}
+                title={`${t('panel.save')} · Mod-S`} disabled={!canSave}
                 onClick={() => { actions.save(false) }}
               >
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
