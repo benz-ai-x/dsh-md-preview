@@ -14,7 +14,6 @@
 ## 待办
 
 - [ ] HMR 验证：`pnpm watch:client` + 浏览器 bundle 热替换
-- [x] packed-artifact 冒烟（发布前置条件）→ 已通过，见下节
 - [ ] 评估：正文内联 `.md` 文件提及（chatFileMentions 仍归 ui-deliverables 所有）是否值得提供包装层
 - [ ] 用户环境已知问题：web profile 中第三方插件 `@benz-ai-x/dsh-client-ui-session-graph`（link 自 ~/Dev-Space/dsh-session-graph）自身依赖缺失，会在插件树加载时 fail-loud；与本插件无关，需在源项目修复或禁用该行。根因（2026-09-06 实查）：其 lib import `@deepseek-ai/dsh-llm` 但 package.json 未声明；临时绕过 = 启动时带一次性 `--patch` 禁用该行（见 0.6.0 发布节）
 
