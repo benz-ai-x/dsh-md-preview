@@ -17,10 +17,9 @@ main 与 origin 同步)。细节见 `TODO.md`「功能四连」节与 `docs/HAND
 ## 现场状态(仅存在于本机,未入仓库)
 
 - **3080 实例在跑**:tmux 会话 `dsh-web`,以
-  `node ~/Dev-Space/deepseek-harness/apps/cli/lib/bin.js --profile web --patch /tmp/disable-graph.yml --no-open`
-  启动。`/tmp/disable-graph.yml` 是禁用 session-graph 行的一次性补丁——
-  **在 session-graph 修复前,每次启动 web profile 都需要它**(否则 fail-loud)。
-  访问 token 在 `/tmp/web-boot.log`(勿提交)。
+  `node ~/Dev-Space/deepseek-harness/apps/cli/lib/bin.js --profile web --no-open`
+  启动(**不再需要 `--patch`**:session-graph 已修复,见下)。访问 token 在
+  `/tmp/web-boot.log`(勿提交)。
 - **npm token 是新的**:`~/.npmrc` 里 `registry.npmjs.org/:_authToken` 为本会话
   web 登录所换(账号 benz.ai.coder,2FA)。publish/deprecate 在其过期前可直接
   用;再遇 404/EOTP 按 `docs/HANDOVER.md`「当前状态」节的排障三连处理。
@@ -39,10 +38,10 @@ main 与 origin 同步)。细节见 `TODO.md`「功能四连」节与 `docs/HAND
 2. **HMR 热替换走查**:需 dev-link profile + `pnpm watch:client` 专用 rig,
    见 `TODO.md` 待办区;HMR 契约细节在 dsh-plugin-dev skill 的
    packaging-testing 参考。
-3. **(用户环境,非本仓库)** `~/Dev-Space/dsh-session-graph` 缺声明依赖
-   `@deepseek-ai/dsh-llm`——修复 = 在该项目
-   `pnpm add @deepseek-ai/dsh-llm@0.1.2-rc.1`;修好后移除启动命令里的
-   `--patch /tmp/disable-graph.yml`。
+3. ~~session-graph 依赖缺失~~ **已修复(2026-09-06)**:源项目补 peer 声明
+   (dsh-session-graph commit `11a9702`,未推送、待随下版发布)+ web profile
+   改 `^0.1.6` registry 引用;无补丁启动零错误。`link:` rig 若要恢复,须
+   自带可解析依赖(真实路径解析够不到治愈层)。
 
 ## 真源索引(勿在此重复)
 

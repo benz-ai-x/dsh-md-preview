@@ -73,9 +73,10 @@ stdout**(否则 npm 判非交互直抛 EOTP),保持真 pty 再 send-keys Enter�
 - [ ] 独立双轴审查(自查版已做并修复 5 项;子代理版因 API 配额限流未跑,可择机补)
 - [ ] 架构留观候选:classifyProduced 收拢(三处重复循环)、线契约 zod 单源(见架构报告,docs/research 或 issue 历史)
 - [ ] HMR 热替换走查(TODO 长期项;需 dev-link profile + watch:client 的专用 rig)
-- [ ] 用户环境:web profile 里第三方 `@benz-ai-x/dsh-client-ui-session-graph`
-      自身依赖缺失(非本插件问题;根因 = 其 lib import `@deepseek-ai/dsh-llm`
-      但 package.json 未声明。临时绕过 = 启动带一次性 `--patch` 禁该行)
+- [x] 用户环境:session-graph 依赖缺失已修复(2026-09-06):源项目补 peer 声明
+      (commit `11a9702`)+ web profile 改 `^0.1.6` registry 引用,无补丁启动
+      零错误。教训:`link:` 安装按真实路径解析,够不到 profile 治愈层——
+      link: rig 的插件必须自带可解析依赖
 
 ## 命令速查
 

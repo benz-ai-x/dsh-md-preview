@@ -15,7 +15,14 @@
 
 - [ ] HMR 验证：`pnpm watch:client` + 浏览器 bundle 热替换
 - [ ] 评估：正文内联 `.md` 文件提及（chatFileMentions 仍归 ui-deliverables 所有）是否值得提供包装层
-- [ ] 用户环境已知问题：web profile 中第三方插件 `@benz-ai-x/dsh-client-ui-session-graph`（link 自 ~/Dev-Space/dsh-session-graph）自身依赖缺失，会在插件树加载时 fail-loud；与本插件无关，需在源项目修复或禁用该行。根因（2026-09-06 实查）：其 lib import `@deepseek-ai/dsh-llm` 但 package.json 未声明；临时绕过 = 启动时带一次性 `--patch` 禁用该行（见 0.6.0 发布节）
+- [x] 用户环境已知问题（2026-09-06 已修复）：web profile 中第三方插件
+      `@benz-ai-x/dsh-client-ui-session-graph` 加载 fail-loud。根因 = 其 lib
+      运行时 import `@deepseek-ai/dsh-llm` 但 package.json 未声明，而 `link:`
+      安装按真实路径解析、够不到 profile 治愈层。修复：源项目补 peer 声明
+      （dsh-session-graph commit `11a9702`，待其随下版发布）+ web profile 改
+      `^0.1.6` registry 引用（registry 安装落 profile 内部，未声明导入经治愈层
+      单实例解析）——无补丁启动零错误。开发期注意：session-graph 的 link: rig
+      需自带可解析依赖或走 publish/pack 换代
 
 ## 发布 0.1.0（2026-09-01）
 
