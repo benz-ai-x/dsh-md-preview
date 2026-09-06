@@ -38,8 +38,16 @@ type DirState =
 
 const OTHER_TYPE = 'other'
 
+/** Visual kind of one file entry, decided by extension (icon + data-kind). */
+function fileKind(name: string): 'markdown' | 'image' | 'text' | 'file' {
+  if (/\.(?:md|markdown)$/i.test(name)) return 'markdown'
+  if (/\.(?:png|jpe?g|gif|svg|webp|bmp|avif)$/i.test(name)) return 'image'
+  if (/\.(?:txt|text|log|csv|json|ya?ml|toml)$/i.test(name)) return 'text'
+  return 'file'
+}
+
 /** One SVG glyph per entry kind (aria-hidden; the name is the accessible label). */
-function EntryIcon({ type }: { type: MdPreviewEntry['type'] }) {
+function EntryIcon({ type, name }: { type: MdPreviewEntry['type']; name: string }) {
   if (type === 'directory') {
     return (
       <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
@@ -47,17 +55,36 @@ function EntryIcon({ type }: { type: MdPreviewEntry['type'] }) {
       </svg>
     )
   }
-  if (type === OTHER_TYPE) {
+  const kind = type === OTHER_TYPE ? 'file' : fileKind(name)
+  if (kind === 'image') {
     return (
       <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
-        <circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.55" />
-        <circle cx="8" cy="8" r="1.6" fill="currentColor" opacity="0.55" />
+        <rect x="2.5" y="3.5" width="11" height="9" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.55" />
+        <circle cx="6" cy="6.5" r="1" fill="currentColor" opacity="0.55" />
+        <path d="M3.5 11.5l3-3 2 2 2.5-2.5 1.5 1.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" opacity="0.55" />
+      </svg>
+    )
+  }
+  if (kind === 'text') {
+    return (
+      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
+        <path d="M4 1.5h5L12.5 5v9.5h-8.5z" fill="none" stroke="currentColor" strokeWidth="1.3" opacity="0.55" />
+        <path d="M6 8h4M6 10.5h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.55" />
+      </svg>
+    )
+  }
+  if (kind === 'markdown') {
+    return (
+      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
+        <path d="M4 1.5h5L12.5 5v9.5h-8.5z" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M5.5 11V8.2l1.6 1.6 1.6-1.6V11" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
       </svg>
     )
   }
   return (
     <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
-      <path d="M4 1.5h5L12.5 5v9.5h-8.5z" fill="none" stroke="currentColor" strokeWidth="1.3" opacity="0.55" />
+      <circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.55" />
+      <circle cx="8" cy="8" r="1.6" fill="currentColor" opacity="0.55" />
     </svg>
   )
 }
@@ -248,6 +275,7 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
         aria-selected={isCurrent || inherits ? 'true' : undefined}
         aria-current={isCurrent ? 'true' : undefined}
         data-current={isCurrent || undefined}
+        data-kind={entry.type === 'directory' ? 'directory' : (entry.type === OTHER_TYPE ? 'file' : fileKind(entry.name))}
         className={entry.type === 'directory' ? 'dsh-md-preview-treeitem dsh-md-preview-treebranch' : 'dsh-md-preview-treeitem dsh-md-preview-treeleaf'}
         title={entry.path}
       >
@@ -273,7 +301,7 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
           ) : (
             <span className="dsh-md-preview-treespacer" aria-hidden />
           )}
-          <EntryIcon type={entry.type} />
+          <EntryIcon type={entry.type} name={entry.name} />
           <span className="dsh-md-preview-treename">{entry.name}</span>
         </div>
         {entry.type === 'directory' && state !== undefined && (

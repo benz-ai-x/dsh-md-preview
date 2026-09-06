@@ -443,3 +443,23 @@ describe('workspace refresh', () => {
     expect(harness.container.textContent).toContain('renamed.md')
   })
 })
+
+describe('file kind icons', () => {
+  const TREE = new Map<string, ListScript>([
+    ['', { entries: [
+      { name: 'docs', type: 'directory', path: 'docs' },
+      { name: 'a.md', type: 'file', path: 'a.md' },
+      { name: 'b.png', type: 'file', path: 'b.png' },
+      { name: 'c.txt', type: 'file', path: 'c.txt' },
+      { name: 'd.bin', type: 'file', path: 'd.bin' },
+    ] }],
+  ])
+
+  it('kinds each treeitem by extension for icon selection', async () => {
+    const harness = await renderBrowse(TREE)
+    await enterBrowse(harness)
+    const kinds = [...harness.container.querySelectorAll<HTMLElement>('[role="treeitem"]')]
+      .map(item => item.dataset.kind)
+    expect(kinds).toEqual(['directory', 'markdown', 'image', 'text', 'file'])
+  })
+})

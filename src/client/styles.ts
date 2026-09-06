@@ -335,6 +335,7 @@ const CSS = `
 }
 .dsh-md-preview-treespacer { width: 16px; flex: none; }
 .dsh-md-preview-tree-icon { flex: none; color: var(--dsw-alias-label-secondary); }
+.dsh-md-preview-treeitem[data-kind="markdown"] .dsh-md-preview-tree-icon { color: var(--dsw-alias-label-primary); }
 .dsh-md-preview-treename {
   flex: 1;
   min-width: 0;
