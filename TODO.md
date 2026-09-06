@@ -21,11 +21,14 @@
       按钮、树手柄已旋转/当前文件已高亮,实际聚焦四个真缺口);
       发布链(verify → packed 冒烟 → publish → release)按 HANDOVER 流程
       另行执行
-- [ ] Wave 2(0.8.0 结构):票券 #11-#18 已发布(原生依赖图:T1 rail 骨架
-      #11 → T2 大纲 #12;T3 筛选 #13 / T4 分段控件 #14 / T5 编辑反馈 #15 /
-      T6 键映射 #16 / T7 HTML 预警 #17 可并行;T8 收尾 #18 被全部阻塞)。
-      spec 见 issue #10;交互原型 docs/research/wave2-panel-prototype.html
-      (已评审通过)
+- [x] Wave 2(0.8.0 结构,2026-09-06 开发完成):#11-#17 七票全部关闭
+      (rail 骨架/大纲 tab+快捷键/树筛选/分段控件/编辑反馈/键映射/HTML 预警,
+      分支 wave2-panel-ux,TDD 逐票红绿);#18 收口中——契约/README 已同步,
+      verify 全链绿(144 项测试)。spec #10;原型已评审。顺手修正:body 转
+      flex row 后文档成为真实滚动容器,修复真实浏览器中视图脸大纲高亮的
+      scrollTop 读取(#11 附带)
+- [ ] #18 收尾:浏览器走查 → 单 PR → /code-review 双轴(origin/main 固定
+      SHA)→ 修阻塞重测 → 合并;0.8.0 发布链另行走
 - 现状证据截图 ux-audit-*.png 仅存本地(含会话侧栏内容,已 gitignore)
 
 ## 待办
