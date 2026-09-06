@@ -5,6 +5,7 @@ coverage/
 .DS_Store
 .playwright-mcp/
 ux-audit-*.png
+proto-*.png
 .env
 .env.*
 !.env.example
