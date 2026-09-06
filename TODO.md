@@ -21,10 +21,11 @@
       按钮、树手柄已旋转/当前文件已高亮,实际聚焦四个真缺口);
       发布链(verify → packed 冒烟 → publish → release)按 HANDOVER 流程
       另行执行
-- [ ] Wave 2(0.8.0 结构):侧栏 rail(≥640px)+ 分段控件 + 树筛选 +
-      状态栏/撤销重做/HTML 预警 + Mod-B/I/K 与键位帮助——spec 见
-      issue #10(ready-for-agent;接替 #9 的 Wave 2 条目,吸收双态 UI
-      样本五项修订)
+- [ ] Wave 2(0.8.0 结构):票券 #11-#18 已发布(原生依赖图:T1 rail 骨架
+      #11 → T2 大纲 #12;T3 筛选 #13 / T4 分段控件 #14 / T5 编辑反馈 #15 /
+      T6 键映射 #16 / T7 HTML 预警 #17 可并行;T8 收尾 #18 被全部阻塞)。
+      spec 见 issue #10;交互原型 docs/research/wave2-panel-prototype.html
+      (已评审通过)
 - 现状证据截图 ux-audit-*.png 仅存本地(含会话侧栏内容,已 gitignore)
 
 ## 待办
