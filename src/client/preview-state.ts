@@ -8,6 +8,8 @@ import { DEFAULT_ALLOWED_EXTENSIONS } from '../constants.ts'
 export interface MdPreviewTarget {
   readonly sessionId: SessionId
   readonly path: string
+  /** Entry face for the panel (default 'document'); 'browse' opens on the tree. */
+  readonly face?: 'document' | 'browse'
 }
 
 /** Whole preview panel state: the current target or the closed state. */

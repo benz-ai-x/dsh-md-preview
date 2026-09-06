@@ -15,6 +15,7 @@ import type { MdPreviewTarget } from './preview-state.ts'
 import { MdChips } from './MdChips.tsx'
 import { PreviewAction } from './PreviewAction.tsx'
 import { PreviewOverlay } from './PreviewOverlay.tsx'
+import { WorkspaceDocsAction } from './WorkspaceDocsAction.tsx'
 import { en, NS, zh } from './locale.ts'
 import { createPreviewStore } from './preview-state.ts'
 import { selectMdTurnFiles } from './turn-files.ts'
@@ -95,6 +96,15 @@ function registerUi(ctx: ClientContext): void {
     locale: NS,
     inject: (sessionId: SessionId) => ({ openPreview: openPreview(sessionId) }),
   }, PreviewAction))
+
+  // The header browse action: opens the panel on the tree face.
+  ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
+    name: 'conversation.session.header.actions',
+    id: 'md-preview',
+    order: 90,
+    locale: NS,
+    inject: () => ({ setTarget }),
+  }, WorkspaceDocsAction))
 }
 
 /**

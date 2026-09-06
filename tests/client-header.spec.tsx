@@ -12,6 +12,7 @@ import { EditorView } from '@codemirror/view'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
+import { WorkspaceDocsAction } from '../src/client/WorkspaceDocsAction.tsx'
 import type { MdPreviewFile } from '../src/protocol.ts'
 
 const t = (key: string) => key
@@ -159,5 +160,32 @@ describe('panel footer version (user feedback)', () => {
     const foot = harness.container.querySelector('.dsh-md-preview-foot') as HTMLElement
     expect(foot).toBeTruthy()
     expect(foot.textContent).toMatch(/v\d+\.\d+\.\d+/)
+  })
+})
+
+describe('header browse action (file-manager design)', () => {
+  it('renders the header action that opens the panel on the tree face', async () => {
+    const store = createPreviewStore()
+    const setTarget = vi.fn((value: { sessionId: string; path: string } | null) => { store.set(value as never) })
+    const usePreviewTarget = (selector: (state: unknown) => unknown) =>
+      selector(useSyncExternalStore(store.subscribe, store.getSnapshot))
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root: Root = createRoot(container)
+    await act(async () => {
+      root.render(
+        <WorkspaceDocsAction
+          sessionId={'s1' as never}
+          usePreviewTarget={usePreviewTarget as never}
+          setTarget={setTarget as never}
+          t={t as never}
+        />,
+      )
+    })
+    const button = container.querySelector('button[aria-label="dock.browse"]') as HTMLButtonElement
+    expect(button).toBeTruthy()
+    expect(button.getAttribute('aria-label')).toBe('dock.browse')
+    await act(async () => { button.click() })
+    expect(setTarget).toHaveBeenCalledWith({ sessionId: 's1', path: '', face: 'browse' })
   })
 })

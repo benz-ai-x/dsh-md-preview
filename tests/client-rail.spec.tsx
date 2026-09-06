@@ -27,6 +27,7 @@ beforeAll(() => {
 
 interface RailHarness {
   container: HTMLElement
+  reads: Array<{ path: string }>
   setTarget: (target: { sessionId: string; path: string } | null) => void
   rerender: () => Promise<void>
 }
@@ -39,6 +40,7 @@ async function renderRail(script: Map<string, ListScript>, content?: string): Pr
   const store = createPreviewStore()
   const harness: RailHarness = {
     container: document.createElement('div'),
+    reads: [],
     setTarget: target => { store.set(target as never) },
     rerender: () => act(async () => { root.render(panelElement()) }),
   }
@@ -52,8 +54,10 @@ async function renderRail(script: Map<string, ListScript>, content?: string): Pr
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
       close={() => { store.set(null) }}
-      read={((sessionId: string, path: string) =>
-        Promise.resolve({ ok: true as const, value: { path, content: content ?? `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })) as never}
+      read={((sessionId: string, path: string) => {
+        harness.reads.push({ path })
+        return Promise.resolve({ ok: true as const, value: { path, content: content ?? `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+      }) as never}
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={list as never}
       setTarget={harness.setTarget as never}
@@ -318,5 +322,32 @@ describe('rail resize handle (user feedback)', () => {
     await dragHandle(harness, 200, -600)
     await flush()
     expect(parseInt((harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement).style.width, 10)).toBe(200)
+  })
+})
+
+describe('browse-faced entry (header design)', () => {
+  it('opens the panel on the browse face when the target asks for it', async () => {
+    const harness = await renderRail(TREE)
+    harness.setTarget({ sessionId: 'session-1', path: 'guide.md', face: 'browse' })
+    await harness.rerender()
+    await flush()
+    // The tree shows immediately — no document read, no document face swap.
+    expect(harness.container.querySelector('[role="tree"]')).toBeTruthy()
+    expect((harness.container.querySelector('.dsh-md-preview-document') as HTMLElement).hidden).toBe(true)
+    // The file list is the rail's own (no tree-mounted strip below 640px).
+    const paths = [...harness.container.querySelectorAll<HTMLElement>('[role="treeitem"]')].map(li => li.dataset.path)
+    expect(paths).toContain('notes.md')
+  })
+})
+
+describe('browse-faced entry read guard', () => {
+  it('opens on the tree without reading the empty path', async () => {
+    const harness = await renderRail(TREE)
+    const before = harness.reads.length
+    harness.setTarget({ sessionId: 'session-1', path: '', face: 'browse' })
+    await harness.rerender()
+    await flush()
+    expect(harness.container.querySelector('[role="tree"]')).toBeTruthy()
+    expect(harness.reads.length).toBe(before)
   })
 })

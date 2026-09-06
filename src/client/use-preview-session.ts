@@ -71,6 +71,14 @@ export function usePanelDocumentSession(
       lastTarget.current = null
       return
     }
+    // A browse-faced entry carries no document to read — the panel opens on
+    // the tree and the first file pick starts the real read. Dispatching
+    // READ_STARTED for the empty target keeps the machine idle-clean.
+    if (target.face === 'browse' && target.path === '') {
+      lastTarget.current = target
+      dispatch({ type: 'READ_STARTED' })
+      return
+    }
     const previous = lastTarget.current
     lastTarget.current = target
     const isNewTarget = previous === null

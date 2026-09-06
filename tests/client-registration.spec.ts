@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { MdChips } from '../src/client/MdChips.tsx'
 import { PreviewAction } from '../src/client/PreviewAction.tsx'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
+import { WorkspaceDocsAction } from '../src/client/WorkspaceDocsAction.tsx'
 import { inject, mountMdPreview } from '../src/client/mount.ts'
 import { ownedDeliverables, previewableOf } from '../src/client/message-files.ts'
 import { selectMdTurnFiles } from '../src/client/turn-files.ts'
@@ -63,6 +64,7 @@ async function bench(options: { registrationFailure?: boolean } = {}) {
     children: {
       'conversation.chat.turnTail': { kind: 'chain', scope: 'session' },
       'conversation.chat.assistant-actions': { kind: 'list', scope: 'session' },
+      'conversation.session.header.actions': { kind: 'list', scope: 'session' },
     },
   } as never, () => null)
   if (options.registrationFailure === true) {
@@ -83,6 +85,7 @@ describe('client registration lifecycle', () => {
     expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeDefined()
     expect(entryFor(ctx, 'conversation.chat.turnTail', MdChips)).toBeDefined()
     expect(entryFor(ctx, 'conversation.chat.assistant-actions', PreviewAction)).toBeDefined()
+    expect(entryFor(ctx, 'conversation.session.header.actions', WorkspaceDocsAction)).toBeDefined()
     // The active locale is environment-derived (jsdom defaults to en), so
     // accept either dictionary: binding proves the namespace registered.
     const title = ctx.locale.bind('md-preview')('panel.title')
@@ -92,6 +95,7 @@ describe('client registration lifecycle', () => {
     expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeUndefined()
     expect(entryFor(ctx, 'conversation.chat.turnTail', MdChips)).toBeUndefined()
     expect(entryFor(ctx, 'conversation.chat.assistant-actions', PreviewAction)).toBeUndefined()
+    expect(entryFor(ctx, 'conversation.session.header.actions', WorkspaceDocsAction)).toBeUndefined()
   })
 
   it('rolls the Remote mount back when UI registration fails', async () => {

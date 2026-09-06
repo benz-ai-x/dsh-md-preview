@@ -90,6 +90,14 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // its expansion state survives face switches (UI-local viewing state).
   const [face, setFace] = useState<'document' | 'browse'>('document')
   const [browserEverOpened, setBrowserEverOpened] = useState(false)
+  // A target that asks for the browse face opens on the tree (the header
+  // file action); anything else opens on the document as before.
+  useEffect(() => {
+    if (target?.face === 'browse') {
+      setBrowserEverOpened(true)
+      setFace('browse')
+    }
+  }, [target])
   // The rail (#11): shown from RAIL_MIN_WIDTH unless manually collapsed;
   // below the threshold the browse-face swap remains the fallback. Both are
   // component-local geometry state, like the dragged width.
