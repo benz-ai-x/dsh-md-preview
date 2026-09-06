@@ -3,6 +3,7 @@ lib/
 coverage/
 *.tgz
 .DS_Store
+.playwright-mcp/
 .env
 .env.*
 !.env.example
