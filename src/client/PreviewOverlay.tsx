@@ -161,7 +161,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
       const heading = findHeadingElement(container, outline, index)
       return heading === undefined ? Number.POSITIVE_INFINITY : heading.getBoundingClientRect().top - base
     })
-    setActiveOutline(activeIndexForScroll(tops, container.scrollTop))
+    // The reading anchor sits a little below the viewport top, so the first
+    // heading owns the document's very top instead of "nothing".
+    setActiveOutline(activeIndexForScroll(tops, container.scrollTop + 24))
   }, [outline, state.face, state.content])
 
   // The active outline entry follows the rendered document's scroll; the
