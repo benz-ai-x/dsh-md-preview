@@ -36,10 +36,13 @@ try {
   delete clean.devDependencies
   writeFileSync(manifestPath, `${JSON.stringify(clean, null, 2)}\n`)
   if (publish) {
-    execFileSync('npm', ['publish', '--access', 'public', ...extraArgs], { cwd: projectRoot, stdio: 'inherit' })
+    // --ignore-scripts: `prepare` exists for git installs (where nothing else
+    // builds); here the verify-built gate above already proves freshness, and
+    // its stdout would pollute the `--json` contract below.
+    execFileSync('npm', ['publish', '--ignore-scripts', '--access', 'public', ...extraArgs], { cwd: projectRoot, stdio: 'inherit' })
     packedName = null
   } else {
-    const output = execFileSync('npm', ['pack', '--json', '--silent'], { cwd: projectRoot, encoding: 'utf8' })
+    const output = execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--silent'], { cwd: projectRoot, encoding: 'utf8' })
     packedName = JSON.parse(output)[0].filename
   }
 } finally {
