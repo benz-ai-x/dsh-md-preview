@@ -463,3 +463,71 @@ describe('file kind icons', () => {
     expect(kinds).toEqual(['directory', 'markdown', 'image', 'text', 'file'])
   })
 })
+
+describe('tree filter (#13)', () => {
+  const FTREE = new Map<string, ListScript>([
+    ['', { entries: [
+      { name: 'notes.txt', type: 'file', path: 'notes.txt' },
+      { name: 'guide.md', type: 'file', path: 'guide.md' },
+      { name: 'docs', type: 'directory', path: 'docs' },
+      { name: 'assets', type: 'directory', path: 'assets' },
+    ] }],
+    ['docs', { entries: [
+      { name: 'deep-dive.md', type: 'file', path: 'docs/deep-dive.md' },
+      { name: 'other.md', type: 'file', path: 'docs/other.md' },
+    ] }],
+    ['assets', { entries: [{ name: 'logo.png', type: 'file', path: 'assets/logo.png' }] }],
+  ])
+
+  const visiblePaths = (harness: BrowseHarness): string[] =>
+    [...harness.container.querySelectorAll<HTMLElement>('[role="treeitem"]')].map(li => li.dataset.path)
+
+  const setFilter = async (harness: BrowseHarness, value: string): Promise<void> => {
+    const input = harness.container.querySelector('.dsh-md-preview-treefilter') as HTMLInputElement
+    await act(async () => {
+      // React's value tracker dedupes plain assignments; bypass the wrapper.
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+      set.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await flush()
+  }
+
+  it('narrows to matching entries and highlights the hit', async () => {
+    const harness = await renderBrowse(FTREE)
+    await enterBrowse(harness)
+    // Expand docs first so its children are loaded.
+    await act(async () => {
+      (harness.container.querySelector('[data-expander="docs"]') as HTMLElement).click()
+    })
+    await flush()
+    await setFilter(harness, 'deep')
+    expect(visiblePaths(harness)).toEqual(['docs', 'docs/deep-dive.md'])
+    const mark = harness.container.querySelector('.dsh-md-preview-treename mark')
+    expect(mark?.textContent).toBe('deep')
+  })
+
+  it('keeps a name-matched directory whole and hides unmatched branches', async () => {
+    const harness = await renderBrowse(FTREE)
+    await enterBrowse(harness)
+    await act(async () => {
+      (harness.container.querySelector('[data-expander="docs"]') as HTMLElement).click()
+    })
+    await flush()
+    await setFilter(harness, 'docs')
+    // docs matches by name: its loaded subtree stays entire.
+    expect(visiblePaths(harness)).toEqual(['docs', 'docs/deep-dive.md', 'docs/other.md'])
+    await setFilter(harness, '')
+    expect(visiblePaths(harness)).toEqual([
+      'notes.txt', 'guide.md', 'docs', 'docs/deep-dive.md', 'docs/other.md', 'assets',
+    ])
+  })
+
+  it('shows an explicit empty state when nothing matches', async () => {
+    const harness = await renderBrowse(FTREE)
+    await enterBrowse(harness)
+    await setFilter(harness, 'zzz')
+    expect(visiblePaths(harness)).toEqual([])
+    expect(harness.container.textContent).toContain('browse.noMatch')
+  })
+})

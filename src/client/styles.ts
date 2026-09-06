@@ -351,7 +351,7 @@ const CSS = `
 .dsh-md-preview-railoutline button:hover { background: var(--dsw-alias-fill-secondary); }
 .dsh-md-preview-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   gap: 4px;
   padding: 4px 8px 0;
 }
@@ -370,6 +370,22 @@ const CSS = `
 .dsh-md-preview-refresh:hover { background: var(--dsw-alias-fill-secondary); color: var(--dsw-alias-label-primary); }
 .dsh-md-preview-document { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; padding: 16px; }
 .dsh-md-preview-document[hidden] { display: none; }
+.dsh-md-preview-treefilter {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+}
+.dsh-md-preview-treename mark {
+  background: none;
+  color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  font-weight: 600;
+}
 .dsh-md-preview-tree, .dsh-md-preview-treegroup {
   list-style: none;
   margin: 0;
