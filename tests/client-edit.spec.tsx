@@ -9,7 +9,7 @@ import { useSyncExternalStore } from 'react'
 import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
 import { closeSearchPanel, SearchQuery, setSearchQuery } from '@codemirror/search'
-import { EditorView } from '@codemirror/view'
+import { EditorView, keymap } from '@codemirror/view'
 import { readFileSync } from 'node:fs'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
@@ -407,5 +407,60 @@ describe('edit status bar and history buttons (#15)', () => {
     const barAgain = harness.container.querySelector('.dsh-md-preview-statusbar') as HTMLElement
     expect(barAgain.textContent).toContain('status.saved')
     expect(barAgain.textContent).toMatch(/\d{2}:\d{2}/)
+  })
+})
+
+describe('markup keymaps and the key help popover (#16)', () => {
+  const pressKey = async (harness: PanelHarness, init: KeyboardEventInit, on: HTMLElement): Promise<void> => {
+    await act(async () => { on.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init })) })
+    await act(async () => { await Promise.resolve() })
+  }
+
+  it('binds Mod-B/I/K and wraps selections (empty selections get pairs)', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    // CM ignores synthetic key events under jsdom (its key path needs real
+    // focus/layout), so the binding is exercised through the public keymap
+    // facet: the key must be bound, and its command must wrap. Real-key
+    // delivery rides the browser walkthrough checklist (#18).
+    const view = EditorView.findFromDOM(harness.container.querySelector('.cm-editor') as HTMLElement)!
+    const binding = (key: string) => view.state.facet(keymap).flat().find(b => b.key === key)
+    expect(binding('Mod-b')).toBeDefined()
+    expect(binding('Mod-i')).toBeDefined()
+    expect(binding('Mod-k')).toBeDefined()
+    // Select "Hi" (offsets 2–4 in "# Hi").
+    await act(async () => { view.dispatch({ selection: { anchor: 2, head: 4 } }) })
+    await act(async () => { binding('Mod-b')!.run!(view) })
+    expect(view.state.doc.toString()).toBe('# **Hi**')
+    // Undo reverts the wrap (history consistency).
+    await act(async () => { binding('Mod-z')!.run!(view) })
+    expect(view.state.doc.toString()).toBe('# Hi')
+    // Empty selection inserts an empty marker pair with the cursor inside.
+    await act(async () => { view.dispatch({ selection: { anchor: 4 } }) })
+    await act(async () => { binding('Mod-i')!.run!(view) })
+    expect(view.state.doc.toString()).toBe('# Hi**')
+    expect(view.state.selection.main.head).toBe(5)
+  })
+
+  it('opens the key help from the button and ?, and closes on Esc', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const pop = () => harness.container.querySelector('.dsh-md-preview-keypop')
+    expect(pop()).toBeNull()
+    await click(harness, 'panel.keys')
+    expect(pop()).toBeTruthy()
+    expect(pop()!.textContent).toContain('Mod-B')
+    expect(pop()!.textContent).toContain('keys.bold')
+    await pressKey(harness, { key: 'Escape' }, harness.container.querySelector('.dsh-md-preview-panel') as HTMLElement)
+    expect(pop()).toBeNull()
+    // '?' outside the editor toggles it; inside the editor it must type.
+    const panel = harness.container.querySelector('.dsh-md-preview-panel') as HTMLElement
+    await pressKey(harness, { key: '?' }, panel)
+    expect(pop()).toBeTruthy()
+    const content = harness.container.querySelector('.cm-content') as HTMLElement
+    await pressKey(harness, { key: 'Escape' }, panel)
+    await pressKey(harness, { key: '?' }, content)
+    expect(pop()).toBeNull()
+    expect(harness.view!.state.doc.toString()).not.toContain('?')
   })
 })

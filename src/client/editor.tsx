@@ -9,7 +9,7 @@
  * edits as plain text, which is acceptable inside the editor face.
  */
 import { useEffect, useRef } from 'react'
-import { EditorState } from '@codemirror/state'
+import { EditorSelection, EditorState } from '@codemirror/state'
 import { defaultKeymap, history, historyField, historyKeymap } from '@codemirror/commands'
 import { getSearchQuery, RegExpCursor, search, searchKeymap } from '@codemirror/search'
 import {
@@ -32,6 +32,23 @@ import { Emoji, GFM, Subscript, Superscript, parser } from '@lezer/markdown'
 const markdownLanguage = LRLanguage.define({
   parser: parser.configure([GFM, Subscript, Superscript, Emoji]) as unknown as LRParser,
 })
+
+/**
+ * Wrap every selection range in markup markers (#16); an empty selection
+ * inserts the empty pair with the cursor between. Returns to the history
+ * stack like any edit.
+ */
+function wrapMarkup(view: EditorView, open: string, close: string): boolean {
+  const changes = view.state.changeByRange(range => ({
+    changes: [
+      { from: range.from, insert: open },
+      { from: range.to, insert: close },
+    ],
+    range: EditorSelection.range(range.from + open.length, range.to + open.length),
+  }))
+  view.dispatch(changes)
+  return true
+}
 
 /** What the find chip shows: total matches and the current one (1-based). */
 export interface SearchStatus {
@@ -155,6 +172,9 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
               key: 'Mod-s',
               run: () => { saveRef.current(); return true },
             },
+            { key: 'Mod-b', run: view => wrapMarkup(view, '**', '**') },
+            { key: 'Mod-i', run: view => wrapMarkup(view, '*', '*') },
+            { key: 'Mod-k', run: view => wrapMarkup(view, '[', '](url)') },
             ...searchKeymap,
             ...defaultKeymap,
             ...historyKeymap,

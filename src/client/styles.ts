@@ -272,6 +272,22 @@ const CSS = `
   color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
 }
 .dsh-md-preview-editor { flex: 1; min-height: 0; overflow: hidden; }
+.dsh-md-preview-keypop {
+  position: absolute;
+  top: 42px;
+  right: 10px;
+  z-index: 3;
+  min-width: 210px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-float, var(--dsw-alias-bg-base));
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  font-size: 12px;
+}
+.dsh-md-preview-keypop dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+.dsh-md-preview-keypop dt { font-size: 11px; font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--dsw-alias-accent, var(--dsw-alias-label-primary)); white-space: nowrap; }
+.dsh-md-preview-keypop dd { margin: 0; color: var(--dsw-alias-label-secondary); }
 .dsh-md-preview-statusbar {
   flex: none;
   display: flex;

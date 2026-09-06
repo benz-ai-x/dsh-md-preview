@@ -113,7 +113,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // The mode-switch guard (#14): UI-local — the machine's close guard keeps
   // its own meaning; this one only gates the segmented control's switch back.
   const [switchGuard, setSwitchGuard] = useState(false)
-  useEffect(() => { setSwitchGuard(false) }, [state.face])
+  // The keymap help popover (#16): button or '?' outside the editor.
+  const [keysOpen, setKeysOpen] = useState(false)
+  useEffect(() => { setSwitchGuard(false); setKeysOpen(false) }, [state.face])
   const searchPhrases = useMemo(() => ({
     Find: t('find.phrases.find'),
     Replace: t('find.phrases.replace'),
@@ -202,8 +204,14 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // rail tab wide, popover/face swap narrow. Esc dismisses the popover.
   const onPanelKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape') {
-      if (outlineOpen) setOutlineOpen(false)
+      if (outlineOpen || keysOpen) { setOutlineOpen(false); setKeysOpen(false) }
       return
+    }
+    // '?' toggles the keymap help only outside the editor (inside it types).
+    if (event.key === '?' && state.face === 'edit'
+      && (event.target as HTMLElement).closest('.cm-editor') === null) {
+      event.preventDefault()
+      setKeysOpen(value => !value)
     }
     if (!(event.metaKey || event.ctrlKey) || !event.shiftKey) return
     const key = event.key.toLowerCase()
@@ -216,7 +224,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
       if (width >= RAIL_MIN_WIDTH) { setRailCollapsed(false); setRailTab('files') }
       else { setBrowserEverOpened(true); setFace('browse') }
     }
-  }, [outlineOpen, width])
+  }, [outlineOpen, keysOpen, state.face, width])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
@@ -379,6 +387,30 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                   <path d="M2 2h9l3 3v9H2zM5 2v4h6V2M4 14V9h8v5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
                 </svg>
               </button>
+              <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('panel.keys')}
+                title={t('panel.keys')} aria-expanded={keysOpen} onClick={() => { setKeysOpen(value => !value) }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M5.2 6a2.8 2.8 0 1 1 4 2.6c-.8.4-1.2 1-1.2 1.9v.3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+                  <circle cx="8" cy="13" r=".9" fill="currentColor" />
+                </svg>
+              </button>
+              {keysOpen && (
+                <div className="dsh-md-preview-keypop" role="dialog" aria-label={t('panel.keys')}>
+                  <dl>
+                    <dt>Mod-B</dt><dd>{t('keys.bold')}</dd>
+                    <dt>Mod-I</dt><dd>{t('keys.italic')}</dd>
+                    <dt>Mod-K</dt><dd>{t('keys.link')}</dd>
+                    <dt>Mod-F</dt><dd>{t('keys.find')}</dd>
+                    <dt>Mod-S</dt><dd>{t('keys.save')}</dd>
+                    <dt>Mod-Z</dt><dd>{t('keys.undo')}</dd>
+                    <dt>Mod-⇧-O</dt><dd>{t('keys.outline')}</dd>
+                    <dt>Mod-⇧-E</dt><dd>{t('keys.files')}</dd>
+                    <dt>Esc</dt><dd>{t('keys.dismiss')}</dd>
+                  </dl>
+                </div>
+              )}
             </>
           )}
           <button
