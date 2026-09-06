@@ -97,4 +97,58 @@ describe('header information architecture', () => {
     expect(find.getAttribute('title')).toContain('Mod-F')
     expect(save.getAttribute('title')).toContain('Mod-S')
   })
+
+  it('carries the mode in a segmented control with the guard on switch (#14)', async () => {
+    const harness = await renderHeaderPanel('# T\n\nbody')
+    const seg = () => harness.container.querySelector('.dsh-md-preview-seg') as HTMLElement
+    const viewBtn = () => seg().querySelector('button[aria-label="panel.view"]') as HTMLButtonElement
+    const editBtn = () => seg().querySelector('button[aria-label="panel.edit"]') as HTMLButtonElement
+    expect(seg()).toBeTruthy()
+    expect(viewBtn().getAttribute('aria-pressed')).toBe('true')
+    expect(editBtn().getAttribute('aria-pressed')).toBe('false')
+    // The old silent-discard cancel button is gone; the segment replaces it.
+    expect(harness.container.querySelector('button[aria-label="panel.cancel"]')).toBeNull()
+    await act(async () => { editBtn().click() })
+    await flush()
+    expect(editBtn().getAttribute('aria-pressed')).toBe('true')
+    expect(viewBtn().getAttribute('aria-pressed')).toBe('false')
+    // Dirty draft: switching to 预览 raises the guard, not a silent discard.
+    const host = harness.container.querySelector('.cm-editor') as HTMLElement
+    const view = EditorView.findFromDOM(host)!
+    await act(async () => { view.dispatch({ changes: { from: 0, insert: 'x' } }) })
+    await flush()
+    await act(async () => { viewBtn().click() })
+    await flush()
+    expect(harness.container.textContent).toContain('panel.unsaved.title')
+    // 继续编辑 keeps the edit face; the draft survives.
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.unsaved.keep"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    expect(harness.container.querySelector('.cm-editor')).toBeTruthy()
+    await act(async () => { viewBtn().click() })
+    await flush()
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.unsaved.discard"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    // 放弃修改 returns to the rendered view with the draft gone, panel open.
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+    expect(harness.container.querySelector('.dsh-md-preview-panel')).toBeTruthy()
+    expect(harness.container.querySelector('.dsh-md-preview-dirty')).toBeNull()
+  })
+
+  it('switches straight back on a clean draft without the guard', async () => {
+    const harness = await renderHeaderPanel('# T')
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.edit"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.view"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+    expect(harness.container.textContent).not.toContain('panel.unsaved.title')
+  })
 })

@@ -103,6 +103,10 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const editorViewRef = useRef<EditorView | null>(null)
   const labels = markdownLabels(t)
   const [searchStatus, setSearchStatus] = useState<SearchStatus | null>(null)
+  // The mode-switch guard (#14): UI-local — the machine's close guard keeps
+  // its own meaning; this one only gates the segmented control's switch back.
+  const [switchGuard, setSwitchGuard] = useState(false)
+  useEffect(() => { setSwitchGuard(false) }, [state.face])
   const searchPhrases = useMemo(() => ({
     Find: t('find.phrases.find'),
     Replace: t('find.phrases.replace'),
@@ -306,15 +310,22 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               </svg>
             </button>
           )}
-          {face === 'document' && state.face === 'view' && state.content.state === 'ready' && isEditable(target.path) && (
-            <button
-              type="button" className="dsh-md-preview-icon dsh-md-preview-editcta" aria-label={t('panel.edit')}
-              title={t('panel.edit')} onClick={actions.enterEdit}
-            >
-              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                <path d="M11.5 2.5l2 2L6 12l-3 1 1-3zM10 4l2 2" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+          {face === 'document' && state.content.state === 'ready' && isEditable(target.path) && (
+            <div className="dsh-md-preview-seg" role="group" aria-label={t('panel.mode')}>
+              <button
+                type="button" aria-label={t('panel.view')} aria-pressed={state.face === 'view'}
+                onClick={() => {
+                  if (state.face !== 'edit') return
+                  // A dirty draft switches through the guard, never silently.
+                  if (isDirty(state)) setSwitchGuard(true)
+                  else actions.cancelEdit()
+                }}
+              >{t('panel.view')}</button>
+              <button
+                type="button" className="dsh-md-preview-editcta" aria-label={t('panel.edit')} aria-pressed={state.face === 'edit'}
+                onClick={() => { if (state.face !== 'edit') actions.enterEdit() }}
+              >{t('panel.edit')}</button>
+            </div>
           )}
           {face === 'document' && state.face === 'edit' && (
             <>
@@ -341,14 +352,6 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               >
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
                   <path d="M2 2h9l3 3v9H2zM5 2v4h6V2M4 14V9h8v5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button
-                type="button" className="dsh-md-preview-icon" aria-label={t('panel.cancel')}
-                title={t('panel.cancel')} onClick={actions.cancelEdit}
-              >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                 </svg>
               </button>
             </>
@@ -409,6 +412,13 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           <div className="dsh-md-preview-document" hidden={face !== 'document'} ref={documentRef}>
           {state.toast && state.face === 'view' && (
             <div className="dsh-md-preview-toast" role="status">✓ {t('panel.saved')}</div>
+          )}
+          {switchGuard && state.face === 'edit' && (
+            <div className="dsh-md-preview-bar" role="alert">
+              <span>{t('panel.unsaved.title')}</span>
+              <button type="button" aria-label={t('panel.unsaved.discard')} onClick={() => { setSwitchGuard(false); actions.cancelEdit() }}>{t('panel.unsaved.discard')}</button>
+              <button type="button" aria-label={t('panel.unsaved.keep')} onClick={() => { setSwitchGuard(false) }}>{t('panel.unsaved.keep')}</button>
+            </div>
           )}
           {state.unsavedPrompt && (
             <div className="dsh-md-preview-bar" role="alert">

@@ -150,7 +150,7 @@ describe('PreviewOverlay edit mode', () => {
     await enterEdit(harness)
     expect(harness.container.querySelector('.cm-content')?.textContent).toContain('# Hi')
     expect(byText(harness, 'panel.save')).toBeDefined()
-    expect(byText(harness, 'panel.cancel')).toBeDefined()
+    expect(byText(harness, 'panel.view')).toBeDefined()
   })
 
   it('saves through write with the read fingerprint and returns to the view', async () => {
@@ -198,11 +198,12 @@ describe('PreviewOverlay edit mode', () => {
     expect(harness.write).not.toHaveBeenCalled()
   })
 
-  it('cancel discards the draft without writing', async () => {
+  it('switching to the preview discards the draft through the guard without writing', async () => {
     const harness = await renderPanel()
     await enterEdit(harness)
     await typeInto(harness, ' draft')
-    await click(harness, 'panel.cancel')
+    await click(harness, 'panel.view')
+    await click(harness, 'panel.unsaved.discard')
     expect(harness.container.querySelector('.cm-editor')).toBeNull()
     // Back on the rendered document: the heading is markup now, not source text.
     expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toBe('Hi')

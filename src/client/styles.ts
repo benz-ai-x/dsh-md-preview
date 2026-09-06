@@ -65,6 +65,27 @@ const CSS = `
   border: 1px solid var(--dsw-alias-accent, var(--dsw-alias-border-l2));
   background: var(--dsw-alias-fill-secondary);
 }
+.dsh-md-preview-seg {
+  display: flex;
+  flex: none;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.dsh-md-preview-seg button {
+  padding: 3px 14px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-base);
+  border: none;
+  cursor: pointer;
+}
+.dsh-md-preview-seg button + button { border-left: 1px solid var(--dsw-alias-border-l2); }
+.dsh-md-preview-seg button[aria-pressed="true"] {
+  background: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  color: #fff;
+  font-weight: 500;
+}
 .dsh-md-preview-crumbs {
   flex: 1;
   min-width: 0;
