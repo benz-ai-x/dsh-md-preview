@@ -196,7 +196,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
       <div className="dsh-md-preview-panel" style={{ width: `${width}px` }}>
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
-          <div className="dsh-md-preview-crumbs" title={`${target.path} · v${process.env.MD_PREVIEW_VERSION}`}>
+          <div className="dsh-md-preview-crumbs" title={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`}>
             {target.path.split('/').map((segment, index, all) => (
               <span
                 key={`${index}-${segment}`}
