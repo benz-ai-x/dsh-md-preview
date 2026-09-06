@@ -21,8 +21,10 @@
       按钮、树手柄已旋转/当前文件已高亮,实际聚焦四个真缺口);
       发布链(verify → packed 冒烟 → publish → release)按 HANDOVER 流程
       另行执行
-- [ ] Wave 2(0.8.0 结构):侧栏 rail(≥640px)/树过滤/状态栏+脏点+时间戳/
-      Mod-B/I/K/查找替换
+- [ ] Wave 2(0.8.0 结构):侧栏 rail(≥640px)+ 分段控件 + 树筛选 +
+      状态栏/撤销重做/HTML 预警 + Mod-B/I/K 与键位帮助——spec 见
+      issue #10(ready-for-agent;接替 #9 的 Wave 2 条目,吸收双态 UI
+      样本五项修订)
 - 现状证据截图 ux-audit-*.png 仅存本地(含会话侧栏内容,已 gitignore)
 
 ## 待办
