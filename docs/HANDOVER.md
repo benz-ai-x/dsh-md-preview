@@ -65,12 +65,17 @@ stdout**(否则 npm 判非交互直抛 EOTP),保持真 pty 再 send-keys Enter�
 
 ## 未完成 / 留观
 
-- [ ] v0.4.0 浏览器人工走查(树/文本/不支持/高亮/键盘/中英文)→ 满意后关 spec #1
+- [x] v0.4.0 浏览器人工走查 → spec #1 已于 2026-09-02 验收关闭
+- [x] `npm deprecate @benz-ai-x/dsh-md-preview@0.2.4`(2026-09-06 完成,
+      "stale client bundle; use >=0.2.5",走 tmux 真 pty + 浏览器授权)
+- [x] 0.6.0 浏览器端到端:编辑→保存→冲突条三段自动化实测通过;强制覆盖/
+      重新加载两点击因并发手动导航未点成(见 TODO 0.2.0 节更新)
 - [ ] 独立双轴审查(自查版已做并修复 5 项;子代理版因 API 配额限流未跑,可择机补)
-- [ ] `npm deprecate @benz-ai-x/dsh-md-preview@0.2.4`(需一次 2FA 授权,标注"stale bundle; use >=0.2.5")
 - [ ] 架构留观候选:classifyProduced 收拢(三处重复循环)、线契约 zod 单源(见架构报告,docs/research 或 issue 历史)
-- [ ] HMR 热替换走查(TODO 长期项)
-- [ ] 用户环境:web profile 里第三方 `@benz-ai-x/dsh-client-ui-session-graph` 自身依赖缺失(非本插件问题)
+- [ ] HMR 热替换走查(TODO 长期项;需 dev-link profile + watch:client 的专用 rig)
+- [ ] 用户环境:web profile 里第三方 `@benz-ai-x/dsh-client-ui-session-graph`
+      自身依赖缺失(非本插件问题;根因 = 其 lib import `@deepseek-ai/dsh-llm`
+      但 package.json 未声明。临时绕过 = 启动带一次性 `--patch` 禁该行)
 
 ## 命令速查
 
