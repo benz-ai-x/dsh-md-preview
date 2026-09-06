@@ -272,6 +272,19 @@ const CSS = `
   color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
 }
 .dsh-md-preview-editor { flex: 1; min-height: 0; overflow: hidden; }
+.dsh-md-preview-statusbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-base);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-secondary);
+  user-select: none;
+}
 .dsh-md-preview-editor .cm-editor { height: 100%; }
 .dsh-md-preview-findcount {
   flex: none;

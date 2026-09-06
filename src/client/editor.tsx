@@ -10,7 +10,7 @@
  */
 import { useEffect, useRef } from 'react'
 import { EditorState } from '@codemirror/state'
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { defaultKeymap, history, historyField, historyKeymap } from '@codemirror/commands'
 import { getSearchQuery, RegExpCursor, search, searchKeymap } from '@codemirror/search'
 import {
   EditorView,
@@ -39,6 +39,15 @@ export interface SearchStatus {
   readonly index: number
 }
 
+/** What the edit status bar shows (#15), plus history availability. */
+export interface EditorStatus {
+  readonly line: number
+  readonly col: number
+  readonly chars: number
+  readonly canUndo: boolean
+  readonly canRedo: boolean
+}
+
 /** Props the panel hands to the editor. */
 export interface MarkdownEditorProps {
   /** Document text at edit-session start; a changed value remounts the editor. */
@@ -51,6 +60,8 @@ export interface MarkdownEditorProps {
   onView?: (view: EditorView | null) => void
   /** Reports the cursor's 1-based line at mount and on doc/selection change. */
   onCursorLine?: (line: number) => void
+  /** Status-bar payload at mount and on doc/selection/history change; null on unmount. */
+  onStatus?: (status: EditorStatus | null) => void
   /** Search panel localization: CM stock phrase key → panel word. */
   searchPhrases?: Readonly<Record<string, string>>
   /** Match count and 1-based current index; null while search is inactive. */
@@ -62,7 +73,7 @@ export interface MarkdownEditorProps {
  * @param props - initial document plus change, save, and view callbacks.
  * @returns the editor host element.
  */
-export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
+export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine, onStatus, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null)
   // Refs keep the extension closures stable without remounting on callback identity.
   const changeRef = useRef(onChange)
@@ -75,6 +86,22 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
   cursorRef.current = onCursorLine
   const statusRef = useRef(onSearchStatus)
   statusRef.current = onSearchStatus
+  const editStatusRef = useRef(onStatus)
+  editStatusRef.current = onStatus
+
+  /** Report the status-bar payload: cursor, size, and history availability. */
+  const reportEditStatus = (view: EditorView): void => {
+    const head = view.state.selection.main.head
+    const line = view.state.doc.lineAt(head)
+    const historyState = view.state.field(historyField, false)
+    editStatusRef.current?.({
+      line: line.number,
+      col: head - line.from + 1,
+      chars: view.state.doc.toString().replace(/\s/g, '').length,
+      canUndo: historyState !== undefined && historyState.done.length > 0,
+      canRedo: historyState !== undefined && historyState.undone.length > 0,
+    })
+  }
 
   /** Count matches for the live query; null when the panel is inactive. */
   const reportSearch = (view: EditorView): void => {
@@ -138,6 +165,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
               cursorRef.current?.(update.state.doc.lineAt(update.state.selection.main.head).number)
             }
             reportSearch(update.view)
+            reportEditStatus(update.view)
           }),
           EditorView.theme({
             '&': { height: '100%' },
@@ -150,8 +178,10 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
     viewRef.current?.(view)
     cursorRef.current?.(view.state.doc.lineAt(view.state.selection.main.head).number)
     reportSearch(view)
+    reportEditStatus(view)
     return () => {
       statusRef.current?.(null)
+      editStatusRef.current?.(null)
       viewRef.current?.(null)
       view.destroy()
     }

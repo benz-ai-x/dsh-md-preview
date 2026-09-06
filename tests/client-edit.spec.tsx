@@ -356,3 +356,56 @@ describe('find count', () => {
     expect(harness.container.querySelector('.dsh-md-preview-findcount')).toBeNull()
   })
 })
+
+describe('edit status bar and history buttons (#15)', () => {
+  it('reports Ln/Col and the character count live', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const bar = harness.container.querySelector('.dsh-md-preview-statusbar') as HTMLElement
+    expect(bar).toBeTruthy()
+    expect(bar.textContent).toContain('Ln 1, Col 1')
+    await act(async () => {
+      harness.view!.dispatch({
+        changes: { from: 4, insert: ' there' },
+        selection: { anchor: 10 },
+      })
+    })
+    await act(async () => { await Promise.resolve() })
+    expect(bar.textContent).toContain('status.chars')
+    // anchor 10 in "# Hi there" is line 1, column 11 (exact, not substring).
+    expect(bar.querySelector('span')?.textContent).toBe('Ln 1, Col 11')
+  })
+
+  it('undoes and redoes from the header buttons with disabled states', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const undoBtn = () => harness.container.querySelector('button[aria-label="panel.undo"]') as HTMLButtonElement
+    const redoBtn = () => harness.container.querySelector('button[aria-label="panel.redo"]') as HTMLButtonElement
+    expect(undoBtn().disabled).toBe(true)
+    expect(redoBtn().disabled).toBe(true)
+    await typeInto(harness, ' there')
+    expect(undoBtn().disabled).toBe(false)
+    await click(harness, 'panel.undo')
+    expect(harness.container.querySelector('.cm-content')?.textContent).not.toContain('there')
+    expect(redoBtn().disabled).toBe(false)
+    await click(harness, 'panel.redo')
+    expect(harness.container.querySelector('.cm-content')?.textContent).toContain('there')
+  })
+
+  it('keeps the saved time resident after the toast fades', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    const bar = harness.container.querySelector('.dsh-md-preview-statusbar') as HTMLElement
+    expect(bar.textContent).toContain('status.clean')
+    await typeInto(harness, ' there')
+    expect(bar.textContent).toContain('status.unsaved')
+    await click(harness, 'panel.save')
+    // Saving returns to the view face (the statusbar unmounts with the
+    // editor); re-entering edit shows the resident saved stamp for the
+    // same target — it outlives the 2s toast.
+    await enterEdit(harness)
+    const barAgain = harness.container.querySelector('.dsh-md-preview-statusbar') as HTMLElement
+    expect(barAgain.textContent).toContain('status.saved')
+    expect(barAgain.textContent).toMatch(/\d{2}:\d{2}/)
+  })
+})

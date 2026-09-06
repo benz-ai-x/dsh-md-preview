@@ -12,13 +12,14 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { EditorView } from '@codemirror/view'
 import { openSearchPanel } from '@codemirror/search'
+import { redo, undo } from '@codemirror/commands'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
 import { isEditable } from './preview-state.ts'
 import { isDirty } from './preview-session.ts'
 import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from './outline.ts'
 import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
-import { MarkdownEditor, type SearchStatus } from './editor.tsx'
+import { MarkdownEditor, type EditorStatus, type SearchStatus } from './editor.tsx'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { usePanelDocumentSession } from './use-preview-session.ts'
 
@@ -103,6 +104,12 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const editorViewRef = useRef<EditorView | null>(null)
   const labels = markdownLabels(t)
   const [searchStatus, setSearchStatus] = useState<SearchStatus | null>(null)
+  const [editorStatus, setEditorStatus] = useState<EditorStatus | null>(null)
+  // The resident saved-at stamp (#15): set when the save toast fires, kept
+  // after it fades; a new target resets it until the next save.
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
+  useEffect(() => { if (state.toast && state.face === 'view') setSavedAt(new Date()) }, [state.toast, state.face])
+  useEffect(() => { setSavedAt(null) }, [target])
   // The mode-switch guard (#14): UI-local — the machine's close guard keeps
   // its own meaning; this one only gates the segmented control's switch back.
   const [switchGuard, setSwitchGuard] = useState(false)
@@ -330,6 +337,24 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           {face === 'document' && state.face === 'edit' && (
             <>
               <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('panel.undo')}
+                title={`${t('panel.undo')} · Mod-Z`} disabled={editorStatus === null || !editorStatus.canUndo}
+                onClick={() => { const view = editorViewRef.current; if (view !== null) undo(view) }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M6 3.5L2.5 7 6 10.5M2.5 7h7a4 4 0 1 1 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('panel.redo')}
+                title={`${t('panel.redo')} · Mod-Shift-Z`} disabled={editorStatus === null || !editorStatus.canRedo}
+                onClick={() => { const view = editorViewRef.current; if (view !== null) redo(view) }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M10 3.5L13.5 7 10 10.5M13.5 7h-7a4 4 0 1 0 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.find')}
                 title={`${t('panel.find')} · Mod-F`} onClick={() => {
                   const view = editorViewRef.current
@@ -448,15 +473,29 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
             </div>
           )}
           {state.face === 'edit' ? (
+            <>
             <MarkdownEditor
               initialValue={state.content.state === 'ready' ? state.content.file.content : ''}
               onChange={actions.edit}
               onSave={() => { actions.save(false) }}
               onView={onEditorView}
               onCursorLine={line => { setActiveOutline(activeIndexForLine(outline, line)) }}
+              onStatus={setEditorStatus}
               searchPhrases={searchPhrases}
               onSearchStatus={setSearchStatus}
             />
+            {editorStatus !== null && (
+              <div className="dsh-md-preview-statusbar">
+                <span>{`Ln ${editorStatus.line}, Col ${editorStatus.col}`}</span>
+                <span>{`${editorStatus.chars} ${t('status.chars')}`}</span>
+                <span>
+                  {isDirty(state) ? t('status.unsaved')
+                    : savedAt === null ? t('status.clean')
+                    : `${t('status.saved')} ${String(savedAt.getHours()).padStart(2, '0')}:${String(savedAt.getMinutes()).padStart(2, '0')}`}
+                </span>
+              </div>
+            )}
+            </>
           ) : (
             <>
               {state.content.state === 'loading' && <div className="dsh-md-preview-state">{t('panel.loading')}</div>}
