@@ -32,6 +32,16 @@
 - [ ] PR #19 合并 → 0.8.0 发布链另行走
 - 现状证据截图 ux-audit-*.png 仅存本地(含会话侧栏内容,已 gitignore)
 
+## 工作区文档入口(2026-09-06→07,0.7.2)
+
+- [x] 多轮设计探索(用户评审驱动):composer 停靠位 → 会话头部 → 文档视图
+      标签 → 左缘细条/药丸(细条定位连续踩坑:地标竞态/CSSOM 不触发 MO)→
+      用户全程否决,归档 archive/side-browser-exploration 后回滚干净
+- [x] 定稿:会话 header actions 末尾 📂 按钮 → 右侧面板直接开浏览脸
+      (工作区树先进门);预览目标带可选 face;浏览脸空路径不触发 read。
+      154/154 + verify EXIT 0,分支 header-browse-entry 合入 main(866b988)
+- [ ] 发布 0.7.2:verify → packed 冒烟 → npm publish → release
+
 ## 待办
 
 - [ ] HMR 验证：`pnpm watch:client` + 浏览器 bundle 热替换
