@@ -288,6 +288,27 @@ const CSS = `
 .dsh-md-preview-keypop dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
 .dsh-md-preview-keypop dt { font-size: 11px; font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--dsw-alias-accent, var(--dsw-alias-label-primary)); white-space: nowrap; }
 .dsh-md-preview-keypop dd { margin: 0; color: var(--dsw-alias-label-secondary); }
+.dsh-md-preview-warnbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-float, var(--dsw-alias-fill-secondary));
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+.dsh-md-preview-warnbar button {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.dsh-md-preview-warnbar button:hover { color: var(--dsw-alias-label-primary); }
 .dsh-md-preview-statusbar {
   flex: none;
   display: flex;

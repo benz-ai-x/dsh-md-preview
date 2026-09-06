@@ -464,3 +464,39 @@ describe('markup keymaps and the key help popover (#16)', () => {
     expect(harness.view!.state.doc.toString()).not.toContain('?')
   })
 })
+
+describe('inline-HTML warning bar (#17)', () => {
+  async function renderWith(content: string): Promise<PanelHarness> {
+    const harness = await renderPanel()
+    harness.readResult = { ok: true, value: { path: 'README.md', content, fingerprint: 'v1' } }
+    // Force a re-read of the (mutated) result: a fresh target read.
+    harness.setTarget({ sessionId: 'session-1', path: 'README.md' })
+    await harness.rerender()
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    return harness
+  }
+
+  it('warns for inline HTML once per edit session and returns on re-entry', async () => {
+    const harness = await renderWith('# Hi\n\n<div align="center">x</div>\n')
+    const bar = () => harness.container.querySelector('.dsh-md-preview-warnbar')
+    expect(bar()).toBeNull()
+    await enterEdit(harness)
+    expect(bar()).toBeTruthy()
+    expect(bar()!.textContent).toContain('warn.html')
+    await act(async () => {
+      (bar()!.querySelector('button[aria-label="warn.dismiss"]') as HTMLElement).click()
+    })
+    await act(async () => { await Promise.resolve() })
+    expect(bar()).toBeNull()
+    // Dismissed for this session; leaving and re-entering edit shows it again.
+    await click(harness, 'panel.view')
+    await click(harness, 'panel.edit')
+    expect(bar()).toBeTruthy()
+  })
+
+  it('stays silent without inline HTML', async () => {
+    const harness = await renderWith('# plain markdown only\n')
+    await enterEdit(harness)
+    expect(harness.container.querySelector('.dsh-md-preview-warnbar')).toBeNull()
+  })
+})

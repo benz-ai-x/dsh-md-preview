@@ -115,7 +115,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const [switchGuard, setSwitchGuard] = useState(false)
   // The keymap help popover (#16): button or '?' outside the editor.
   const [keysOpen, setKeysOpen] = useState(false)
-  useEffect(() => { setSwitchGuard(false); setKeysOpen(false) }, [state.face])
+  // The inline-HTML warning (#17): once per edit session.
+  const [htmlWarnDismissed, setHtmlWarnDismissed] = useState(false)
+  useEffect(() => { setSwitchGuard(false); setKeysOpen(false); setHtmlWarnDismissed(false) }, [state.face])
   const searchPhrases = useMemo(() => ({
     Find: t('find.phrases.find'),
     Replace: t('find.phrases.replace'),
@@ -506,6 +508,12 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           )}
           {state.face === 'edit' ? (
             <>
+            {state.content.state === 'ready' && state.content.file.content.includes('</') && !htmlWarnDismissed && (
+              <div className="dsh-md-preview-warnbar" role="status">
+                <span>{t('warn.html')}</span>
+                <button type="button" aria-label={t('warn.dismiss')} title={t('warn.dismiss')} onClick={() => { setHtmlWarnDismissed(true) }}>✕</button>
+              </div>
+            )}
             <MarkdownEditor
               initialValue={state.content.state === 'ready' ? state.content.file.content : ''}
               onChange={actions.edit}
