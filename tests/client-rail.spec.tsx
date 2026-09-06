@@ -35,7 +35,7 @@ interface ListScript {
   entries: MdPreviewEntry[]
 }
 
-async function renderRail(script: Map<string, ListScript>): Promise<RailHarness> {
+async function renderRail(script: Map<string, ListScript>, content?: string): Promise<RailHarness> {
   const store = createPreviewStore()
   const harness: RailHarness = {
     container: document.createElement('div'),
@@ -53,7 +53,7 @@ async function renderRail(script: Map<string, ListScript>): Promise<RailHarness>
       usePreviewTarget={usePreviewTarget as never}
       close={() => { store.set(null) }}
       read={((sessionId: string, path: string) =>
-        Promise.resolve({ ok: true as const, value: { path, content: `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })) as never}
+        Promise.resolve({ ok: true as const, value: { path, content: content ?? `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })) as never}
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={list as never}
       setTarget={harness.setTarget as never}
@@ -161,5 +161,72 @@ describe('rail (#11)', () => {
     await act(async () => { buttonByLabel(harness, 'browse.back')!.click() })
     await flush()
     expect((harness.container.querySelector('.dsh-md-preview-document') as HTMLElement).hidden).toBe(false)
+  })
+})
+
+const pressPanelKey = async (harness: RailHarness, init: KeyboardEventInit): Promise<void> => {
+  const panel = harness.container.querySelector('.dsh-md-preview-panel') as HTMLElement
+  await act(async () => { panel.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init })) })
+  await flush()
+}
+
+describe('rail outline tab + navigation shortcuts (#12)', () => {
+  const OUTLINE_TREE = new Map<string, ListScript>([['', { entries: [
+    { name: 'guide.md', type: 'file', path: 'guide.md' },
+  ] }]])
+
+  it('lists the outline in the rail and keeps the tab across collapse', async () => {
+    const harness = await renderRail(OUTLINE_TREE, '# Alpha\n\n## Beta')
+    await dragHandle(harness, 100, -600)
+    await flush()
+    await act(async () => {
+      (harness.container.querySelector('.dsh-md-preview-railtabs [role="tab"][aria-selected="false"]') as HTMLElement).click()
+    })
+    await flush()
+    const items = [...harness.container.querySelectorAll('.dsh-md-preview-railoutline button')]
+    expect(items.map(item => item.textContent)).toEqual(['Alpha', 'Beta'])
+    // Collapse and expand: the outline tab is still selected.
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
+    expect(harness.container.querySelectorAll('.dsh-md-preview-railoutline button').length).toBe(2)
+  })
+
+  it('jumps from a rail outline click and highlights the active entry', async () => {
+    const scrollIntoView = vi.fn()
+    HTMLElement.prototype.scrollIntoView = scrollIntoView
+    const harness = await renderRail(OUTLINE_TREE, '# Alpha\n\n## Beta')
+    await dragHandle(harness, 100, -600)
+    await flush()
+    await pressPanelKey(harness, { key: 'O', shiftKey: true, metaKey: true })
+    const items = [...harness.container.querySelectorAll('.dsh-md-preview-railoutline button')]
+    expect(items.length).toBe(2)
+    await act(async () => { items[1]!.click() })
+    // Clicking a rail entry scrolls the rendered heading; the popover-close
+    // side effect is irrelevant here (the popover was never open).
+    const startCalls = scrollIntoView.mock.calls.filter(call => (call[0] as { block?: string }).block === 'start')
+    expect(startCalls).toHaveLength(1)
+  })
+
+  it('routes the shortcuts by width: rail tab wide, popover/face narrow', async () => {
+    const harness = await renderRail(OUTLINE_TREE, '# Alpha')
+    // Narrow: Mod-Shift-O opens the outline popover.
+    await pressPanelKey(harness, { key: 'O', shiftKey: true, metaKey: true })
+    expect(harness.container.querySelector('.dsh-md-preview-outline')).toBeTruthy()
+    // Esc closes it.
+    await pressPanelKey(harness, { key: 'Escape' })
+    expect(harness.container.querySelector('.dsh-md-preview-outline')).toBeNull()
+    // Narrow: Mod-Shift-E enters the browse face.
+    await pressPanelKey(harness, { key: 'E', shiftKey: true, metaKey: true })
+    expect((harness.container.querySelector('.dsh-md-preview-document') as HTMLElement).hidden).toBe(true)
+    await act(async () => { buttonByLabel(harness, 'browse.back')!.click() })
+    await flush()
+    // Wide: Mod-Shift-O selects the outline rail tab directly.
+    await dragHandle(harness, 100, -600)
+    await flush()
+    await pressPanelKey(harness, { key: 'O', shiftKey: true, metaKey: true })
+    expect(harness.container.querySelector('.dsh-md-preview-railoutline')).toBeTruthy()
+    expect((harness.container.querySelector('.dsh-md-preview-railoutline') as HTMLElement).hidden).toBe(false)
   })
 })

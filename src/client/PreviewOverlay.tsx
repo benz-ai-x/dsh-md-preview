@@ -94,6 +94,8 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // component-local geometry state, like the dragged width.
   const [railCollapsed, setRailCollapsed] = useState(false)
   const railVisible = width >= RAIL_MIN_WIDTH && !railCollapsed
+  // Which rail mini-tab is showing (#12); remembered across collapses.
+  const [railTab, setRailTab] = useState<'files' | 'outline'>('files')
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [activeOutline, setActiveOutline] = useState(-1)
   const documentRef = useRef<HTMLDivElement>(null)
@@ -185,6 +187,26 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     findHeadingElement(documentRef.current, outline, index)?.scrollIntoView({ block: 'start' })
   }, [outline, state.face])
 
+  // Navigation shortcuts (#12): outline and files, routed by the width —
+  // rail tab wide, popover/face swap narrow. Esc dismisses the popover.
+  const onPanelKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === 'Escape') {
+      if (outlineOpen) setOutlineOpen(false)
+      return
+    }
+    if (!(event.metaKey || event.ctrlKey) || !event.shiftKey) return
+    const key = event.key.toLowerCase()
+    if (key === 'o') {
+      event.preventDefault()
+      if (width >= RAIL_MIN_WIDTH) { setRailCollapsed(false); setRailTab('outline') }
+      else setOutlineOpen(true)
+    } else if (key === 'e') {
+      event.preventDefault()
+      if (width >= RAIL_MIN_WIDTH) { setRailCollapsed(false); setRailTab('files') }
+      else { setBrowserEverOpened(true); setFace('browse') }
+    }
+  }, [outlineOpen, width])
+
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
     setTarget({ sessionId: target.sessionId, path })
@@ -211,7 +233,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
 
   if (target === null) return null
   return (
-    <div className="dsh-md-preview-dock">
+    <div className="dsh-md-preview-dock" onKeyDown={onPanelKeyDown}>
       <div className="dsh-md-preview-panel" style={{ width: `${width}px` }}>
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
@@ -232,7 +254,10 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('outline.open')}
                 aria-expanded={outlineOpen} title={t('outline.open')}
-                onClick={() => { setOutlineOpen(value => !value) }}
+                onClick={() => {
+                  if (width >= RAIL_MIN_WIDTH) { setRailCollapsed(false); setRailTab('outline') }
+                  else setOutlineOpen(value => !value)
+                }}
               >
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
                   <path d="M2.5 3.5h11M5 8h8.5M2.5 12.5h11M2.5 8h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -346,18 +371,38 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
             >
               {railVisible && (
                 <div className="dsh-md-preview-railtabs" role="tablist">
-                  <button type="button" role="tab" aria-selected="true">{t('rail.files')}</button>
+                  <button type="button" role="tab" aria-selected={railTab === 'files' ? 'true' : 'false'} onClick={() => { setRailTab('files') }}>{t('rail.files')}</button>
+                  <button type="button" role="tab" aria-selected={railTab === 'outline' ? 'true' : 'false'} onClick={() => { setRailTab('outline') }}>{t('rail.outline')}</button>
+                </div>
+              )}
+              {railVisible && (
+                <div className="dsh-md-preview-railoutline" hidden={railTab !== 'outline'}>
+                  {outline.length === 0 && <div className="dsh-md-preview-treehint" role="presentation">{t('rail.noHeadings')}</div>}
+                  {outline.map((entry, index) => (
+                    <button
+                      key={`${entry.line}-${entry.text}`} type="button"
+                      className={index === activeOutline ? 'dsh-md-preview-outline-active' : undefined}
+                      style={{ paddingLeft: `${8 + (entry.level - 1) * 12}px` }}
+                      title={entry.text}
+                      aria-current={index === activeOutline ? 'true' : undefined}
+                      onClick={() => { jumpToOutline(index) }}
+                    >
+                      {entry.text}
+                    </button>
+                  ))}
                 </div>
               )}
               {target !== null && (
-                <WorkspaceBrowser
-                  sessionId={target.sessionId}
-                  active={railVisible || face === 'browse'}
-                  list={list}
-                  onOpenFile={openFromBrowser}
-                  currentPath={target.path}
-                  t={t}
-                />
+                <div hidden={railVisible && railTab !== 'files'} className="dsh-md-preview-railfiles">
+                  <WorkspaceBrowser
+                    sessionId={target.sessionId}
+                    active={railVisible || face === 'browse'}
+                    list={list}
+                    onOpenFile={openFromBrowser}
+                    currentPath={target.path}
+                    t={t}
+                  />
+                </div>
               )}
             </div>
           )}

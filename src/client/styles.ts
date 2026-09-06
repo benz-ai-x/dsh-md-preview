@@ -325,6 +325,30 @@ const CSS = `
   border-bottom-color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
   font-weight: 500;
 }
+.dsh-md-preview-railfiles, .dsh-md-preview-railoutline {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.dsh-md-preview-railfiles[hidden], .dsh-md-preview-railoutline[hidden] { display: none; }
+.dsh-md-preview-railoutline button {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  padding: 5px 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.dsh-md-preview-railoutline button:hover { background: var(--dsw-alias-fill-secondary); }
 .dsh-md-preview-toolbar {
   display: flex;
   justify-content: flex-end;
