@@ -206,4 +206,17 @@
 - [x] 顺手修复：vitest.config 回退路径 `../../deepseek-harness` →
       `../deepseek-harness`（与 lock 的 fallbackRelativePath 一致；此前未设
       DSH_HARNESS_ROOT 时 4 个测试文件直接 resolve 失败）
-- [ ] 发布 0.5.0（peer 要求变更，minor 级）：verify → packed 冒烟 → npm publish
+- [x] 发布前置全过（2026-09-06）：verify 全链路（strict 123 + typecheck +
+      **101/101** + build + built:check）；packed 冒烟（干净 profile 装 0.5.0
+      tarball + 本地 web-app → dump 行 → web 启动零告警 → 首页 combo 预载含
+      本插件行 → `/plugins/??…client.js` 200 服务 426 kB 工厂 bundle、内嵌
+      v0.5.0 → remove 往返干净）；`npm version minor` → v0.5.0 commit+tag
+- [x] 发布链新 bug 修复：npm pack/publish 会触发 `prepare` 生命周期脚本，
+      其 stdout 污染 `--json` 解析（0.4.0 发布时 prepare 尚不存在，0.5.0 首
+      次暴露）→ pack.mjs 两条路径加 `--ignore-scripts`（新鲜度已由
+      verify-built 门保证）
+- [ ] npm publish 0.5.0（tmux 真终端 + 浏览器 2FA 授权）→ 验货 registry
+      tarball → web profile 升 `^0.5.0` → git push + gh release
+- 备注：用户 web profile 的第三方 `@benz-ai-x/dsh-client-ui-session-graph`
+      依赖缺失（预存问题）当前会阻塞整个 profile 启动；本次冒烟改用独立
+      干净 profile 完成，用户侧需修复该项目或禁用该行后 3080 才能起来

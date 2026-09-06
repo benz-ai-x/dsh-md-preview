@@ -4,8 +4,12 @@
 
 ## 当前状态
 
-**v0.4.0 已全量上线**(npm latest / GitHub tag+Release / web profile 部署,三件套齐):
-只读预览 → 受守卫编辑(乐观锁+沙箱)→ 工作区浏览(目录树/文本预览/面包屑/键盘)。
+**v0.5.0 已完成发布前置、待 npm publish（2FA 浏览器授权）**：基线升级
+`0.1.2-alpha.3` → `0.1.2-rc.1`（漂移审查 305 commits 零 API 破坏，纯版本
+对齐，见 TODO「基线升级 alpha.3 → rc.1」节）；verify 全链 + packed 冒烟全
+绿；v0.5.0 commit+tag 已落。用户 web profile 已装本地 0.5.0 tarball
+（file: 引用，publish 后切 `^0.5.0`）。
+只读预览 → 受守卫编辑（乐观锁+沙箱）→ 工作区浏览（目录树/文本预览/面包屑/键盘）。
 测试 **101 项**全绿;`pnpm verify` 全链通过是唯一发布前置。
 
 ## 文档地图(哪个问题查哪份)
