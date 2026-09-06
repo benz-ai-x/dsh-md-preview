@@ -18,7 +18,7 @@ import { isEditable } from './preview-state.ts'
 import { isDirty } from './preview-session.ts'
 import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from './outline.ts'
 import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
-import { MarkdownEditor } from './editor.tsx'
+import { MarkdownEditor, type SearchStatus } from './editor.tsx'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { usePanelDocumentSession } from './use-preview-session.ts'
 
@@ -93,6 +93,19 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const outlineRef = useRef<HTMLDivElement>(null)
   const editorViewRef = useRef<EditorView | null>(null)
   const labels = markdownLabels(t)
+  const [searchStatus, setSearchStatus] = useState<SearchStatus | null>(null)
+  const searchPhrases = useMemo(() => ({
+    Find: t('find.phrases.find'),
+    Replace: t('find.phrases.replace'),
+    next: t('find.phrases.next'),
+    previous: t('find.phrases.previous'),
+    all: t('find.phrases.all'),
+    'match case': t('find.phrases.matchCase'),
+    regexp: t('find.phrases.regexp'),
+    'by word': t('find.phrases.byWord'),
+    'replace all': t('find.phrases.replaceAll'),
+    close: t('find.phrases.close'),
+  }), [t])
 
   const outline = useMemo(
     () => state.content.state === 'ready' ? extractOutline(state.content.file.content) : [],
@@ -269,6 +282,11 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                   <path d="M7 12a5 5 0 1 1 4.3-2.5L14 12.2 12.2 14l-2.7-2.7A5 5 0 0 1 7 12zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor" opacity="0.9" />
                 </svg>
               </button>
+              {searchStatus !== null && (
+                <span className="dsh-md-preview-findcount" aria-label={t('find.status')}>
+                  {searchStatus.index}/{searchStatus.count}
+                </span>
+              )}
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.save')}
                 title={`${t('panel.save')} · Mod-S`} disabled={!canSave}
@@ -350,6 +368,8 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               onSave={() => { actions.save(false) }}
               onView={onEditorView}
               onCursorLine={line => { setActiveOutline(activeIndexForLine(outline, line)) }}
+              searchPhrases={searchPhrases}
+              onSearchStatus={setSearchStatus}
             />
           ) : (
             <>

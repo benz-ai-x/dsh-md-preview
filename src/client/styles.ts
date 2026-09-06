@@ -251,6 +251,30 @@ const CSS = `
 }
 .dsh-md-preview-editor { flex: 1; min-height: 0; overflow: hidden; }
 .dsh-md-preview-editor .cm-editor { height: 100%; }
+.dsh-md-preview-findcount {
+  flex: none;
+  margin: 0 2px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-secondary);
+  user-select: none;
+}
+.dsh-md-preview-editor .cm-panel.cm-search {
+  background: var(--dsw-alias-bg-base);
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  padding: 4px 6px;
+  font-size: 12px;
+}
+.dsh-md-preview-editor .cm-panel.cm-search input,
+.dsh-md-preview-editor .cm-panel.cm-search button {
+  font-size: 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  padding: 2px 4px;
+}
+.dsh-md-preview-editor .cm-panel.cm-search button:hover { background: var(--dsw-alias-fill-secondary); }
 .dsh-md-preview-editor .cm-scroller { overflow: auto; }
 .dsh-md-preview-bar {
   display: flex;

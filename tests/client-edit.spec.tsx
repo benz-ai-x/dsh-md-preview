@@ -8,6 +8,7 @@
 import { useSyncExternalStore } from 'react'
 import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
+import { closeSearchPanel, SearchQuery, setSearchQuery } from '@codemirror/search'
 import { EditorView } from '@codemirror/view'
 import { readFileSync } from 'node:fs'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
@@ -288,5 +289,68 @@ describe('editor find', () => {
   it('offers no find action outside the edit face', async () => {
     const harness = await renderPanel()
     expect(byText(harness, 'panel.find')).toBeUndefined()
+  })
+})
+
+async function renderFindPanel(content: string): Promise<PanelHarness> {
+  const store = createPreviewStore()
+  const harness: PanelHarness = {
+    container: document.createElement('div'),
+    reads: 0,
+    write: vi.fn(() => Promise.resolve({ ok: true, value: { path: 'README.md', fingerprint: 'v2' } })),
+    writeImpl: () => Promise.resolve({ ok: true as const, value: { path: 'README.md', fingerprint: 'v2' } }),
+    setTarget: target => { store.set(target as never) },
+    rerender: () => act(async () => { root.render(panelElement()) }),
+    view: null,
+    readResult: { ok: true, value: { path: 'README.md', content, fingerprint: 'v1' } },
+    writeResult: { ok: true, value: { path: 'README.md', fingerprint: 'v2' } },
+  }
+  const usePreviewTarget = (selector: (state: unknown) => unknown) =>
+    selector(useSyncExternalStore(store.subscribe, store.getSnapshot))
+  const panelElement = () => (
+    <PreviewOverlay
+      usePreviewTarget={usePreviewTarget as never}
+      close={() => { store.set(null) }}
+      read={() => Promise.resolve(harness.readResult) as never}
+      write={harness.write as never}
+      t={t as never}
+    />
+  )
+  document.body.appendChild(harness.container)
+  const root: Root = createRoot(harness.container)
+  harness.setTarget({ sessionId: 'session-1', path: 'README.md' })
+  await harness.rerender()
+  await act(async () => { await Promise.resolve() })
+  return harness
+}
+
+describe('find count', () => {
+  it('reports match count and current index while the search panel is open', async () => {
+    const harness = await renderFindPanel('foo bar\nfoo\nbaz')
+    await click(harness, 'panel.edit')
+    await click(harness, 'panel.find')
+    const host = harness.container.querySelector('.cm-editor') as HTMLElement
+    const view = EditorView.findFromDOM(host)!
+    await act(async () => {
+      view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: 'foo' })) })
+    })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(harness.container.querySelector('.dsh-md-preview-findcount')?.textContent).toBe('1/2')
+    await act(async () => {
+      view.dispatch({ selection: { anchor: view.state.doc.line(2).from + 1 } })
+    })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(harness.container.querySelector('.dsh-md-preview-findcount')?.textContent).toBe('2/2')
+  })
+
+  it('clears the count when the panel closes', async () => {
+    const harness = await renderFindPanel('foo bar\nfoo')
+    await click(harness, 'panel.edit')
+    await click(harness, 'panel.find')
+    const host = harness.container.querySelector('.cm-editor') as HTMLElement
+    const view = EditorView.findFromDOM(host)!
+    await act(async () => { closeSearchPanel(view) })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(harness.container.querySelector('.dsh-md-preview-findcount')).toBeNull()
   })
 })

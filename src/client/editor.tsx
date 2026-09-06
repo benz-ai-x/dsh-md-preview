@@ -11,7 +11,7 @@
 import { useEffect, useRef } from 'react'
 import { EditorState } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
-import { search, searchKeymap } from '@codemirror/search'
+import { getSearchQuery, RegExpCursor, search, searchKeymap } from '@codemirror/search'
 import {
   EditorView,
   drawSelection,
@@ -33,6 +33,12 @@ const markdownLanguage = LRLanguage.define({
   parser: parser.configure([GFM, Subscript, Superscript, Emoji]) as unknown as LRParser,
 })
 
+/** What the find chip shows: total matches and the current one (1-based). */
+export interface SearchStatus {
+  readonly count: number
+  readonly index: number
+}
+
 /** Props the panel hands to the editor. */
 export interface MarkdownEditorProps {
   /** Document text at edit-session start; a changed value remounts the editor. */
@@ -45,6 +51,10 @@ export interface MarkdownEditorProps {
   onView?: (view: EditorView | null) => void
   /** Reports the cursor's 1-based line at mount and on doc/selection change. */
   onCursorLine?: (line: number) => void
+  /** Search panel localization: CM stock phrase key → panel word. */
+  searchPhrases?: Readonly<Record<string, string>>
+  /** Match count and 1-based current index; null while search is inactive. */
+  onSearchStatus?: (status: SearchStatus | null) => void
 }
 
 /**
@@ -52,7 +62,7 @@ export interface MarkdownEditorProps {
  * @param props - initial document plus change, save, and view callbacks.
  * @returns the editor host element.
  */
-export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine }: MarkdownEditorProps) {
+export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null)
   // Refs keep the extension closures stable without remounting on callback identity.
   const changeRef = useRef(onChange)
@@ -63,6 +73,38 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
   viewRef.current = onView
   const cursorRef = useRef(onCursorLine)
   cursorRef.current = onCursorLine
+  const statusRef = useRef(onSearchStatus)
+  statusRef.current = onSearchStatus
+
+  /** Count matches for the live query; null when the panel is inactive. */
+  const reportSearch = (view: EditorView): void => {
+    const query = getSearchQuery(view.state)
+    if (view.dom.querySelector('.cm-search') === null || query.search.length === 0 || !query.valid) {
+      statusRef.current?.(null)
+      return
+    }
+    const head = view.state.selection.main.head
+    let count = 0
+    let index = 0
+    // One cursor kind for both query forms: literal queries ship escaped.
+    // (SearchCursor's ignoreCase helper argument drops all matches in this
+    // build, so case sensitivity rides the regexp flag instead.)
+    const pattern = query.regexp
+      ? query.search
+      : query.search.replace(/[\\[\]{}()*+?.^$|]/g, '\\$&')
+    const iterator = new RegExpCursor(view.state.doc, pattern, { caseSensitive: query.caseSensitive })
+    const onMatch = (from: number, to: number): void => {
+      if (query.word) {
+        const before = from > 0 ? view.state.doc.sliceString(from - 1, from) : ''
+        const after = to < view.state.doc.length ? view.state.doc.sliceString(to, to + 1) : ''
+        if ((before !== '' && /\w/.test(before)) || (after !== '' && /\w/.test(after))) return
+      }
+      count += 1
+      if (from <= head) index = count
+    }
+    while (!(iterator.next().done ?? false)) onMatch(iterator.value.from, iterator.value.to)
+    statusRef.current?.({ count, index })
+  }
 
   useEffect(() => {
     const parent = host.current
@@ -77,6 +119,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
           syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
           EditorView.lineWrapping,
           search({ top: true }),
+          searchPhrases === undefined ? [] : EditorState.phrases.of(searchPhrases),
           // Fenced blocks and inline HTML edit as plain text; rendered
           // highlighting stays the preview face's job.
           markdownLanguage,
@@ -94,6 +137,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
             if (update.docChanged || update.selectionSet) {
               cursorRef.current?.(update.state.doc.lineAt(update.state.selection.main.head).number)
             }
+            reportSearch(update.view)
           }),
           EditorView.theme({
             '&': { height: '100%' },
@@ -105,7 +149,9 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
     })
     viewRef.current?.(view)
     cursorRef.current?.(view.state.doc.lineAt(view.state.selection.main.head).number)
+    reportSearch(view)
     return () => {
+      statusRef.current?.(null)
       viewRef.current?.(null)
       view.destroy()
     }
