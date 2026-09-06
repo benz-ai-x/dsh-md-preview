@@ -110,7 +110,11 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
   const reportEditStatus = (view: EditorView): void => {
     const head = view.state.selection.main.head
     const line = view.state.doc.lineAt(head)
-    const historyState = view.state.field(historyField, false)
+    // historyField's declared type is opaque {}; the runtime shape is
+    // { done, undone } branch stacks (probed in #15).
+    const historyState = view.state.field(historyField, false) as
+      | { done: readonly unknown[]; undone: readonly unknown[] }
+      | undefined
     editStatusRef.current?.({
       line: line.number,
       col: head - line.from + 1,

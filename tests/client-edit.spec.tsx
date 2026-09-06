@@ -26,6 +26,9 @@ beforeAll(() => {
     unobserve(): void {}
     disconnect(): void {}
   } as unknown as typeof ResizeObserver
+  // jsdom ships no layout either: CM's measure pass reads Range.getClientRects,
+  // and an orphaned rAF after a test would surface it as an unhandled error.
+  ;(Range.prototype as unknown as { getClientRects?: () => [] }).getClientRects ??= () => []
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 })
 
