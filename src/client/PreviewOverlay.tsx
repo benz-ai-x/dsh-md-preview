@@ -65,6 +65,8 @@ export type PreviewOverlayProps =
 const MIN_WIDTH = 320
 const MAX_WIDTH = 1280
 const DEFAULT_WIDTH = 500
+/** Panel width from which the rail shows beside the document (#11). */
+const RAIL_MIN_WIDTH = 640
 
 function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
   return {
@@ -87,6 +89,11 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // its expansion state survives face switches (UI-local viewing state).
   const [face, setFace] = useState<'document' | 'browse'>('document')
   const [browserEverOpened, setBrowserEverOpened] = useState(false)
+  // The rail (#11): shown from RAIL_MIN_WIDTH unless manually collapsed;
+  // below the threshold the browse-face swap remains the fallback. Both are
+  // component-local geometry state, like the dragged width.
+  const [railCollapsed, setRailCollapsed] = useState(false)
+  const railVisible = width >= RAIL_MIN_WIDTH && !railCollapsed
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [activeOutline, setActiveOutline] = useState(-1)
   const documentRef = useRef<HTMLDivElement>(null)
@@ -184,6 +191,18 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     setFace('document')
   }, [setTarget, target])
 
+  // The tree mounts once anything shows it (rail or browse face) and stays
+  // mounted so expansion state survives every switch.
+  useEffect(() => {
+    if (railVisible || face === 'browse') setBrowserEverOpened(true)
+  }, [railVisible, face])
+
+  // Crossing the threshold up while browsing returns the face: the tree now
+  // lives in the rail and the document takes the stage back.
+  useEffect(() => {
+    if (railVisible && face === 'browse') setFace('document')
+  }, [railVisible, face])
+
   // The panel stays mounted across targets and opens; the user's width
   // persists for the whole app session (min/max clamped in the handler).
   const onResize = useCallback((deltaX: number) => {
@@ -242,7 +261,10 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               type="button" className="dsh-md-preview-icon" aria-label={t('browse.open')}
               title={t('browse.open')} onClick={() => {
                 setBrowserEverOpened(true)
-                setFace('browse')
+                // Wide: the workspace action folds the rail in and out; the
+                // document stays. Narrow: the browse-face swap remains.
+                if (width >= RAIL_MIN_WIDTH) setRailCollapsed(value => !value)
+                else setFace('browse')
               }}
             >
               <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
@@ -317,11 +339,20 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
         </div>
         <div className="dsh-md-preview-body">
           {browserEverOpened && (
-            <div className="dsh-md-preview-browser" hidden={face !== 'browse'}>
+            <div
+              className="dsh-md-preview-browser"
+              data-open={railVisible || undefined}
+              hidden={!railVisible && face !== 'browse'}
+            >
+              {railVisible && (
+                <div className="dsh-md-preview-railtabs" role="tablist">
+                  <button type="button" role="tab" aria-selected="true">{t('rail.files')}</button>
+                </div>
+              )}
               {target !== null && (
                 <WorkspaceBrowser
                   sessionId={target.sessionId}
-                  active={face === 'browse'}
+                  active={railVisible || face === 'browse'}
                   list={list}
                   onOpenFile={openFromBrowser}
                   currentPath={target.path}

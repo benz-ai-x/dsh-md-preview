@@ -69,6 +69,7 @@ async function renderPanel(): Promise<PanelHarness> {
       close={() => { store.set(null) }}
       read={read as never}
       write={harness.write as never}
+      list={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } })) as never}
       t={t as never}
     />
   )
