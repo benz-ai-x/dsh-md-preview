@@ -12,7 +12,7 @@ import { EditorView } from '@codemirror/view'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
-import { extractOutline, findHeadingElement } from '../src/client/outline.ts'
+import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from '../src/client/outline.ts'
 import type { MdPreviewFile } from '../src/protocol.ts'
 
 const t = (key: string) => key
@@ -74,6 +74,26 @@ describe('findHeadingElement', () => {
   })
 })
 
+describe('activeIndexForLine / activeIndexForScroll', () => {
+  const ENTRIES = extractOutline('# A\n\n## B\n\n## C')
+  it('activeIndexForLine owns the position from its heading line onward', () => {
+    expect(activeIndexForLine(ENTRIES, 0)).toBe(-1)
+    expect(activeIndexForLine(ENTRIES, 1)).toBe(0)
+    expect(activeIndexForLine(ENTRIES, 2)).toBe(0)
+    expect(activeIndexForLine(ENTRIES, 3)).toBe(1)
+    expect(activeIndexForLine(ENTRIES, 5)).toBe(2)
+    expect(activeIndexForLine(ENTRIES, 99)).toBe(2)
+    expect(activeIndexForLine([], 1)).toBe(-1)
+  })
+  it('activeIndexForScroll picks the last heading at or above the scroll top', () => {
+    expect(activeIndexForScroll([0, 120, 240], 0)).toBe(0)
+    expect(activeIndexForScroll([0, 120, 240], 119)).toBe(0)
+    expect(activeIndexForScroll([0, 120, 240], 120)).toBe(1)
+    expect(activeIndexForScroll([0, 120, 240], 300)).toBe(2)
+    expect(activeIndexForScroll([], 0)).toBe(-1)
+  })
+})
+
 interface OutlineHarness {
   container: HTMLElement
   view: EditorView | null
@@ -127,9 +147,13 @@ describe('outline popover', () => {
     const items = outlineButtons(harness)
     expect(items.map(item => item.textContent)).toEqual(['Title', 'Section A', 'Deep code heading##', 'Section A'])
     await act(async () => { items[2]!.click() })
-    // The third entry jumps the third rendered heading (deep = h3).
-    expect(scrollIntoView).toHaveBeenCalledTimes(1)
-    expect((scrollIntoView.mock.calls[0] as unknown[])[0]).toEqual({ block: 'start' })
+    // The third entry jumps the third rendered heading (deep = h3). The
+    // popover's keep-visible pass may also scroll ({ block: 'nearest' }), so
+    // the jump is asserted by its 'start' call alone.
+    const startCalls = scrollIntoView.mock.calls
+      .filter(call => (call[0] as { block?: string }).block === 'start')
+    expect(startCalls).toHaveLength(1)
+    expect((startCalls[0] as unknown[])[0]).toEqual({ block: 'start' })
     // Selection consumed the popover.
     expect(harness.container.querySelector('.dsh-md-preview-outline')).toBeNull()
   })
@@ -155,5 +179,54 @@ describe('outline popover', () => {
     await flush()
     const main = harness.view!.state.selection.main
     expect(harness.view!.state.doc.lineAt(main.head).number).toBe(9)
+  })
+
+  it('marks the outline entry owning the cursor line in the edit face', async () => {
+    const harness = await renderOutlinePanel(DOC)
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.edit"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    const host = harness.container.querySelector('.cm-editor') as HTMLElement
+    const view = EditorView.findFromDOM(host)!
+    await act(async () => {
+      view.dispatch({ selection: { anchor: view.state.doc.line(9).from } })
+    })
+    await flush()
+    const toggle = harness.container.querySelector('button[aria-label="outline.open"]') as HTMLButtonElement
+    await act(async () => { toggle.click() })
+    const items = outlineButtons(harness)
+    // Line 9 is entry 2 (Deep code heading##); entry 1 (line 7) no longer owns it.
+    expect(items[2]!.getAttribute('aria-current')).toBe('true')
+    expect(items[1]!.getAttribute('aria-current')).toBeNull()
+  })
+
+  it('marks the heading at the scroll position in the view face', async () => {
+    const scrollIntoView = vi.fn()
+    HTMLElement.prototype.scrollIntoView = scrollIntoView
+    const harness = await renderOutlinePanel(DOC)
+    const scroller = harness.container.querySelector('.dsh-md-preview-document') as HTMLElement
+    // Document offsets of the four rendered headings (DOC has 4 outline
+    // entries). The mock models viewport rects: top = offset - scrollTop.
+    const docTops = [0, 120, 240, 360]
+    const headings = [...scroller.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6')]
+    const rect = (top: number): DOMRect =>
+      ({ top, right: 0, bottom: 0, left: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
+    const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const index = headings.indexOf(this)
+      return rect(index >= 0 ? (docTops[index] ?? 0) - scroller.scrollTop : 0)
+    })
+    await act(async () => {
+      scroller.scrollTop = 200
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+    })
+    await flush()
+    const toggle = harness.container.querySelector('button[aria-label="outline.open"]') as HTMLButtonElement
+    await act(async () => { toggle.click() })
+    const items = outlineButtons(harness)
+    // offset = viewportTop - scrollerTop + scrollTop = docTop; 120 <= 200 < 240
+    // → entry 1 (Section *A*).
+    expect(items[1]!.getAttribute('aria-current')).toBe('true')
+    rectSpy.mockRestore()
   })
 })

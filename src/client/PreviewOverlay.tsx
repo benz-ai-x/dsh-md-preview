@@ -15,7 +15,7 @@ import { openSearchPanel } from '@codemirror/search'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
 import { isEditable } from './preview-state.ts'
-import { extractOutline, findHeadingElement } from './outline.ts'
+import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from './outline.ts'
 import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
 import { MarkdownEditor } from './editor.tsx'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
@@ -87,7 +87,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const [face, setFace] = useState<'document' | 'browse'>('document')
   const [browserEverOpened, setBrowserEverOpened] = useState(false)
   const [outlineOpen, setOutlineOpen] = useState(false)
+  const [activeOutline, setActiveOutline] = useState(-1)
   const documentRef = useRef<HTMLDivElement>(null)
+  const outlineRef = useRef<HTMLDivElement>(null)
   const editorViewRef = useRef<EditorView | null>(null)
   const labels = markdownLabels(t)
 
@@ -112,6 +114,39 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     if (findDiagramBlocks(container, renderedFences).length === 0) return
     void enhanceDiagrams(container, state.content.file.content, { error: t('diagram.error') })
   }, [face, state.face, state.content, renderedFences, t])
+
+  const computeViewActive = useCallback((): void => {
+    const container = documentRef.current
+    if (container === null || state.face !== 'view' || state.content.state !== 'ready') return
+    const base = container.getBoundingClientRect().top - container.scrollTop
+    const tops = outline.map((_, index) => {
+      const heading = findHeadingElement(container, outline, index)
+      return heading === undefined ? Number.POSITIVE_INFINITY : heading.getBoundingClientRect().top - base
+    })
+    setActiveOutline(activeIndexForScroll(tops, container.scrollTop))
+  }, [outline, state.face, state.content])
+
+  // The active outline entry follows the rendered document's scroll; the
+  // capture listener also covers any descendant that owns the scrollbar.
+  // The immediate call covers content-settle (a fresh read at the top marks
+  // the first heading without waiting for a scroll).
+  useEffect(() => {
+    const container = documentRef.current
+    if (container === null) return
+    const onScroll = (): void => { computeViewActive() }
+    container.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    computeViewActive()
+    return () => { container.removeEventListener('scroll', onScroll, { capture: true }) }
+  }, [computeViewActive])
+
+  // A new target re-reads; the active entry resets until the scroll reports.
+  useEffect(() => { setActiveOutline(-1) }, [target])
+
+  // The highlighted entry stays visible inside the open popover.
+  useEffect(() => {
+    if (!outlineOpen) return
+    outlineRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' })
+  }, [activeOutline, outlineOpen])
 
   const jumpToOutline = useCallback((index: number): void => {
     setOutlineOpen(false)
@@ -169,12 +204,14 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                 </svg>
               </button>
               {outlineOpen && (
-                <div className="dsh-md-preview-outline" role="menu">
+                <div className="dsh-md-preview-outline" role="menu" ref={outlineRef}>
                   {outline.map((entry, index) => (
                     <button
                       key={`${entry.line}-${entry.text}`} type="button" role="menuitem"
+                      className={index === activeOutline ? 'dsh-md-preview-outline-active' : undefined}
                       style={{ paddingLeft: `${8 + (entry.level - 1) * 12}px` }}
                       title={entry.text}
+                      aria-current={index === activeOutline ? 'true' : undefined}
                       onClick={() => { jumpToOutline(index) }}
                     >
                       {entry.text}
@@ -309,6 +346,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               onChange={actions.edit}
               onSave={() => { actions.save(false) }}
               onView={onEditorView}
+              onCursorLine={line => { setActiveOutline(activeIndexForLine(outline, line)) }}
             />
           ) : (
             <>

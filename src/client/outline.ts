@@ -98,3 +98,35 @@ export function findHeadingElement(
   }
   return undefined
 }
+
+/**
+ * The outline entry a source position falls under: the last entry whose
+ * 1-based line is at or above it.
+ * @param entries - the outline in document order.
+ * @param line - the 1-based source line of the position.
+ * @returns the owning entry's index, or -1 above the first heading.
+ */
+export function activeIndexForLine(entries: readonly OutlineEntry[], line: number): number {
+  let active = -1
+  for (let index = 0; index < entries.length; index += 1) {
+    if ((entries[index] as OutlineEntry).line > line) break
+    active = index
+  }
+  return active
+}
+
+/**
+ * The outline entry a scroll position falls under: the last heading whose
+ * document offset is at or above the scroll position.
+ * @param tops - each heading's offset from the top of the scrolled document.
+ * @param scrollTop - the scroller's current offset.
+ * @returns the active entry's index, or -1 above the first heading.
+ */
+export function activeIndexForScroll(tops: readonly number[], scrollTop: number): number {
+  let active = -1
+  for (let index = 0; index < tops.length; index += 1) {
+    if ((tops[index] as number) > scrollTop) break
+    active = index
+  }
+  return active
+}

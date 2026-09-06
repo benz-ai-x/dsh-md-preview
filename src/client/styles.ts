@@ -226,6 +226,10 @@ const CSS = `
   cursor: pointer;
 }
 .dsh-md-preview-outline button:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-outline-active {
+  background: var(--dsw-alias-fill-secondary);
+  font-weight: 500;
+}
 .dsh-md-preview-diagram {
   margin: 8px 0;
   padding: 12px;

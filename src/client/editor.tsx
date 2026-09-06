@@ -43,6 +43,8 @@ export interface MarkdownEditorProps {
   onSave: () => void
   /** Reports the mounted editor view (null on unmount) for panel-side calls. */
   onView?: (view: EditorView | null) => void
+  /** Reports the cursor's 1-based line at mount and on doc/selection change. */
+  onCursorLine?: (line: number) => void
 }
 
 /**
@@ -50,7 +52,7 @@ export interface MarkdownEditorProps {
  * @param props - initial document plus change, save, and view callbacks.
  * @returns the editor host element.
  */
-export function MarkdownEditor({ initialValue, onChange, onSave, onView }: MarkdownEditorProps) {
+export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine }: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null)
   // Refs keep the extension closures stable without remounting on callback identity.
   const changeRef = useRef(onChange)
@@ -59,6 +61,8 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView }: Markd
   saveRef.current = onSave
   const viewRef = useRef(onView)
   viewRef.current = onView
+  const cursorRef = useRef(onCursorLine)
+  cursorRef.current = onCursorLine
 
   useEffect(() => {
     const parent = host.current
@@ -87,6 +91,9 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView }: Markd
           ]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) changeRef.current(update.state.doc.toString())
+            if (update.docChanged || update.selectionSet) {
+              cursorRef.current?.(update.state.doc.lineAt(update.state.selection.main.head).number)
+            }
           }),
           EditorView.theme({
             '&': { height: '100%' },
@@ -97,6 +104,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView }: Markd
       ...(parent === null ? {} : { parent }),
     })
     viewRef.current?.(view)
+    cursorRef.current?.(view.state.doc.lineAt(view.state.selection.main.head).number)
     return () => {
       viewRef.current?.(null)
       view.destroy()
