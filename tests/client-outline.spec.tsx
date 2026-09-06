@@ -42,6 +42,9 @@ beforeAll(() => {
     unobserve(): void {}
     disconnect(): void {}
   } as unknown as typeof ResizeObserver
+  // jsdom ships no layout: CodeMirror's measure pass reads Range.getClientRects,
+  // and an orphaned rAF after the test would otherwise surface it unhandled.
+  ;(Range.prototype as unknown as { getClientRects?: () => [] }).getClientRects ??= () => []
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 })
 

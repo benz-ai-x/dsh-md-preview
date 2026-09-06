@@ -26,7 +26,13 @@ closing with unsaved edits asks first (放弃修改 / 继续编辑). Editing tar
 existing files only — no creation. The edit face carries a CodeMirror search
 panel (header button and Mod-F). The header's outline popover navigates the
 document's ATX headings — scrolling the rendered heading in the view face,
-jumping the cursor to the source line in the edit face. The browse face
+jumping the cursor to the source line in the edit face. The outline tracks
+the reading position: the popover marks the entry owning the current scroll
+position in the view face and the cursor's source line in the edit face,
+keeping that entry scrolled into view. The header carries a dirty dot while
+the edit draft differs, folds the plugin version into the crumbs tooltip,
+and annotates the find and save shortcuts; the find panel is localized,
+shows a match count, and matches the panel's design language. The browse face
 silently revalidates every expanded directory on re-entry (and from its
 refresh button): fresh listings replace current ones, a failed refresh
 changes nothing. After the platform renderer settles the document, a diagram

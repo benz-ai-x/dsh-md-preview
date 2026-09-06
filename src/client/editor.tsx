@@ -92,9 +92,9 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
     const pattern = query.regexp
       ? query.search
       : query.search.replace(/[\\[\]{}()*+?.^$|]/g, '\\$&')
-    const iterator = new RegExpCursor(view.state.doc, pattern, { caseSensitive: query.caseSensitive })
+    const iterator = new RegExpCursor(view.state.doc, pattern, { ignoreCase: !query.caseSensitive })
     const onMatch = (from: number, to: number): void => {
-      if (query.word) {
+      if (query.wholeWord) {
         const before = from > 0 ? view.state.doc.sliceString(from - 1, from) : ''
         const after = to < view.state.doc.length ? view.state.doc.sliceString(to, to + 1) : ''
         if ((before !== '' && /\w/.test(before)) || (after !== '' && /\w/.test(after))) return
