@@ -11,6 +11,15 @@
 - [x] `pnpm verify` 全链路通过（context:strict + typecheck + test + build + built:check）
 - [x] 真实 Loader/profile：`dsh plugin --profile web add` 落行（`--dump-config` 可见）；Web profile 带插件启动成功；boot graph 含 `dsh-md-preview/client.js` 行（inject 边正确）；`/plugins` 路由 200 提供工厂 bundle
 
+## 面板 UX 整备(2026-09-06,spec #9,目标 0.7.0/0.8.0)
+
+- [x] 研究与设计:五张现状截图实证审计 + 两波方案讨论定稿(布局选面板内
+      侧栏 rail 模式);spec 见 issue #9(ready-for-agent)
+- [ ] Wave 1(0.7.0 快赢):头部图标化/树可供性/查找换肤+计数/大纲当前节高亮
+- [ ] Wave 2(0.8.0 结构):侧栏 rail(≥640px)/树过滤/状态栏+脏点+时间戳/
+      Mod-B/I/K/查找替换
+- 现状证据截图 ux-audit-*.png 仅存本地(含会话侧栏内容,已 gitignore)
+
 ## 待办
 
 - [ ] HMR 验证：`pnpm watch:client` + 浏览器 bundle 热替换

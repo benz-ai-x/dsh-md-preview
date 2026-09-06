@@ -4,6 +4,7 @@ coverage/
 *.tgz
 .DS_Store
 .playwright-mcp/
+ux-audit-*.png
 .env
 .env.*
 !.env.example
