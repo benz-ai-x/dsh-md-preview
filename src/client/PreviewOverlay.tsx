@@ -185,12 +185,24 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   // frame, dragged wider/narrower from its left edge. The manual choice
   // persists through the preference record (#26) — restored clamped to the
   // live viewport, derived from it when nothing was ever chosen (never a
-  // bogus zero-to-min fall), and untouched by maximize round-trips.
+  // bogus zero-to-min fall), and untouched by maximize round-trips. The
+  // live viewport is tracked (#26): a window shrunk after open re-clamps
+  // the APPLIED width (the stored choice survives to return when it grows
+  // back), so the panel never exceeds the screen and its controls stay
+  // reachable.
   const [width, setWidth] = useState(() => {
     let remembered: number | null = null
     try { remembered = preferences?.geometry().panelWidth ?? null } catch { /* hostile store */ }
     return clampPanelWidth(remembered, typeof window === 'undefined' ? 0 : window.innerWidth)
   })
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth))
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onResize = (): void => { setViewportWidth(window.innerWidth) }
+    window.addEventListener('resize', onResize, { passive: true })
+    return () => { window.removeEventListener('resize', onResize) }
+  }, [])
+  const appliedWidth = clampPanelWidth(width, viewportWidth)
   const widthRef = useRef(width)
   widthRef.current = width
   // Maximize (the B ask): a full-frame preset over the remembered width —
@@ -222,7 +234,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     try { return preferences?.geometry().railCollapsed ?? null } catch { return null }
   })
   const railCollapsed = manualRailCollapsed ?? target?.face !== 'browse'
-  const widePanel = maximized || width >= RAIL_MIN_WIDTH
+  const widePanel = maximized || appliedWidth >= RAIL_MIN_WIDTH
   const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); the choice is document-related
   // navigation state, so it restores per session (#26).
@@ -231,7 +243,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   // tools (outline, undo/redo/find, keymap help) fold into a ⋯ menu; save,
   // the face control, maximize, and close stay directly clickable, and the
   // identity shrinks instead of pushing them off the row.
-  const compact = !maximized && width < OVERLAY_COMPACT_WIDTH
+  const compact = !maximized && appliedWidth < OVERLAY_COMPACT_WIDTH
   const [moreOpen, setMoreOpen] = useState(false)
   // The rail's dragged width (user feedback): persists like the panel width.
   const [railWidth, setRailWidth] = useState(() => {
@@ -710,12 +722,12 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   return (
     <div
       ref={overlayRef}
-      className="dsh-md-preview-overlay" data-width={width}
+      className="dsh-md-preview-overlay" data-width={appliedWidth}
       data-maximized={maximized || undefined}
       data-below-strip={stripInset > 0 || undefined}
       style={{
         top: `${stripInset}px`,
-        ...(maximized ? {} : { width: `${width}px` }),
+        ...(maximized ? {} : { width: `${appliedWidth}px` }),
       }} onKeyDown={onPanelKeyDown}
     >
       {!maximized && (

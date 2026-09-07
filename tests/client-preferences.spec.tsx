@@ -200,6 +200,29 @@ describe('the remembered panel width (#26)', () => {
     expect(appliedWidth(harness)).toBe('800px')
   })
 
+  it('re-clamps the applied width when the viewport shrinks after open', async () => {
+    const harness = await renderPrefsPanel({ viewport: 1200 })
+    expect(appliedWidth(harness)).toBe('600px') // the half-viewport preset
+    await dragEdge(harness, 1000, 700) // 600 → 900 manual choice
+    expect(appliedWidth(harness)).toBe('900px')
+    // The window shrinks below the remembered width: the applied width
+    // follows the live viewport while the manual choice itself is kept.
+    await act(async () => {
+      Object.defineProperty(window, 'innerWidth', { value: 700, configurable: true })
+      window.dispatchEvent(new Event('resize'))
+    })
+    await harness.rerender()
+    expect(appliedWidth(harness)).toBe('700px')
+    // Growing back restores the user's own width, not a re-derived default.
+    await act(async () => {
+      Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true })
+      window.dispatchEvent(new Event('resize'))
+    })
+    await harness.rerender()
+    expect(appliedWidth(harness)).toBe('900px')
+    expect(harness.prefs.geometry().panelWidth).toBe(900)
+  })
+
   it('opens on defaults when the storage face throws', async () => {
     const hostile: PanelPreferenceStore = {
       geometry: () => { throw new Error('SecurityError') },
