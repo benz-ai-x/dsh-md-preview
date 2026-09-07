@@ -34,9 +34,12 @@ beforeAll(() => {
   Object.defineProperty(window, 'innerWidth', { value: 1928, configurable: true })
 })
 
-/** One turn's ConversationLocation data store (deliverables Turn data). */
-function turnDataOf(produced: ReadonlyArray<{ seq: number; path: string }>) {
-  const values = new Map([['deliverables', { produced }]])
+/** One turn's ConversationLocation data store (deliverables + tail data). */
+function turnDataOf(produced: ReadonlyArray<{ seq: number; path: string }>, closingSeq = 7) {
+  const values = new Map<string, unknown>([
+    ['deliverables', { produced }],
+    ['turn-tail', { turn: 1, seq: closingSeq + 2, time: 0, closing: { finalNode: { messageId: 'm-1', seq: closingSeq }, blocks: [] } }],
+  ])
   return {
     turn: 1,
     status: 'closed' as const,
@@ -59,6 +62,10 @@ function chatSnapshotOf(produced: ReadonlyArray<{ seq: number; path: string }>) 
         location: { kind: 'turn', turn: turnDataOf(produced) },
       }],
     },
+    timeline: {
+      turnOrder: [1],
+      turns: new Map([[1, turnDataOf(produced)]]),
+    },
   }
 }
 
@@ -68,6 +75,8 @@ interface AssemblyBench {
   searches: Array<{ sessionId: string; query: string }>
   writes: Array<{ path: string; content: string }>
   files: Map<string, string>
+  /** Replace the binding's chat facts and notify the session seats. */
+  setChatSnapshot(produced: ReadonlyArray<{ seq: number; path: string }>): void
   disposeMount(): Promise<void>
   unmount(): Promise<void>
 }
@@ -85,6 +94,7 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>):
     reads: [],
     searches: [],
     writes: [],
+    setChatSnapshot: () => {},
     files: new Map([
       ['guide.md', '# Guide\n\nbody'],
       ['notes.md', '# Notes\n\nbody'],
@@ -140,9 +150,21 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>):
   ctx.slots.installLocale(locale)
 
   // The session scope: one live binding carrying the Chat snapshot the
-  // preview-documents action selects over.
-  const chatSnapshot = chatSnapshotOf(produced)
-  const chatSource = { getSnapshot: () => chatSnapshot, subscribe: () => () => {} }
+  // preview-documents action selects over. Mutable + notifying so a test can
+  // advance the conversation and watch the session-scoped seats follow.
+  let chatSnapshot: ReturnType<typeof chatSnapshotOf> = chatSnapshotOf(produced)
+  const chatListeners = new Set<() => void>()
+  const chatSource = {
+    getSnapshot: () => chatSnapshot,
+    subscribe: (listener: () => void) => {
+      chatListeners.add(listener)
+      return () => { chatListeners.delete(listener) }
+    },
+  }
+  bench.setChatSnapshot = (next: ReadonlyArray<{ seq: number; path: string }>) => {
+    chatSnapshot = chatSnapshotOf(next)
+    for (const listener of chatListeners) listener()
+  }
   const binding = {
     key: SESSION,
     props: { sessionId: SESSION },
@@ -368,6 +390,35 @@ describe('client assembly against the real slot machinery (#21)', () => {
       expect(bench.reads.at(-1)).toEqual({ sessionId: SESSION, path: 'guide.md' })
     } finally {
       vi.useRealTimers()
+      await bench.unmount()
+    }
+  })
+
+  it('publishes current-turn outputs from the session seat into the panel quick entries (#31)', async () => {
+    const bench = await assemble([
+      { seq: 1, path: 'guide.md' },
+      { seq: 2, path: 'notes.md' },
+      { seq: 3, path: 'run.ts' },
+    ])
+    try {
+      // Open the panel on the browse face from the capsule.
+      await act(async () => { buttonByAria(bench, 'Workspace docs')!.click() })
+      await flush()
+      // The newest turn's previewable outputs show as quick rows (run.ts is
+      // not previewable and never appears); name and path both render.
+      const rows = [...bench.container.querySelectorAll<HTMLElement>('.dsh-md-preview-quick[data-source="turn"] .dsh-md-preview-quickrow')]
+      expect(rows.map(row => row.getAttribute('title'))).toEqual(['guide.md', 'notes.md'])
+      // Opening a quick row reads the document through the mounted Remote.
+      await act(async () => { rows[1]!.click() })
+      await flush()
+      expect(bench.reads.at(-1)).toEqual({ sessionId: SESSION, path: 'notes.md' })
+      // A new closing turn replaces the quick entries live — the earlier
+      // turn's outputs never masquerade as current.
+      bench.setChatSnapshot([{ seq: 1, path: 'fresh.md' }])
+      await flush()
+      const next = [...bench.container.querySelectorAll<HTMLElement>('.dsh-md-preview-quick[data-source="turn"] .dsh-md-preview-quickrow')]
+      expect(next.map(row => row.getAttribute('title'))).toEqual(['fresh.md'])
+    } finally {
       await bench.unmount()
     }
   })

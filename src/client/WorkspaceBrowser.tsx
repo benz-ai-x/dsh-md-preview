@@ -36,6 +36,12 @@ export interface WorkspaceBrowserProps {
   ): Promise<RemoteResult<MdPreviewSearchResult>>
   /** Open one file as the panel's preview target. */
   onOpenFile(path: string): void
+  /** Previewable documents the session's newest turn produced (#31); null
+   * while no owning-session facts were published, empty when it produced
+   * none — the section hides either way. */
+  turnOutputs?: readonly string[] | null
+  /** The session's recently read documents, recency-first (#31). */
+  recentReads?: ReadonlyArray<{ readonly path: string }>
   /** Workspace-relative path of the current preview target, if any. */
   currentPath: string | null
   /** The session's continue-reading target, or null without a record (#28). */
@@ -65,6 +71,10 @@ type SearchState =
 
 /** How long the search box waits for typing to settle before one RPC (#30). */
 export const SEARCH_DEBOUNCE_MS = 200
+
+/** Quick entries stay few (#31): the caps each section shows. */
+export const QUICK_TURN_MAX = 5
+export const QUICK_RECENT_MAX = 3
 
 const OTHER_TYPE = 'other'
 
@@ -142,7 +152,7 @@ function EntryIcon({ type, name }: { type: MdPreviewEntry['type']; name: string 
  * @param props - session identity, listing/search RPCs, file-open handoff, locale seat.
  * @returns the browse area's tree/search elements.
  */
-export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, currentPath, continueTarget, onContinue, t }: WorkspaceBrowserProps) {
+export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, turnOutputs, recentReads, currentPath, continueTarget, onContinue, t }: WorkspaceBrowserProps) {
   // Keyed by workspace-relative directory path; presence means expanded.
   const [dirs, setDirs] = useState<ReadonlyMap<string, DirState>>(new Map([['', { state: 'loading' }]]))
   const controllers = useRef(new Map<string, AbortController>())
@@ -470,8 +480,42 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
   }
 
   const root = dirs.get('')
+  // The quick entries' row shape (#31): a recognizable few, name plus
+  // necessary path, opening through the same guarded handoff as the tree.
+  const renderQuickRow = (path: string, label: string): React.ReactNode => (
+    <button
+      key={path} type="button"
+      className="dsh-md-preview-quickrow"
+      aria-label={`${label} ${path}`}
+      title={path}
+      onClick={() => { onOpenFile(path) }}
+    >
+      <span className="dsh-md-preview-quickname">{basename(path)}</span>
+      <span className="dsh-md-preview-quickpath">{path}</span>
+    </button>
+  )
+  const quickTurn = turnOutputs ?? []
+  const quickRecent = (recentReads ?? []).slice(0, QUICK_RECENT_MAX)
   return (
     <>
+      {quickTurn.length > 0 && (
+        // The current turn's produced documents (#31): owning-service facts
+        // of the newest turn only — never another turn's outputs dressed up
+        // as current. Empty means the section simply does not show.
+        <div className="dsh-md-preview-quick" data-source="turn">
+          <span className="dsh-md-preview-quicklabel">{t('quick.turn')}</span>
+          {quickTurn.slice(0, QUICK_TURN_MAX).map(path => renderQuickRow(path, t('quick.open')))}
+        </div>
+      )}
+      {quickRecent.length > 0 && (
+        // Recently read of this session (#31): the reading record's recency
+        // list — the continue-reading entry keeps its own explicit seat and
+        // meaning, so the newest document may legitimately appear here too.
+        <div className="dsh-md-preview-quick" data-source="recent">
+          <span className="dsh-md-preview-quicklabel">{t('quick.recent')}</span>
+          {quickRecent.map(entry => renderQuickRow(entry.path, t('quick.open')))}
+        </div>
+      )}
       {continueTarget != null && (
         // The continue-reading entry (#28): the browse area's opening seat,
         // naming the session's last-read document. It carries no body of

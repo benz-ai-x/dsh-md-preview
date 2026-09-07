@@ -16,7 +16,7 @@ import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { WorkspaceDocsAction } from '../src/client/WorkspaceDocsAction.tsx'
 import { inject, mountMdPreview } from '../src/client/mount.ts'
 import { ownedDeliverables, previewableOf } from '../src/client/message-files.ts'
-import { selectMdTurnFiles } from '../src/client/turn-files.ts'
+import { latestTurnPreviewable, selectMdTurnFiles } from '../src/client/turn-files.ts'
 import { TYPERT_REMOTE } from '../src/typert/remote-client.ts'
 
 /** Remote table recording face; a plain provide keeps provider epochs stable. */
@@ -194,5 +194,71 @@ describe('ownedDeliverables and previewableOf', () => {
   })
   it('returns undefined for unknown messages', () => {
     expect(ownedDeliverables(snapshot as never, 'm-2')).toBeUndefined()
+  })
+})
+
+/** A timeline-style snapshot over turn fakes, as ui-chat publishes them. */
+function chatSnapshotOf(turns: ReadonlyArray<{ turn: number; produced: ReadonlyArray<{ seq: number; path: string }>; tail?: { seq: number; closingSeq?: number } | null; status?: 'open' | 'closed' }>) {
+  const map = new Map(turns.map(entry => {
+    const values = new Map<string, unknown>([['deliverables', { produced: entry.produced }]])
+    if (entry.tail !== null && entry.tail !== undefined) {
+      values.set('turn-tail', {
+        turn: entry.turn,
+        seq: entry.tail.seq,
+        time: 0,
+        closing: entry.tail.closingSeq === undefined ? null : { finalNode: { messageId: 'm', seq: entry.tail.closingSeq }, blocks: [] },
+      })
+    }
+    return [entry.turn, {
+      turn: entry.turn,
+      status: entry.status ?? 'closed',
+      steps: [],
+      start: undefined,
+      end: undefined,
+      data: Object.assign(values, {
+        source: (key: string) => ({ getSnapshot: () => values.get(key), subscribe: () => () => {} }),
+      }),
+    }]
+  }))
+  return { timeline: { turnOrder: turns.map(entry => entry.turn), turns: map } }
+}
+
+describe('latestTurnPreviewable (#31)', () => {
+  it('derives the newest turn only, never an earlier turn\'s outputs', () => {
+    const snapshot = chatSnapshotOf([
+      { turn: 1, produced: [{ seq: 1, path: 'old.md' }], tail: { seq: 5, closingSeq: 4 } },
+      { turn: 2, produced: [{ seq: 6, path: 'fresh.md' }], tail: { seq: 9, closingSeq: 8 } },
+    ])
+    expect(latestTurnPreviewable(snapshot as never)).toEqual(['fresh.md'])
+  })
+
+  it('fences closed turns at the closing seq, exactly like the chip row', () => {
+    const snapshot = chatSnapshotOf([
+      { turn: 1, produced: [
+        { seq: 1, path: 'settled.md' },
+        { seq: 900, path: 'post-close.md' },
+      ], tail: { seq: 100, closingSeq: 99 } },
+    ])
+    expect(latestTurnPreviewable(snapshot as never)).toEqual(['settled.md'])
+  })
+
+  it('keeps an open turn\'s produced-so-far as live facts', () => {
+    const snapshot = chatSnapshotOf([
+      { turn: 1, produced: [{ seq: 1, path: 'streaming.md' }], tail: null, status: 'open' },
+    ])
+    expect(latestTurnPreviewable(snapshot as never)).toEqual(['streaming.md'])
+  })
+
+  it('keeps only previewable documents and returns nothing without turn facts', () => {
+    const mixed = chatSnapshotOf([
+      { turn: 1, produced: [
+        { seq: 1, path: 'doc.md' },
+        { seq: 2, path: 'run.ts' },
+        { seq: 3, path: 'note.txt' },
+      ], tail: { seq: 9, closingSeq: 8 } },
+    ])
+    expect(latestTurnPreviewable(mixed as never)).toEqual(['doc.md'])
+    expect(latestTurnPreviewable(chatSnapshotOf([]) as never)).toEqual([])
+    expect(latestTurnPreviewable({ timeline: { turnOrder: [7], turns: new Map() } } as never)).toEqual([])
   })
 })

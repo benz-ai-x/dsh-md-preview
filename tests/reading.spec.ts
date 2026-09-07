@@ -161,6 +161,31 @@ describe('createReadingStore', () => {
     store.record('s1', 'older.md', { ...IN_SECTION, at: 4000 })
     expect(store.latest('s1')).toEqual({ path: 'older.md', at: 4000 })
   })
+
+  it('lists a session\'s recent documents, recency-first, deduped, and bounded (#31)', () => {
+    const store = createReadingStore(createMemoryStorage())
+    expect(store.recent('s1', 3)).toEqual([])
+    store.record('s1', 'a.md', { ...IN_SECTION, at: 1000 })
+    store.record('s1', 'b.md', { ...IN_SECTION, at: 2000 })
+    store.record('s1', 'c.md', { ...IN_SECTION, at: 3000 })
+    store.record('s2', 'other.md', { ...IN_SECTION, at: 4000 })
+    // Recency order for the owning session only; other sessions never leak.
+    expect(store.recent('s1', 3)).toEqual([
+      { path: 'c.md', at: 3000 },
+      { path: 'b.md', at: 2000 },
+      { path: 'a.md', at: 1000 },
+    ])
+    // The limit takes the most recent slice.
+    expect(store.recent('s1', 1)).toEqual([{ path: 'c.md', at: 3000 }])
+    expect(store.recent('s2', 5)).toEqual([{ path: 'other.md', at: 4000 }])
+    // Re-reading a document moves it up as one entry, never a duplicate.
+    store.record('s1', 'a.md', { ...IN_SECTION, at: 5000 })
+    expect(store.recent('s1', 3)).toEqual([
+      { path: 'a.md', at: 5000 },
+      { path: 'c.md', at: 3000 },
+      { path: 'b.md', at: 2000 },
+    ])
+  })
 })
 
 describe('resolveRestoreTarget', () => {

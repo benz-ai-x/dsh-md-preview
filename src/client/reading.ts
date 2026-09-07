@@ -64,6 +64,8 @@ export interface ReadingStore {
   record(sessionId: string, path: string, position: ReadingPosition): void
   /** The most recently read document of one session — the continue-reading target. */
   latest(sessionId: string): { readonly path: string; readonly at: number } | null
+  /** The session's documents by recency, most recent first (#31). */
+  recent(sessionId: string, limit: number): ReadonlyArray<{ readonly path: string; readonly at: number }>
 }
 
 /** An in-memory StorageLike for tests and for browsers without storage. */
@@ -168,6 +170,17 @@ export function createReadingStore(storage: StorageLike): ReadingStore {
         if (best === undefined || entry.position.at > best.position.at) best = entry
       }
       return best === undefined ? null : { path: best.path, at: best.position.at }
+    },
+    recent(sessionId, limit) {
+      const found: Array<{ path: string; at: number }> = []
+      // The store keeps records recency-first (record sorts by `at`), so the
+      // session's slice in store order is already the recency answer.
+      for (const entry of load()) {
+        if (entry.sessionId !== sessionId) continue
+        found.push({ path: entry.path, at: entry.position.at })
+        if (found.length >= limit) break
+      }
+      return found
     },
   }
 }

@@ -52,6 +52,21 @@ function registerUi(ctx: ClientContext): void {
   // browser's localStorage when reachable, else in-memory for the session.
   // UI-local viewing state only — positions, never bodies or fingerprints.
   const reading = createReadingStore(browserStorage() ?? createMemoryStorage())
+  // The current-turn outputs seat (#31): the session header's capsule (the
+  // plugin's always-mounted session-scoped entry) derives the newest turn's
+  // previewable produced documents from the owning chat facts and publishes
+  // them here for the root-scoped panel to read. A derived view, not a copy
+  // of turn facts — it dies with the mount.
+  const turnOutputs = createSnapshotStore<{ sessionId: SessionId; paths: readonly string[] } | null>(null)
+  let lastPublished: { sessionId: SessionId; paths: readonly string[] } | null = null
+  const publishTurnOutputs = (sessionId: SessionId, paths: readonly string[]): void => {
+    // Chat updates stream constantly; only real changes ripple to the panel.
+    if (lastPublished !== null && lastPublished.sessionId === sessionId
+      && lastPublished.paths.length === paths.length
+      && lastPublished.paths.every((path, index) => path === paths[index])) return
+    lastPublished = { sessionId, paths: [...paths] }
+    turnOutputs.set(lastPublished)
+  }
   // The panel preference record (#26): manual geometry and navigation
   // choices over the same storage discipline.
   const preferences = createPanelPreferenceStore(browserStorage() ?? createMemoryStorage())
@@ -107,6 +122,7 @@ function registerUi(ctx: ClientContext): void {
       list,
       search,
       reading,
+      turnOutputs,
       preferences,
     }),
   }, PreviewOverlay))
@@ -135,13 +151,15 @@ function registerUi(ctx: ClientContext): void {
   // utilities, rendered ascending by order — the shipped Session-log download
   // capsule sits at the default 0, so order 100 parks us to its right. Session
   // scope hands the component its Session directly; the overlay appears on
-  // target set, no host column involved.
+  // target set, no host column involved. As the plugin's always-mounted
+  // session-scoped seat it also publishes the current-turn outputs (#31)
+  // derived from the session binding's chat facts.
   ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
     name: 'conversation.session.header.utilities',
     id: 'md-preview-docs',
     order: 100,
     locale: NS,
-    inject: () => ({ hooks: { previewTarget }, leave, headerStrip }),
+    inject: () => ({ hooks: { previewTarget }, leave, headerStrip, publishTurnOutputs }),
   }, WorkspaceDocsAction))
 }
 

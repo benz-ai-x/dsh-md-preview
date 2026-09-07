@@ -9,12 +9,15 @@
  * panel is open — measured geometry, never a preset offset.
  */
 
-import { useLayoutEffect, useRef, type ReactElement } from 'react'
+import { useEffect, useLayoutEffect, useRef, type ReactElement } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewState } from './preview-state.ts'
 import type { LeaveIntentSeat } from './leave-intent.ts'
+import { latestTurnPreviewable, type TurnOutputsSnapshot } from './turn-files.ts'
 
 /** The composed props of the header utility: slot kit + inject face + locale. */
 export type WorkspaceDocsActionProps =
@@ -23,16 +26,32 @@ export type WorkspaceDocsActionProps =
     hooks: { previewTarget: SnapshotStore<MdPreviewState> }
     leave: LeaveIntentSeat
     headerStrip: SnapshotStore<number>
+    /** Publish the session's current-turn outputs into the shared seat (#31). */
+    publishTurnOutputs?(sessionId: SessionId, paths: readonly string[]): void
   }>
   & PropsLocale<'md-preview'>
+  & {
+    /** The session binding's chat selector hook (ui-chat's standard source);
+     * absent when that plugin is not composed — nothing publishes then. */
+    useChat?: <T>(selector: (snapshot: TurnOutputsSnapshot) => T) => T
+  }
 
 /**
  * Render the browse capsule toggle for the showing Session.
  * @param props - the composed action props.
  * @returns the header utility button.
  */
-export function WorkspaceDocsAction({ sessionId, usePreviewTarget, leave, headerStrip, t }: WorkspaceDocsActionProps): ReactElement {
+export function WorkspaceDocsAction({ sessionId, usePreviewTarget, leave, headerStrip, publishTurnOutputs, useChat, t }: WorkspaceDocsActionProps): ReactElement {
   const open = usePreviewTarget(state => state !== null)
+  // The current-turn outputs (#31): this capsule is the plugin's
+  // always-mounted session-scoped seat, so it derives the newest turn's
+  // previewable produced documents from the binding's chat facts and
+  // publishes the view for the root-scoped panel. Pure derivation over the
+  // owning service's data — turn and closing-seq boundaries included.
+  const turnOutputs = useChat?.(latestTurnPreviewable) ?? null
+  useEffect(() => {
+    publishTurnOutputs?.(sessionId, turnOutputs ?? [])
+  }, [sessionId, turnOutputs, publishTurnOutputs])
   // Measure the strip this capsule sits in: its own ancestor <header> — a
   // structural fact of the public slot's placement, not a host styling
   // guess. A hidden header (blank session) reports a zero rect → no strip.
