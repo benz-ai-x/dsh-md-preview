@@ -93,8 +93,12 @@ export function fakeFs(options: FakeFsOptions = {}) {
       writes.push({ path: target.displayPath, content, expected, signal, sandboxPolicy })
       return { operation: 'update', version: file.version, before: null, after: content } as never
     },
-    listDir: async (target: { displayPath: string }, signal?: AbortSignal) => {
+    listDir: async (target: { targetKey?: string; displayPath: string }, signal?: AbortSignal) => {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
+      // The real backend's FsTarget is {targetKey, displayPath}; a target
+      // without targetKey is a contract violation and fails there, so the
+      // fake enforces the same shape (a lesson from the R3 walkthrough).
+      if (target.targetKey === undefined) throw new Error(`fs contract: listDir requires a real FsTarget for "${target.displayPath}"`)
       if (options.listFailure?.has(target.displayPath)) throw new Error(`io failure listing ${target.displayPath}`)
       return (options.dirs?.get(target.displayPath) ?? []).map(entry => ({
         name: entry.name,
