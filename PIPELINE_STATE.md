@@ -21,7 +21,7 @@
 | 批 | PR | 分支名 | issue 列表 | 主题 | 复杂度 | 依赖 | 状态 | review轮 | CI轮 |
 |----|----|--------|-----------|------|--------|------|------|---------|------|
 | 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | merged | 2 | 0 |
-| 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | in-review | 0 | 0 |
+| 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | merged | 1 | 0 |
 | 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | planned | 0 | 0 |
 
 状态枚举：planned / developing / in-review / merged / blocked（只允许这五个值）。
@@ -53,13 +53,19 @@ review轮 / CI轮：当前累计轮次，熔断判定用（review≥3 或 CI≥2
 |------|------|------|------|
 
 ## follow-up 记录（low 级 finding，不阻塞）
+PR-2 / review 轮 1（axes: spec pass / standards pass；specialty: correctness pass + assertion_quality pass；无 blocking/high）：
+1. PreviewOverlay.tsx:589 onPanelKeyDown 依赖数组列 width 而分支按 appliedWidth 路由，纯视口 resize 跨 640 阈值时 Mod-Shift-O/E 走陈旧分支（改依赖含 appliedWidth/widePanel）
+2. reading.ts:316 load() 成功解析未写 memory 记忆化，latest() 每帧重解析整包（与 preferences.ts 缓存做法对齐）
+3. preferences.ts / reading.ts 的 createMemoryStorage/browserStorage 逐字重复，可单处导出共用
+4. WorkspaceBrowser.tsx:384 失效目标仍占继续入口（规格内行为，体验留观：可在记录中降权/标注）
+
 PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_quality fail——仅由 blocking 构成）：
 1. PreviewOverlay.tsx:238 同目标判定用请求路径而非宿主解析路径（方向保守，可选改为 content.file.path 或修正注释措辞）
 2. client-assembly.spec.tsx:229 同目标重开/树行入口仅面板级覆盖，可补装配 bench 用例
-3. （证据）#24 走查评论缺长名称头部修复前对照截图，可补 v0.7.2 同报告对照
+3. （证据）#24 走查评论缺长名称头部修复前对照截图，可补 v0.7.2 同报告对照（pr2 评审确认 4c5a40a 已闭环此条）
 4. WorkspaceDocsAction.tsx:53 胶囊卸载未发布 strip 0 / layerTop 打开时补测一次
 5. 测试 helper（flush/buttonByAria/beforeAll shims）三套件重复可提取共享 test-utils；删冗余转型；NO_STRIP 回退可删
-- blocking #1（已派修复）：tests/client-edit.spec.tsx:618 冲突 reload 分支零交互覆盖，冒充 #23 AC7 两分支验收
+- blocking #1（已修复 5248ec7 + 轮 2 复核通过）：tests/client-edit.spec.tsx:618 冲突 reload 分支零交互覆盖
 
 ## 待下轮清单
 - （运行期间新增的 issue 记在这里）
