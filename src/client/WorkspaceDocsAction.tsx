@@ -39,13 +39,14 @@ export function WorkspaceDocsAction(props: WorkspaceDocsActionProps): ReactEleme
   }
   return (
     <button
-      type="button" className="dsh-md-preview-icon dsh-md-preview-rootdocs"
+      type="button" className="dsh-md-preview-rootdocs"
       aria-label={t('dock.browse')} title={t('dock.browse')}
       onClick={open}
     >
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>
         <path d="M1.5 3.5h4l1.5 2h7.5v7h-13z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
       </svg>
+      <span>{t('dock.browse')}</span>
     </button>
   )
 }

@@ -20,6 +20,25 @@ const CSS = `
   min-height: 0;
   background: var(--dsw-alias-bg-base);
 }
+.dsh-md-preview-rootdocs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+.dsh-md-preview-rootdocs:hover {
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-fill-secondary);
+}
+
 .dsh-md-preview-foot {
   flex: none;
   padding: 2px 12px 4px;
