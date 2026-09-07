@@ -22,7 +22,7 @@
 |----|----|--------|-----------|------|--------|------|------|---------|------|
 | 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | merged | 2 | 0 |
 | 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | merged | 1 | 0 |
-| 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | developing | 0 | 0 |
+| 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | in-review | 0 | 0 |
 
 状态枚举：planned / developing / in-review / merged / blocked（只允许这五个值）。
 review轮 / CI轮：当前累计轮次，熔断判定用（review≥3 或 CI≥2）。
@@ -79,9 +79,9 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-3 ② 收尾中——pr3-dev 01:10 唤醒后跑到 02:07 二次 429（重置 02:11:39 已过）；断点在 #32 打包冒烟拆除可逆性验证（装/启/载已 ✓），已再次唤醒其完成拆除验证 → #20 勾选 → 回传
-- 02:13 旧闹钟（pr2-review 用途）fire 已忽略——其任务早已完成（PR #34 已合并），属调度残留，无影响
-- 若 pr3-dev 无法恢复：读本文件 + /tmp/pr3-issues.md，按 dispatch-templates.md 第 1 节模板重派收尾
+- 上次中断位置：PR-3 ④ 隔离评审进行中（pr3-review）
+- PR-3 ②③ 完成：四票 AC 全勾（#30 9/9、#31 8/8、#32 9/9、#20 4/4；#32 走查证据 docs/verification/r3-acceptance/ 16 截图；走查发现 search BFS 伪造 displayPath 契约缺陷并红绿修复锁定）；pnpm verify exit 0（276/276，调度实测）；main 无漂移；PR #35 已建（Closes #30-#32+#20）
+- 下一步：④ 评审回传 → 无 blocking 则 ⑤⑥⑦ → 终局总结（含 follow-up 清单与待下轮清单）
 - 下一步：收到开发回传 → ③（verify 实测 + 建 PR，Closes #30-#32 + #20）→ ④ 隔离评审（新 agent，双专项）→ ⑤ 闸门 → ⑥ 合并 → ⑦ 记录 → 终局总结（含全部非 merged 明细与 follow-up 清单）
 - PR-2 已 merged（PR #34，main=429a4c2 后推进，回归 252/252 绿）；PR-1 已 merged（PR #33）；两批 agent 均已释放
 - PR-2 ②③ 完成：五票 8/8、7/7、8/8、7/7、8/8 AC 全勾（#29 走查证据 docs/verification/r2-acceptance/，16 截图；走查发现缩窗宽度不重钳缺陷已修复+回归锁定；恢复操作成本 R1 3 次 → R2 1 次）；pnpm verify exit 0（252/252，调度实测复核）；main 无漂移；PR #34 已建（Closes #25-#29）
