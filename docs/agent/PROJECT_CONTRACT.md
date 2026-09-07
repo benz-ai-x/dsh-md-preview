@@ -71,7 +71,22 @@ history; Mod-B/I/K wrap selections in markup with the ?/Mod-/ popover
 listing the keys; a document containing inline HTML warns once per edit
 session that the edit face is plain text. The tree's filter box narrows
 entries by substring — hits highlight, a name-matched directory keeps its
-subtree, and clearing restores the tree. The browse face
+subtree, and clearing restores the tree. Reopening a document restores the
+reading position (#25): the open always re-reads the workspace's latest
+content through the Remote first, and once the rendered document settles,
+one restore per open scrolls back to the recorded section — matched by
+heading text plus occurrence ordinal among duplicates, with the section's
+in-scroll offset; when the section no longer resolves, the stored scroll
+fraction applies, and when nothing survives, reading starts at the top
+without blocking. The reader who scrolls or navigates before the restore
+fires cancels it, and a restore never re-applies after user movement or on
+a re-read of the same open. Positions live in a versioned, validated,
+bounded reading record keyed by (session, workspace path) — never a
+document body, draft, or fingerprint — persisted in browser localStorage
+when reachable and degraded to in-memory otherwise; a damaged envelope or
+unavailable storage never blocks opening. A document that moved, was
+deleted, or cannot be read states the failure and offers an explicit way
+back to workspace browsing. The browse face
 silently revalidates every expanded directory on re-entry (and from its
 refresh button): fresh listings replace current ones, a failed refresh
 changes nothing. After the platform renderer settles the document, a diagram
@@ -171,7 +186,10 @@ contexts.
   conflict prompts are UI-local viewing state; the draft never
   reaches the workspace except through an explicit guarded `write`. The
   panel's dragged width persists across opens for the app session (clamped
-  320–1280, opening at 500); the target itself resets per open. Session data, turn membership,
+  320–1280, opening at 500); the target itself resets per open. The reading
+  record (positions only, keyed by session and workspace path) is likewise
+  UI-local viewing state persisted through browser storage with version,
+  validity checks, and bounded cleanup. Session data, turn membership,
   and deliverables vocabulary stay in their owning services.
 
 ## Cancellation and disposal

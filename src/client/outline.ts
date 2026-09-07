@@ -63,7 +63,7 @@ export function extractOutline(content: string): readonly OutlineEntry[] {
 }
 
 /** Whitespace-collapsed comparable form of a rendered heading's text. */
-function comparable(text: string): string {
+export function comparable(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
 
