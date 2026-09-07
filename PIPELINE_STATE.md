@@ -73,7 +73,7 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-1 ④ 隔离评审进行中（评审 agent 派发后）
+- 上次中断位置：PR-1 ④ 评审轮 2 复核中（pr1-review 复核 blocking 修复）
 - PR-1 ②③ 完成：四票 8/8 AC 全勾（#24 走查证据见 issue 评论 5571706599）；pnpm verify exit 0（185/185，调度会话实测复核）；main 无漂移；PR #33 已建（Closes #21-#24，四票 AC 全勾故全用 Closes）
 - 开发过程记录：pr1-dev 两次 429 中断（17:05/17:50，GLM 5h 限额），改派 pr1-dev2（sonnet）接手 #24；限额重置后 pr1-dev 恢复并回传最终报告。兜底闹钟已撤
 - 下一步：④ 评审回传 → 无 blocking 则 ⑤ 闸门（本地 verify 已绿 + 无 CI）→ ⑥ 合并前总检 → rebase 合并 → 删分支 → main 回归 → ⑦ 记录通知 → PR-2
