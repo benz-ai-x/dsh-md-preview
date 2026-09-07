@@ -76,5 +76,7 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 - 上次中断位置：PR-1 ④ 评审轮 2 复核中（pr1-review 复核 blocking 修复）
 - PR-1 ②③ 完成：四票 8/8 AC 全勾（#24 走查证据见 issue 评论 5571706599）；pnpm verify exit 0（185/185，调度会话实测复核）；main 无漂移；PR #33 已建（Closes #21-#24，四票 AC 全勾故全用 Closes）
 - 开发过程记录：pr1-dev 两次 429 中断（17:05/17:50，GLM 5h 限额），改派 pr1-dev2（sonnet）接手 #24；限额重置后 pr1-dev 恢复并回传最终报告。兜底闹钟已撤
+- 并行插曲：dev1 恢复与 dev2 接手形成双活；dev2 对账后转向独立复核（未重复勾选/建 PR），交付 4c5a40a（同构建第二次独立走查：主链 13.5s 定位、守卫矩阵、冲突两分支磁盘核对、宽度/主题/双语矩阵、干净 profile 冒烟；27 截图 + WALKTHROUGH.md 入 docs/verification/r1-acceptance/，PR 评论 5571998389）。教训：改派接替者时应显式停掉原执行者，避免限额重置后双活
+- 环境注意：3080 web 实例跑 v0.7.3（依赖 /tmp/mdp-r1-accept.tgz 勿删）；chrome-devtools MCP 服务器曾被置坏，走查用 CLI 通道
 - 下一步：④ 评审回传 → 无 blocking 则 ⑤ 闸门（本地 verify 已绿 + 无 CI）→ ⑥ 合并前总检 → rebase 合并 → 删分支 → main 回归 → ⑦ 记录通知 → PR-2
 - 未发送通知：无
