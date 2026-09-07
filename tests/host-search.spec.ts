@@ -204,8 +204,8 @@ describe('MdPreviewService.search', () => {
     // root itself: the visited dedupe must terminate the walk.
     const ctx = new Context()
     const listing = [
-      { name: 'guide.md', type: 'file' as const, target: { displayPath: '/workspace/project/guide.md' } },
-      { name: 'loop', type: 'directory' as const, target: { displayPath: '/workspace/project' } },
+      { name: 'guide.md', type: 'file' as const, target: { targetKey: '/workspace/project/guide.md', displayPath: '/workspace/project/guide.md' } },
+      { name: 'loop', type: 'directory' as const, target: { targetKey: '/workspace/project', displayPath: '/workspace/project' } },
     ]
     const listCalls: string[] = []
     const loopFs = {

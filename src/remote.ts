@@ -236,14 +236,17 @@ export class MdPreviewService extends TypertRemoteService {
     // BFS over directory targets, keyed by resolved display path so a
     // revisiting link target never re-enters the walk. `visited` counts
     // every directory admitted to the walk; the traversal bound caps it.
+    // The frontier carries the fs layer's own FsTarget objects — entries
+    // arrive with real targets and the root comes from resolve, never a
+    // reconstructed shape (the backend's contract is {targetKey, displayPath}).
     const visited = new Set<string>([rootPath])
-    let frontier: string[] = [rootPath]
+    let frontier: FsTarget[] = [root]
     while (frontier.length > 0) {
       if (signal.aborted) throw new DOMException('aborted', 'AbortError')
       const batch = frontier.splice(0, this.config.searchConcurrency)
-      const listings = await Promise.all(batch.map(async dirPath => {
+      const listings = await Promise.all(batch.map(async dir => {
         try {
-          const entries = await this.ctx.fs.listDir({ displayPath: dirPath } as FsTarget, signal)
+          const entries = await this.ctx.fs.listDir(dir, signal)
           return { entries: entries as readonly FsDirEntry[] }
         } catch (error) {
           if (signal.aborted) throw error
@@ -273,7 +276,7 @@ export class MdPreviewService extends TypertRemoteService {
             continue
           }
           visited.add(child)
-          frontier.push(child)
+          frontier.push(entry.target)
         }
       }
       if (matches.length >= this.config.searchMaxResults) {
