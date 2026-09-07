@@ -65,8 +65,11 @@ function registerUi(ctx: ClientContext): void {
   // The panel lives in the host's details column now (single, session): it
   // replaces the shipped tool/approval details surface. The column owns
   // width and collapse; we render content into it.
+  // The details column is single-slot: shadow the shipped tool/approval
+  // details (priority 0) by registering at a higher priority.
   ctx.slots.inject('details', () => ctx.slots.register({
     name: 'details',
+    priority: 100,
     locale: NS,
     inject: () => ({
       hooks: { previewTarget },
