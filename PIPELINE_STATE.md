@@ -21,7 +21,7 @@
 | 批 | PR | 分支名 | issue 列表 | 主题 | 复杂度 | 依赖 | 状态 | review轮 | CI轮 |
 |----|----|--------|-----------|------|--------|------|------|---------|------|
 | 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | merged | 2 | 0 |
-| 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | planned | 0 | 0 |
+| 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | developing | 0 | 0 |
 | 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | planned | 0 | 0 |
 
 状态枚举：planned / developing / in-review / merged / blocked（只允许这五个值）。
