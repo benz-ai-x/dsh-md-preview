@@ -22,7 +22,7 @@
 |----|----|--------|-----------|------|--------|------|------|---------|------|
 | 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | merged | 2 | 0 |
 | 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | merged | 1 | 0 |
-| 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | in-review | 0 | 0 |
+| 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | merged | 1 | 0 |
 
 状态枚举：planned / developing / in-review / merged / blocked（只允许这五个值）。
 review轮 / CI轮：当前累计轮次，熔断判定用（review≥3 或 CI≥2）。
@@ -53,6 +53,16 @@ review轮 / CI轮：当前累计轮次，熔断判定用（review≥3 或 CI≥2
 |------|------|------|------|
 
 ## follow-up 记录（low 级 finding，不阻塞）
+PR-3 / review 轮 1（axes: spec pass / standards pass；specialty: correctness pass + assertion_quality pass；无 blocking/high）：
+1. WorkspaceBrowser.tsx:489 快捷行 aria-label 未插值 t('quick.open')（字面含 {name}）——传 { name } 或去掉占位符
+2. remote.ts:262 search 文件匹配不做 fs.contains，越根符号链接文件可与根内同名档冲突（重复 key，点击打开根内文件）——文件条目同样过 contains 或跳过
+3. remote.ts:282 命中恰等于 searchMaxResults 且 frontier 已空时仍标 result-limit/complete=false（完整答案误报不完整）——仅实际截断时标记
+4. WorkspaceBrowser.tsx:628 不完整提示只有原因无「下一步」（AC3 字面）——补一句或记已知取舍
+5. host-search.spec 缺「子目录解析越出根」宿主边界用例（可与 #2 合并先红后绿）
+6. r3-acceptance 走查缺 <640 阈值下侧记录（AC5 字面）——引用 R2 记录或补一次
+7. PreviewOverlay.tsx:631 reading.recent(sessionId, 8) 无名上限与 QUICK_RECENT_MAX=3 并存——命名常量
+8. turn-files.ts:38 as unknown as 双重转换、RPC 签名 4 层复述、手写 fake 形状漂移——后续迭代收敛
+
 PR-2 / review 轮 1（axes: spec pass / standards pass；specialty: correctness pass + assertion_quality pass；无 blocking/high）：
 1. PreviewOverlay.tsx:589 onPanelKeyDown 依赖数组列 width 而分支按 appliedWidth 路由，纯视口 resize 跨 640 阈值时 Mod-Shift-O/E 走陈旧分支（改依赖含 appliedWidth/widePanel）
 2. reading.ts:316 load() 成功解析未写 memory 记忆化，latest() 每帧重解析整包（与 preferences.ts 缓存做法对齐）
