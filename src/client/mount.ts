@@ -29,7 +29,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Required browser services for the Remote mount, slots, and locale. */
-export const inject = ['remote', 'slots', 'locale']
+export const inject = ['remote', 'slots', 'locale', 'layout']
 
 function registerUi(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-md-preview: dictionaries')
@@ -66,10 +66,10 @@ function registerUi(ctx: ClientContext): void {
   // replaces the shipped tool/approval details surface. The column owns
   // width and collapse; we render content into it.
   // The details column is single-slot: shadow the shipped tool/approval
-  // details (priority 0) by registering at a higher priority.
+  // details (priority 0) by registering lower — the lowest priority renders.
   ctx.slots.inject('details', () => ctx.slots.register({
     name: 'details',
-    priority: 100,
+    priority: -100,
     locale: NS,
     inject: () => ({
       hooks: { previewTarget },
