@@ -79,9 +79,9 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-2 已 merged（PR #34，rebase，main=6960356，合并后回归 252/252 绿；review 1 轮 pass：无 blocking/high、correctness + 断言质量双专项 pass、4 low 入 follow-up；分支已删；pr2-dev/pr2-review 已释放）。待开 PR-3 ①
-- PR-2 流程记录：② 五票 AC 全勾（走查 16 截图 + 联合缺陷发现修复）→ ③ verify 252/252 + PR #34 → ④ 429 暂挂后 02:13 唤醒同 agent 续评 → 1 轮 pass → ⑤ 三绿 → ⑥ 总检 8/8 + rebase → 回归绿
-- 下一步：PR-3 ① 建分支 feat/batch-3-r3-find-efficiency（#30 #31 #32 #20，#20 为 spec 收尾票）
+- 上次中断位置：PR-3 ② 隔离开发进行中（pr3-dev，分支 feat/batch-3-r3-find-efficiency，单执行者；#30 → #31 → #32 → #20 收尾）
+- 下一步：收到开发回传 → ③（verify 实测 + 建 PR，Closes #30-#32 + #20）→ ④ 隔离评审（新 agent，双专项）→ ⑤ 闸门 → ⑥ 合并 → ⑦ 记录 → 终局总结（含全部非 merged 明细与 follow-up 清单）
+- PR-2 已 merged（PR #34，main=429a4c2 后推进，回归 252/252 绿）；PR-1 已 merged（PR #33）；两批 agent 均已释放
 - PR-2 ②③ 完成：五票 8/8、7/7、8/8、7/7、8/8 AC 全勾（#29 走查证据 docs/verification/r2-acceptance/，16 截图；走查发现缩窗宽度不重钳缺陷已修复+回归锁定；恢复操作成本 R1 3 次 → R2 1 次）；pnpm verify exit 0（252/252，调度实测复核）；main 无漂移；PR #34 已建（Closes #25-#29）
 - 下一步：④ 评审回传 → 无 blocking 则 ⑤⑥⑦ → PR-3 ①
 - PR-1 流程完整记录：② 四票 8/8 AC（两次独立真机走查互为复核）→ ③ verify exit 0 + PR #33 → ④ 轮 1 发现 1 blocking（reload 分支零交互覆盖）→ 修复 5248ec7 → 轮 2 复核通过 → ⑤ 闸门三绿 → ⑥ 总检 8/8 + rebase 合并 → main 回归绿
