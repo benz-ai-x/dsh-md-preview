@@ -113,7 +113,21 @@ open's intent (#27): a direct document entry opens body-first (the rail
 stays out of the way, expandable at any time), while an explicit
 workspace-browse entry expands the navigation; a manual choice — this
 session's or the remembered one — always outranks the automatic
-arrangement across renders and document switches. The rendered body
+arrangement across renders and document switches. The browse area carries
+two quick-entry sections above its toolbar (#31): 「当前回合产出」 lists
+the previewable documents the session's newest turn produced — derived
+from the owning chat facts (deliverables turn data fenced by the turn and
+its closing seq, exactly the boundary the chip row applies; an open turn
+shows its produced-so-far live) and published session-scoped by the
+「工作区文档」 capsule, never parsing conversation prose and never
+dressing an earlier turn's outputs up as current — and 「最近阅读」 lists
+this session's recently read documents from the reading record, recency
+first, a few recognizable rows (capped) with name and necessary path so
+same-name documents stay apart. Opening either rides the same
+leave-guarded open path with a fresh read; a moved or deleted document
+lands on the normal failure state with the way back to browsing; empty
+sources hide their section; and the 「继续阅读」 entry keeps its own
+explicit seat and meaning beside them. The rendered body
 centers on a reading measure with one width for normal panels and a
 wider, more spacious one when maximized; long tables and code blocks
 scroll inside their own regions, and the header's necessary actions stay
@@ -168,7 +182,11 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   `src/client/use-preview-session.ts`; the unsaved guard itself is a
   leave-intent seat (`src/client/leave-intent.ts`) shared by every plugin
   outlet and executed only by the panel, which also renders the measured
-  session-header strip geometry the 「工作区文档」 capsule publishes. The
+  session-header strip geometry the 「工作区文档」 capsule publishes; that
+  capsule is additionally the plugin's always-mounted session-scoped seat
+  that derives the newest turn's previewable produced documents from the
+  binding's chat facts and publishes them (a deduped snapshot store) for
+  the root-scoped panel's quick entries. The
   component renders and owns only
   geometry and locale. The outline (`src/client/outline.ts`) and the diagram
   pass (`src/client/diagrams.ts`) are UI-local modules over the settled

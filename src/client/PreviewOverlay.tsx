@@ -74,6 +74,9 @@ export interface PreviewOverlayInjected {
   ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewSearchResult>>
   /** The reading record store (#25): per-(session, path) positions. */
   reading: ReadingStore
+  /** The current-turn outputs seat (#31): the session header's published
+   * view of the newest turn's produced documents. */
+  turnOutputs?: SnapshotStore<{ readonly sessionId: SessionId; readonly paths: readonly string[] } | null>
   /** The panel preference record (#26): manual geometry and navigation choices. */
   preferences: PanelPreferenceStore
 }
@@ -93,6 +96,12 @@ const OVERLAY_COMPACT_WIDTH = 560
 /** The no-strip stand-in: a permanent zero, for benches that pass no store. */
 const NO_STRIP = {
   getSnapshot: (): number => 0,
+  subscribe: (): (() => void) => () => {},
+}
+
+/** The no-quick-entries stand-in for benches that pass no turn-outputs seat. */
+const NO_TURN_OUTPUTS = {
+  getSnapshot: (): null => null,
   subscribe: (): (() => void) => () => {},
 }
 
@@ -163,7 +172,7 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, search, reading, preferences, t, headerStrip }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, search, reading, turnOutputs, preferences, t, headerStrip }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
   const stripStore = headerStrip ?? NO_STRIP
   const session = usePanelDocumentSession({ read, write, close }, target)
@@ -609,6 +618,19 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   if (target !== null) {
     try { continueTarget = reading?.latest(target.sessionId) ?? null } catch { continueTarget = null }
   }
+  // The quick entries' two sources (#31): the session header's published
+  // current-turn outputs (only the target session's entry may show) and the
+  // reading record's recency list. Derived views over owning facts — the
+  // panel copies nothing.
+  const outputsStore = turnOutputs ?? NO_TURN_OUTPUTS
+  const publishedOutputs = useSyncExternalStore(outputsStore.subscribe, outputsStore.getSnapshot)
+  const quickTurnOutputs = target !== null && publishedOutputs !== null && publishedOutputs.sessionId === target.sessionId
+    ? publishedOutputs.paths
+    : null
+  let quickRecent: ReadonlyArray<{ readonly path: string }> = []
+  if (target !== null && reading !== undefined) {
+    try { quickRecent = reading.recent(target.sessionId, 8) } catch { quickRecent = [] }
+  }
   const continueFromBrowser = useCallback((): void => {
     if (target === null || continueTarget === null) return
     leave.request({ kind: 'open', target: { sessionId: target.sessionId, path: continueTarget.path } })
@@ -928,6 +950,8 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                     list={list}
                     search={search}
                     onOpenFile={openFromBrowser}
+                    turnOutputs={quickTurnOutputs}
+                    recentReads={quickRecent}
                     currentPath={target.path}
                     continueTarget={continueTarget}
                     onContinue={continueFromBrowser}

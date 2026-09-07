@@ -551,6 +551,57 @@ const CSS = `
   gap: 4px;
   padding: 4px 8px 0;
 }
+/* The quick-entry sections (#31): one compact labeled stack above the
+ * toolbar — a few rows of name + necessary path, the path ellipsizing
+ * inside its own span so same-name documents stay apart without widening
+ * the rail. Sections hide entirely when their source is empty. */
+.dsh-md-preview-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: none;
+  margin: 4px 8px 0;
+}
+.dsh-md-preview-quicklabel {
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  user-select: none;
+}
+.dsh-md-preview-quickrow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+  text-align: left;
+}
+.dsh-md-preview-quickrow:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-quickname {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.dsh-md-preview-quickpath {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+}
 /* The continue-reading entry (#28): the browse area's opening seat — one
  * bordered row above the tree filter, carrying the label and the last-read
  * document's name (path on hover), reachable by keyboard like every
