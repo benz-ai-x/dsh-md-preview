@@ -637,12 +637,14 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
               )}
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.save')}
-                title={`${t('panel.save')} · Mod-S`} disabled={!canSave}
+                title={`${t('panel.save')} · Mod-S`} disabled={!canSave} aria-busy={state.saving || undefined}
                 onClick={() => { actions.save(false) }}
               >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M2 2h9l3 3v9H2zM5 2v4h6V2M4 14V9h8v5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
-                </svg>
+                {state.saving
+                  ? <span className="dsh-md-preview-savebusy" aria-hidden />
+                  : <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                      <path d="M2 2h9l3 3v9H2zM5 2v4h6V2M4 14V9h8v5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+                    </svg>}
               </button>
               {!compact && keysTool}
               {compact && renderMoreMenu(<>{showOutlineControl ? outlineTool : undefined}{undoTool}{redoTool}{findTool}{keysTool}</>)}
@@ -762,6 +764,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
           {state.conflicted && state.face === 'edit' && (
             <div className="dsh-md-preview-bar" role="alert">
               <span>{t('panel.conflict.title')}</span>
+              <span className="dsh-md-preview-barhint">{t('panel.conflict.hint')}</span>
               <button type="button" onClick={actions.reload}>
                 {t('panel.conflict.reload')}
               </button>
@@ -792,7 +795,9 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                 <span>{`Ln ${editorStatus.line}, Col ${editorStatus.col}`}</span>
                 <span>{`${editorStatus.chars} ${t('status.chars')}`}</span>
                 <span>
-                  {isDirty(state) ? t('status.unsaved')
+                  {state.saving ? t('status.saving')
+                    : state.saveError !== null ? `${t('status.saveFailed')} · ${state.saveError.code}`
+                    : isDirty(state) ? t('status.unsaved')
                     : savedAt === null ? t('status.clean')
                     : `${t('status.saved')} ${String(savedAt.getHours()).padStart(2, '0')}:${String(savedAt.getMinutes()).padStart(2, '0')}`}
                 </span>
@@ -804,7 +809,22 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
             // the tree instead of an eternal "loading".
             target.path === '' ? <div className="dsh-md-preview-state">{t('panel.pickFile')}</div> : <>
               {state.content.state === 'loading' && <div className="dsh-md-preview-state">{t('panel.loading')}</div>}
-              {state.content.state === 'failed' && (
+              {state.content.state === 'failed' && state.savedPendingRead && (
+                // The write landed; only the confirming re-read failed (#23).
+                // Both results are stated — never a write failure, never the
+                // stale pre-save body — and the read has its own retry.
+                <div className="dsh-md-preview-state">
+                  <div className="dsh-md-preview-error">{t('panel.saved.readFailed')}</div>
+                  <div>{state.content.code} — {state.content.message}</div>
+                  <button
+                    type="button" className="dsh-md-preview-retry"
+                    onClick={actions.retryRead}
+                  >
+                    {t('panel.retry')}
+                  </button>
+                </div>
+              )}
+              {state.content.state === 'failed' && !state.savedPendingRead && (
                 <div className="dsh-md-preview-state">
                   <div className="dsh-md-preview-error">
                     {t(state.content.code === 'md-preview/unsupported-extension' ? 'panel.unsupported' : 'panel.error')} · {state.content.code}

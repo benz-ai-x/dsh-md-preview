@@ -31,6 +31,8 @@ export interface PreviewSessionState {
   readonly saveError: { readonly code: string; readonly message: string } | null
   /** The saved toast is showing. */
   readonly toast: boolean
+  /** The write succeeded and the confirming re-read has not settled yet (#23). */
+  readonly savedPendingRead: boolean
   /** The session asked the shell to close the panel; the adapter acts once. */
   readonly closeRequested: boolean
 }
@@ -61,6 +63,7 @@ export function initialPreviewSession(): PreviewSessionState {
     conflicted: false,
     saveError: null,
     toast: false,
+    savedPendingRead: false,
     closeRequested: false,
   }
 }
@@ -98,8 +101,10 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
       // re-read must outlive it.
       return { ...state, content: { state: 'loading' } }
     case 'READ_RESOLVED':
-      return { ...state, content: { state: 'ready', file: action.file } }
+      return { ...state, content: { state: 'ready', file: action.file }, savedPendingRead: false }
     case 'READ_FAILED':
+      // The mark survives: a failed re-read after a successful write is a
+      // read failure the surface must not dress up as a write failure (#23).
       return { ...state, content: { state: 'failed', code: action.code, message: action.message } }
     case 'ENTER_EDIT':
       if (state.content.state !== 'ready' || state.face === 'edit') return state
@@ -116,7 +121,9 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
     case 'SAVE_STARTED':
       return { ...state, saving: true, saveError: null }
     case 'SAVE_RESOLVED':
-      return { ...state, face: 'view', conflicted: false, toast: true, saving: false }
+      // The write landed; the adapter's re-read will confirm the workspace
+      // body — until it settles, a failure belongs to the read, not the save.
+      return { ...state, face: 'view', conflicted: false, toast: true, saving: false, savedPendingRead: true }
     case 'SAVE_CONFLICT':
       return { ...state, conflicted: true, saving: false }
     case 'SAVE_FAILED':
