@@ -20,7 +20,7 @@
 ## 规划表
 | 批 | PR | 分支名 | issue 列表 | 主题 | 复杂度 | 依赖 | 状态 | review轮 | CI轮 |
 |----|----|--------|-----------|------|--------|------|------|---------|------|
-| 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | in-review | 1 | 0 |
+| 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | merged | 2 | 0 |
 | 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | planned | 0 | 0 |
 | 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | planned | 0 | 0 |
 
@@ -73,7 +73,8 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-1 ④ 评审轮 2 复核中（pr1-review 复核 blocking 修复）
+- 上次中断位置：PR-1 已 merged（PR #33，rebase，main=f380b79，合并后回归 186/186 绿；review 轮 2 全 pass：blocking 解决、findings 空、专项转 pass；分支已删）。待开 PR-2 ①
+- PR-1 流程完整记录：② 四票 8/8 AC（两次独立真机走查互为复核）→ ③ verify exit 0 + PR #33 → ④ 轮 1 发现 1 blocking（reload 分支零交互覆盖）→ 修复 5248ec7 → 轮 2 复核通过 → ⑤ 闸门三绿 → ⑥ 总检 8/8 + rebase 合并 → main 回归绿
 - PR-1 ②③ 完成：四票 8/8 AC 全勾（#24 走查证据见 issue 评论 5571706599）；pnpm verify exit 0（185/185，调度会话实测复核）；main 无漂移；PR #33 已建（Closes #21-#24，四票 AC 全勾故全用 Closes）
 - 开发过程记录：pr1-dev 两次 429 中断（17:05/17:50，GLM 5h 限额），改派 pr1-dev2（sonnet）接手 #24；限额重置后 pr1-dev 恢复并回传最终报告。兜底闹钟已撤
 - 并行插曲：dev1 恢复与 dev2 接手形成双活；dev2 对账后转向独立复核（未重复勾选/建 PR），交付 4c5a40a（同构建第二次独立走查：主链 13.5s 定位、守卫矩阵、冲突两分支磁盘核对、宽度/主题/双语矩阵、干净 profile 冒烟；27 截图 + WALKTHROUGH.md 入 docs/verification/r1-acceptance/，PR 评论 5571998389）。教训：改派接替者时应显式停掉原执行者，避免限额重置后双活
