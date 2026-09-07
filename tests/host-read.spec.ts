@@ -49,9 +49,15 @@ describe('Config schema', () => {
       maxBytes: 1_048_576,
       allowedExtensions: ['.md', '.markdown'],
       previewExtensions: ['.md', '.markdown', '.txt'],
+      searchMaxResults: 200,
+      searchMaxDirectories: 2000,
+      searchConcurrency: 8,
     })
   })
   it('rejects invalid deployment values', () => {
     expect(() => Config({ maxBytes: 0 })).toThrow()
+    expect(() => Config({ searchMaxResults: 0 })).toThrow()
+    expect(() => Config({ searchMaxDirectories: 0 })).toThrow()
+    expect(() => Config({ searchConcurrency: 0 })).toThrow()
   })
 })

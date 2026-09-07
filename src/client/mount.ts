@@ -12,7 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
+import type { MdPreviewFile, MdPreviewListResult, MdPreviewSearchResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewTarget } from './preview-state.ts'
 import { MdChips } from './MdChips.tsx'
 import { PreviewAction } from './PreviewAction.tsx'
@@ -78,6 +78,12 @@ function registerUi(ctx: ClientContext): void {
     signal: AbortSignal,
   ): Promise<RemoteResult<MdPreviewListResult>> =>
     ctx.remote.mdPreview.list(sessionId, path, signal)
+  const search = (
+    sessionId: SessionId,
+    query: string,
+    signal: AbortSignal,
+  ): Promise<RemoteResult<MdPreviewSearchResult>> =>
+    ctx.remote.mdPreview.search(sessionId, query, signal)
   const setTarget = (target: MdPreviewTarget | null): void => { previewTarget.set(target) }
 
   // The right-docked overlay panel: an additive shell.overlay entry, mounted
@@ -99,6 +105,7 @@ function registerUi(ctx: ClientContext): void {
       read,
       write,
       list,
+      search,
       reading,
       preferences,
     }),

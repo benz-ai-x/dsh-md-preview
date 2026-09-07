@@ -4,15 +4,24 @@
  * module only owns the Host-side read authority.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import { DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES, DEFAULT_PREVIEW_EXTENSIONS } from './constants.ts'
+import {
+  DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES, DEFAULT_PREVIEW_EXTENSIONS,
+  DEFAULT_SEARCH_CONCURRENCY, DEFAULT_SEARCH_MAX_DIRECTORIES, DEFAULT_SEARCH_MAX_RESULTS,
+} from './constants.ts'
 import { type Config as ConfigType } from './config.ts'
 import { MdPreviewService } from './remote.ts'
 
 export { Config } from './config.ts'
 export type { Config as ConfigInterface } from './config.ts'
-export { DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES, DEFAULT_PREVIEW_EXTENSIONS } from './constants.ts'
+export {
+  DEFAULT_ALLOWED_EXTENSIONS, DEFAULT_MAX_BYTES, DEFAULT_PREVIEW_EXTENSIONS,
+  DEFAULT_SEARCH_CONCURRENCY, DEFAULT_SEARCH_MAX_DIRECTORIES, DEFAULT_SEARCH_MAX_RESULTS,
+} from './constants.ts'
 export { isAllowedExtension, MdPreviewService } from './remote.ts'
-export type { MdPreviewFile, MdPreviewFailureCode, MdPreviewReadRequest } from './protocol.ts'
+export type {
+  MdPreviewFile, MdPreviewFailureCode, MdPreviewReadRequest,
+  MdPreviewSearchLimit, MdPreviewSearchMatch, MdPreviewSearchResult,
+} from './protocol.ts'
 export { MD_PREVIEW_FAILURE_CODES } from './protocol.ts'
 
 export const name = 'md-preview'
@@ -32,6 +41,9 @@ export function apply(
     maxBytes: DEFAULT_MAX_BYTES,
     allowedExtensions: [...DEFAULT_ALLOWED_EXTENSIONS],
     previewExtensions: [...DEFAULT_PREVIEW_EXTENSIONS],
+    searchMaxResults: DEFAULT_SEARCH_MAX_RESULTS,
+    searchMaxDirectories: DEFAULT_SEARCH_MAX_DIRECTORIES,
+    searchConcurrency: DEFAULT_SEARCH_CONCURRENCY,
   },
 ): void {
   ctx.plugin(MdPreviewService, config)

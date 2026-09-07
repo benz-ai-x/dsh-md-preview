@@ -11,7 +11,9 @@
 import { z } from 'zod'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
+import type {
+  MdPreviewFile, MdPreviewListResult, MdPreviewSearchResult, MdPreviewWriteResult,
+} from '../protocol.ts'
 
 /** Browser face of the mounted `mdPreview` Remote namespace. */
 export interface MdPreviewRemote {
@@ -32,6 +34,8 @@ export interface MdPreviewRemote {
   ): Promise<RemoteResult<MdPreviewWriteResult>>
   /** List one workspace directory for the browser face (blank path = root). */
   list(sessionId: SessionId, path: string, signal?: AbortSignal): Promise<RemoteResult<MdPreviewListResult>>
+  /** Search previewable document names over the whole session workspace. */
+  search(sessionId: SessionId, query: string, signal?: AbortSignal): Promise<RemoteResult<MdPreviewSearchResult>>
 }
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -64,6 +68,17 @@ const listEntry$schema = z.object({
 const listResult$schema = z.object({
   path: z.string(),
   entries: z.array(listEntry$schema),
+})
+const searchQuery$schema = z.string().min(1)
+const searchMatch$schema = z.object({
+  name: z.string(),
+  path: z.string(),
+})
+const searchResult$schema = z.object({
+  query: z.string(),
+  matches: z.array(searchMatch$schema),
+  complete: z.boolean(),
+  limits: z.array(z.enum(['directory-failure', 'traversal-limit', 'result-limit'])),
 })
 
 /** The MdPreview contribution mounted by this package's browser entry. */
@@ -203,6 +218,41 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
         mode: 'strict',
         typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/list:result',
         schema: listResult$schema,
+      },
+    },
+    {
+      id: '@benz-ai-x/dsh-md-preview#mdPreview/search',
+      service: 'mdPreview',
+      namespace: 'mdPreview',
+      method: 'search',
+      invocation: { kind: 'direct' },
+      parameters: [
+        {
+          name: 'sessionId',
+          wire: 'sessionId',
+          source: 'json',
+          codec: {
+            mode: 'strict',
+            typeSymbol: '@deepseek-ai/dsh-session/types#SessionId',
+            schema: readSessionId$schema,
+          },
+        },
+        {
+          name: 'query',
+          wire: 'query',
+          source: 'json',
+          codec: {
+            mode: 'strict',
+            typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/search:query',
+            schema: searchQuery$schema,
+          },
+        },
+      ],
+      cancellation: { parameter: 'signal' },
+      result: {
+        mode: 'strict',
+        typeSymbol: '@benz-ai-x/dsh-md-preview#mdPreview/search:result',
+        schema: searchResult$schema,
       },
     },
   ],

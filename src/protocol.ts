@@ -38,6 +38,36 @@ export interface MdPreviewListResult {
   readonly entries: readonly MdPreviewEntry[]
 }
 
+/** One workspace document search match: a previewable document's name and
+ * where it lives, nothing about its content. */
+export interface MdPreviewSearchMatch {
+  /** Entry basename as the fs layer reports it (what the query matched). */
+  readonly name: string
+  /** Workspace-relative path of the document (the open handoff identity). */
+  readonly path: string
+}
+
+/** Why a search stopped short of a complete answer. */
+export type MdPreviewSearchLimit =
+  /** One or more directories could not be listed (permissions, io). */
+  | 'directory-failure'
+  /** The traversal cap stopped the walk before the workspace was covered. */
+  | 'traversal-limit'
+  /** The result cap truncated the match list. */
+  | 'result-limit'
+
+/** One workspace document search answer. */
+export interface MdPreviewSearchResult {
+  /** The query exactly as the caller sent it. */
+  readonly query: string
+  /** Previewable documents whose names matched, sorted by path. */
+  readonly matches: readonly MdPreviewSearchMatch[]
+  /** Whether the whole workspace was walked without any bound or failure. */
+  readonly complete: boolean
+  /** Why the answer stopped short; empty exactly when complete. */
+  readonly limits: readonly MdPreviewSearchLimit[]
+}
+
 /** Stable failure codes carried by `RemoteError` across the wire. */
 export const MD_PREVIEW_FAILURE_CODES = [
   'md-preview/bad-request',
