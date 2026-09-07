@@ -22,6 +22,7 @@ import { en, NS, zh } from './locale.ts'
 import { createPreviewStore } from './preview-state.ts'
 import { createLeaveIntentSeat } from './leave-intent.ts'
 import { browserStorage, createMemoryStorage, createReadingStore } from './reading.ts'
+import { createPanelPreferenceStore } from './preferences.ts'
 import { selectMdTurnFiles } from './turn-files.ts'
 import { ensureStyles } from './styles.ts'
 
@@ -51,6 +52,9 @@ function registerUi(ctx: ClientContext): void {
   // browser's localStorage when reachable, else in-memory for the session.
   // UI-local viewing state only — positions, never bodies or fingerprints.
   const reading = createReadingStore(browserStorage() ?? createMemoryStorage())
+  // The panel preference record (#26): manual geometry and navigation
+  // choices over the same storage discipline.
+  const preferences = createPanelPreferenceStore(browserStorage() ?? createMemoryStorage())
   const openPreview = (sessionId: SessionId) => (path: string): void => {
     leave.request({ kind: 'open', target: { sessionId, path } })
   }
@@ -96,6 +100,7 @@ function registerUi(ctx: ClientContext): void {
       write,
       list,
       reading,
+      preferences,
     }),
   }, PreviewOverlay))
 

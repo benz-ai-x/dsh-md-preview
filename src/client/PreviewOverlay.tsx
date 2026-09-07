@@ -23,6 +23,8 @@ import { isDirty } from './preview-session.ts'
 import type { LeaveIntentSeat } from './leave-intent.ts'
 import type { ReadingPosition, ReadingStore } from './reading.ts'
 import { applyReadingPosition, captureViewPosition } from './reading.ts'
+import type { PanelPreferenceStore, RailTab } from './preferences.ts'
+import { clampPanelWidth, clampRailWidth } from './preferences.ts'
 import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from './outline.ts'
 import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
 import { MarkdownEditor, type EditorStatus, type SearchStatus } from './editor.tsx'
@@ -66,6 +68,8 @@ export interface PreviewOverlayInjected {
   ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewListResult>>
   /** The reading record store (#25): per-(session, path) positions. */
   reading: ReadingStore
+  /** The panel preference record (#26): manual geometry and navigation choices. */
+  preferences: PanelPreferenceStore
 }
 
 /** Full composed panel props. */
@@ -86,34 +90,26 @@ const NO_STRIP = {
   subscribe: (): (() => void) => () => {},
 }
 
-/** The overlay's own width bounds: default 720 (rail docks immediately),
- * draggable 360–1200. */
+/** The overlay's own width bounds (the default preset lives in the
+ * preference clamps — #26); draggable 360–1200. */
 const OVERLAY_MIN_WIDTH = 360
 const OVERLAY_MAX_WIDTH = 1200
-const OVERLAY_DEFAULT_WIDTH = 720
-
-/**
- * The opening width: the 720 preset, or half the viewport when that is
- * narrower — a small window still gets a sane, draggable column.
- */
-function initialOverlayWidth(): number {
-  const half = typeof window === 'undefined' ? OVERLAY_DEFAULT_WIDTH : window.innerWidth * 0.5
-  return Math.min(OVERLAY_DEFAULT_WIDTH, Math.max(OVERLAY_MIN_WIDTH, Math.round(half)))
-}
 
 /**
  * Shared pointer-drag width driver: pointer capture with rAF-coalesced deltas.
  * `sign` maps the drag direction to growth — the rail widens with the pointer
- * (+1); the right-anchored overlay widens against it (−1).
+ * (+1); the right-anchored overlay widens against it (−1). `onSettled` fires
+ * once when a drag ends (pointer up), the moment a manual choice is complete.
  */
 function useDragWidth(
   min: number,
   max: number,
   sign: 1 | -1,
   set: React.Dispatch<React.SetStateAction<number>>,
+  onSettled?: () => void,
 ): (e: React.PointerEvent<HTMLDivElement>) => void {
-  const drag = useRef<{ active: boolean; origin: number; latest: number; frame: number | null }>({
-    active: false, origin: 0, latest: 0, frame: null,
+  const drag = useRef<{ active: boolean; origin: number; latest: number; frame: number | null; moved: boolean }>({
+    active: false, origin: 0, latest: 0, frame: null, moved: false,
   })
   return useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const current = drag.current
@@ -123,6 +119,7 @@ function useDragWidth(
       current.active = true
       current.origin = e.clientX
       current.latest = e.clientX
+      current.moved = false
       return
     }
     if (!current.active) return
@@ -132,6 +129,7 @@ function useDragWidth(
         current.frame = null
         const next = current.latest - current.origin
         current.origin = current.latest
+        if (next !== 0) current.moved = true
         set(width => Math.min(max, Math.max(min, width + sign * next)))
       })
       return
@@ -140,8 +138,11 @@ function useDragWidth(
       if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
     } catch { /* release is advisory */ }
     if (current.frame !== null) { cancelAnimationFrame(current.frame); current.frame = null }
+    const settled = current.moved
     current.active = false
-  }, [min, max, sign, set])
+    current.moved = false
+    if (settled) onSettled?.()
+  }, [min, max, sign, set, onSettled])
 }
 
 function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
@@ -156,7 +157,7 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, reading, t, headerStrip }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, reading, preferences, t, headerStrip }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
   const stripStore = headerStrip ?? NO_STRIP
   const session = usePanelDocumentSession({ read, write, close }, target)
@@ -181,9 +182,17 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   }, [stripBottom])
   const stripInset = Math.max(0, Math.round(stripBottom - layerTop))
   // The overlay owns its width: a right-anchored layer stacked over the
-  // frame, dragged wider/narrower from its left edge; it persists across
-  // targets and closes for the whole app session (min/max clamped in the drag).
-  const [width, setWidth] = useState(initialOverlayWidth)
+  // frame, dragged wider/narrower from its left edge. The manual choice
+  // persists through the preference record (#26) — restored clamped to the
+  // live viewport, derived from it when nothing was ever chosen (never a
+  // bogus zero-to-min fall), and untouched by maximize round-trips.
+  const [width, setWidth] = useState(() => {
+    let remembered: number | null = null
+    try { remembered = preferences?.geometry().panelWidth ?? null } catch { /* hostile store */ }
+    return clampPanelWidth(remembered, typeof window === 'undefined' ? 0 : window.innerWidth)
+  })
+  const widthRef = useRef(width)
+  widthRef.current = width
   // Maximize (the B ask): a full-frame preset over the remembered width —
   // restore returns to it exactly; the edge handle hides while taken.
   const [maximized, setMaximized] = useState(false)
@@ -201,12 +210,16 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   }, [target])
   // The rail (#11): shown from RAIL_MIN_WIDTH unless manually collapsed;
   // below the threshold the browse-face swap remains the fallback. Both are
-  // component-local geometry state, like the dragged width.
-  const [railCollapsed, setRailCollapsed] = useState(false)
+  // component-local geometry state, like the dragged width — and the manual
+  // collapse choice persists through the preference record (#26).
+  const [railCollapsed, setRailCollapsed] = useState(() => {
+    try { return preferences?.geometry().railCollapsed ?? false } catch { return false }
+  })
   const widePanel = maximized || width >= RAIL_MIN_WIDTH
   const railVisible = widePanel && !railCollapsed
-  // Which rail mini-tab is showing (#12); remembered across collapses.
-  const [railTab, setRailTab] = useState<'files' | 'outline'>('files')
+  // Which rail mini-tab is showing (#12); the choice is document-related
+  // navigation state, so it restores per session (#26).
+  const [railTab, setRailTab] = useState<RailTab>('files')
   // The compact header (#22): below OVERLAY_COMPACT_WIDTH the low-frequency
   // tools (outline, undo/redo/find, keymap help) fold into a ⋯ menu; save,
   // the face control, maximize, and close stay directly clickable, and the
@@ -214,9 +227,30 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   const compact = !maximized && width < OVERLAY_COMPACT_WIDTH
   const [moreOpen, setMoreOpen] = useState(false)
   // The rail's dragged width (user feedback): persists like the panel width.
-  const [railWidth, setRailWidth] = useState(148)
-  const onRailResize = useDragWidth(120, 320, 1, setRailWidth)
-  const onEdgeResize = useDragWidth(OVERLAY_MIN_WIDTH, OVERLAY_MAX_WIDTH, -1, setWidth)
+  const [railWidth, setRailWidth] = useState(() => {
+    let remembered: number | null = null
+    try { remembered = preferences?.geometry().railWidth ?? null } catch { /* hostile store */ }
+    return clampRailWidth(remembered)
+  })
+  const railWidthRef = useRef(railWidth)
+  railWidthRef.current = railWidth
+  /** Manual geometry is complete when a drag ends — one record per choice. */
+  const recordDraggedGeometry = useCallback((): void => {
+    try { preferences?.recordGeometry({ panelWidth: widthRef.current, railWidth: railWidthRef.current }) } catch { /* hostile store */ }
+  }, [preferences])
+  const onRailResize = useDragWidth(120, 320, 1, setRailWidth, recordDraggedGeometry)
+  const onEdgeResize = useDragWidth(OVERLAY_MIN_WIDTH, OVERLAY_MAX_WIDTH, -1, setWidth, recordDraggedGeometry)
+  /** A user's rail collapse choice becomes the restore basis (#26). */
+  const collapseRail = useCallback((next: boolean): void => {
+    setRailCollapsed(next)
+    try { preferences?.recordGeometry({ railCollapsed: next }) } catch { /* hostile store */ }
+  }, [preferences])
+  /** The files/outline choice is remembered per owning session (#26). */
+  const chooseRailTab = useCallback((tab: RailTab): void => {
+    setRailTab(tab)
+    if (target === null) return
+    try { preferences?.recordRailTab(target.sessionId, tab) } catch { /* hostile store */ }
+  }, [preferences, target])
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [activeOutline, setActiveOutline] = useState(-1)
   const documentRef = useRef<HTMLDivElement>(null)
@@ -338,6 +372,11 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     lastOpenKey.current = key
     openIdentity.current = { sessionId: target.sessionId, path: target.path }
     restoredOpen.current = -1
+    // The files/outline choice is document navigation state: restore the
+    // owning session's remembered choice, files by default (#26).
+    setRailTab(() => {
+      try { return preferences?.railTab(target.sessionId) ?? 'files' } catch { return 'files' as const }
+    })
     setOpenId(value => value + 1)
   }, [target, flushPosition])
   // Unmount (dispose) still records: the position survives the teardown.
@@ -520,14 +559,14 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     const key = event.key.toLowerCase()
     if (key === 'o') {
       event.preventDefault()
-      if (widePanel) { setRailCollapsed(false); setRailTab('outline') }
+      if (widePanel) { collapseRail(false); chooseRailTab('outline') }
       else setOutlineOpen(true)
     } else if (key === 'e') {
       event.preventDefault()
-      if (widePanel) { setRailCollapsed(false); setRailTab('files') }
+      if (widePanel) { collapseRail(false); chooseRailTab('files') }
       else { setBrowserEverOpened(true); setFace('browse') }
     }
-  }, [outlineOpen, keysOpen, moreOpen, state.face, width, leave])
+  }, [outlineOpen, keysOpen, moreOpen, state.face, width, leave, collapseRail, chooseRailTab])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
@@ -571,7 +610,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
       type="button" className="dsh-md-preview-icon" aria-label={t('outline.open')}
       aria-expanded={widePanel ? undefined : outlineOpen} title={t('outline.open')}
       onClick={() => {
-        if (widePanel) { setRailCollapsed(false); setRailTab('outline') }
+        if (widePanel) { collapseRail(false); chooseRailTab('outline') }
         else setOutlineOpen(value => !value)
       }}
     >
@@ -713,7 +752,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                 setBrowserEverOpened(true)
                 // Wide: the workspace action folds the rail in and out; the
                 // document stays. Narrow: the browse-face swap remains.
-                if (widePanel) setRailCollapsed(value => !value)
+                if (widePanel) collapseRail(!railCollapsed)
                 else setFace('browse')
               }}
             >
@@ -832,8 +871,8 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
               )}
               {railVisible && (
                 <div className="dsh-md-preview-railtabs" role="tablist">
-                  <button type="button" role="tab" aria-selected={railTab === 'files' ? 'true' : 'false'} onClick={() => { setRailTab('files') }}>{t('rail.files')}</button>
-                  <button type="button" role="tab" aria-selected={railTab === 'outline' ? 'true' : 'false'} onClick={() => { setRailTab('outline') }}>{t('rail.outline')}</button>
+                  <button type="button" role="tab" aria-selected={railTab === 'files' ? 'true' : 'false'} onClick={() => { chooseRailTab('files') }}>{t('rail.files')}</button>
+                  <button type="button" role="tab" aria-selected={railTab === 'outline' ? 'true' : 'false'} onClick={() => { chooseRailTab('outline') }}>{t('rail.outline')}</button>
                 </div>
               )}
               {railVisible && (

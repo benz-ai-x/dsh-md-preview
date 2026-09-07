@@ -86,7 +86,15 @@ document body, draft, or fingerprint — persisted in browser localStorage
 when reachable and degraded to in-memory otherwise; a damaged envelope or
 unavailable storage never blocks opening. A document that moved, was
 deleted, or cannot be read states the failure and offers an explicit way
-back to workspace browsing. The browse face
+back to workspace browsing. The reader's manually chosen reading space
+survives closes and same-browser revisits (#26): the dragged panel width
+and rail width, the rail collapse choice, and the per-session files/outline
+choice persist through a versioned, validated preference record (bounded
+remembered sessions; degraded to memory when storage fails). Restored
+widths clamp into the support range and the live viewport; an absent
+preference derives from the viewport instead of falling to the minimum,
+and threshold crossings or maximize round-trips never overwrite a manual
+width. The browse face
 silently revalidates every expanded directory on re-entry (and from its
 refresh button): fresh listings replace current ones, a failed refresh
 changes nothing. After the platform renderer settles the document, a diagram
