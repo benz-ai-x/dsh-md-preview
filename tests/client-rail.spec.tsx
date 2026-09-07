@@ -12,6 +12,7 @@ import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { createPreviewStore } from '../src/client/preview-state.ts'
+import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
 import type { MdPreviewEntry, MdPreviewFile, MdPreviewListResult } from '../src/protocol.ts'
 
 const t = (key: string) => key
@@ -41,6 +42,7 @@ interface ListScript {
 
 async function renderRail(script: Map<string, ListScript>, content?: string): Promise<RailHarness> {
   const store = createPreviewStore()
+  const leave = createLeaveIntentSeat()
   const harness: RailHarness = {
     container: document.createElement('div'),
     reads: [],
@@ -56,6 +58,7 @@ async function renderRail(script: Map<string, ListScript>, content?: string): Pr
   const panelElement = () => (
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
+      leave={leave}
       close={() => { store.set(null) }}
       read={((sessionId: string, path: string) => {
         harness.reads.push({ path })

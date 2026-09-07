@@ -19,6 +19,7 @@ import { PreviewOverlay } from './PreviewOverlay.tsx'
 import { WorkspaceDocsAction } from './WorkspaceDocsAction.tsx'
 import { en, NS, zh } from './locale.ts'
 import { createPreviewStore } from './preview-state.ts'
+import { createLeaveIntentSeat } from './leave-intent.ts'
 import { selectMdTurnFiles } from './turn-files.ts'
 import { ensureStyles } from './styles.ts'
 
@@ -36,8 +37,12 @@ function registerUi(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-md-preview: dictionaries')
   ensureStyles()
   const previewTarget = createPreviewStore()
+  // The common leave-intent entry (#21): every outlet requests opens and
+  // closes here; the panel owns the guard and the execution. UI-local
+  // viewing state only — it dies with the mount.
+  const leave = createLeaveIntentSeat()
   const openPreview = (sessionId: SessionId) => (path: string): void => {
-    previewTarget.set({ sessionId, path })
+    leave.request({ kind: 'open', target: { sessionId, path } })
   }
   const read = (
     sessionId: SessionId,
@@ -73,6 +78,7 @@ function registerUi(ctx: ClientContext): void {
     locale: NS,
     inject: () => ({
       hooks: { previewTarget },
+      leave,
       close: () => { previewTarget.set(null) },
       setTarget,
       read,
@@ -111,7 +117,7 @@ function registerUi(ctx: ClientContext): void {
     id: 'md-preview-docs',
     order: 100,
     locale: NS,
-    inject: () => ({ hooks: { previewTarget }, setTarget }),
+    inject: () => ({ hooks: { previewTarget }, leave }),
   }, WorkspaceDocsAction))
 }
 

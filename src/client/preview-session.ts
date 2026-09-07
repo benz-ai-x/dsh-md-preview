@@ -3,7 +3,9 @@
  * lifecycle — content read, edit session, guarded save, prompts. The React
  * adapter lives beside the panel (use-preview-session.ts); effects and RPC
  * never enter here. `READ_STARTED` is the single reset point: a new read
- * begins only when the previous document's whole session is over.
+ * begins only when the previous document's whole session is over. Leaving
+ * with a dirty draft is asked about at the leave-intent seat (leave-intent.ts)
+ * before anything reaches this machine, so no unsaved prompt lives here.
  */
 import type { MdPreviewFile, MdPreviewWriteResult } from '../protocol.ts'
 
@@ -27,8 +29,6 @@ export interface PreviewSessionState {
   readonly conflicted: boolean
   /** The last save failed for a non-conflict reason; the error bar is up. */
   readonly saveError: { readonly code: string; readonly message: string } | null
-  /** The unsaved guard is asking before a close. */
-  readonly unsavedPrompt: boolean
   /** The saved toast is showing. */
   readonly toast: boolean
   /** The session asked the shell to close the panel; the adapter acts once. */
@@ -49,8 +49,6 @@ export type PreviewSessionAction =
   | { readonly type: 'SAVE_FAILED'; readonly code: string; readonly message: string }
   | { readonly type: 'CANCEL_EDIT' }
   | { readonly type: 'REQUEST_CLOSE' }
-  | { readonly type: 'DISCARD' }
-  | { readonly type: 'KEEP_EDITING' }
   | { readonly type: 'TOAST_EXPIRED' }
 
 /** The pristine state every session starts (and resets) from. */
@@ -62,7 +60,6 @@ export function initialPreviewSession(): PreviewSessionState {
     saving: false,
     conflicted: false,
     saveError: null,
-    unsavedPrompt: false,
     toast: false,
     closeRequested: false,
   }
@@ -80,7 +77,7 @@ export function canSave(state: PreviewSessionState): boolean {
 
 /** Leave the edit face, clearing its prompts. */
 function leaveEdit(state: PreviewSessionState): PreviewSessionState {
-  return { ...state, face: 'view', conflicted: false, saveError: null, unsavedPrompt: false }
+  return { ...state, face: 'view', conflicted: false, saveError: null }
 }
 
 /**
@@ -112,7 +109,6 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
         draft: state.content.file.content,
         conflicted: false,
         saveError: null,
-        unsavedPrompt: false,
       }
     case 'EDIT':
       if (state.face !== 'edit') return state
@@ -120,7 +116,7 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
     case 'SAVE_STARTED':
       return { ...state, saving: true, saveError: null }
     case 'SAVE_RESOLVED':
-      return { ...state, face: 'view', conflicted: false, unsavedPrompt: false, toast: true, saving: false }
+      return { ...state, face: 'view', conflicted: false, toast: true, saving: false }
     case 'SAVE_CONFLICT':
       return { ...state, conflicted: true, saving: false }
     case 'SAVE_FAILED':
@@ -128,13 +124,9 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
     case 'CANCEL_EDIT':
       return state.face === 'edit' ? leaveEdit(state) : state
     case 'REQUEST_CLOSE':
-      return isDirty(state)
-        ? { ...state, unsavedPrompt: true }
-        : { ...state, closeRequested: true }
-    case 'DISCARD':
-      return { ...state, closeRequested: true, unsavedPrompt: false }
-    case 'KEEP_EDITING':
-      return { ...state, unsavedPrompt: false }
+      // The leave-intent seat has already settled the unsaved guard; a close
+      // reaching the machine executes. (The adapter's one-shot close acts.)
+      return { ...state, closeRequested: true }
     case 'TOAST_EXPIRED':
       return { ...state, toast: false }
   }

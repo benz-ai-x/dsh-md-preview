@@ -12,6 +12,7 @@ import { EditorView } from '@codemirror/view'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
+import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
 import { WorkspaceDocsAction } from '../src/client/WorkspaceDocsAction.tsx'
 import type { MdPreviewFile } from '../src/protocol.ts'
 
@@ -33,6 +34,7 @@ interface HeaderHarness {
 
 async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promise<HeaderHarness> {
   const store = createPreviewStore()
+  const leave = createLeaveIntentSeat()
   const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path, content, fingerprint: 'v1' } }
   const harness: HeaderHarness = {
     container: document.createElement('div'),
@@ -43,6 +45,7 @@ async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promi
   const panelElement = () => (
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
+      leave={leave}
       close={() => { store.set(null) }}
       read={(() => Promise.resolve(readResult)) as never}
       write={(vi.fn(() => Promise.resolve({ ok: true, value: { path, fingerprint: 'v2' } }))) as never}
@@ -164,7 +167,7 @@ describe('panel footer version (user feedback)', () => {
 })
 
 describe('header browse capsule (session utilities)', () => {
-  const renderCapsule = async (store: ReturnType<typeof createPreviewStore>, setTarget: ReturnType<typeof vi.fn>) => {
+  const renderCapsule = async (store: ReturnType<typeof createPreviewStore>, leave: ReturnType<typeof createLeaveIntentSeat>) => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root: Root = createRoot(container)
@@ -175,7 +178,7 @@ describe('header browse capsule (session utilities)', () => {
         <WorkspaceDocsAction
           sessionId={'s1' as never}
           usePreviewTarget={usePreviewTarget as never}
-          setTarget={setTarget as never}
+          leave={leave}
           t={t as never}
         />,
       )
@@ -185,19 +188,20 @@ describe('header browse capsule (session utilities)', () => {
 
   it('toggles the panel: closed parks the tree, open dismisses', async () => {
     const store = createPreviewStore()
-    const setTarget = vi.fn()
-    const container = await renderCapsule(store, setTarget)
+    const leave = createLeaveIntentSeat()
+    const container = await renderCapsule(store, leave)
     const button = container.querySelector('button[aria-label="dock.browse"]') as HTMLButtonElement
     expect(button.classList.contains('dsh-md-preview-docsbtn')).toBe(true)
-    // Closed: not pressed; the click parks the tree face.
+    // Closed: not pressed; the click requests the tree-faced open.
     expect(button.getAttribute('aria-pressed')).toBe('false')
     await act(async () => { button.click() })
-    expect(setTarget).toHaveBeenCalledWith({ sessionId: 's1', path: '', face: 'browse' })
-    // Open (any target): pressed; the click dismisses instead of re-opening.
+    expect(leave.getSnapshot()).toEqual({ kind: 'open', target: { sessionId: 's1', path: '', face: 'browse' } })
+    // Open (any target): pressed; the click requests the collapse instead.
+    await act(async () => { leave.clear() })
     store.set({ sessionId: 's1', path: 'guide.md' } as never)
     await act(async () => { await Promise.resolve() })
     expect(button.getAttribute('aria-pressed')).toBe('true')
     await act(async () => { button.click() })
-    expect(setTarget).toHaveBeenCalledWith(null)
+    expect(leave.getSnapshot()).toEqual({ kind: 'close' })
   })
 })

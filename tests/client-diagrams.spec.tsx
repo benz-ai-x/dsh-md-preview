@@ -12,6 +12,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
+import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
 import type { MdPreviewFile } from '../src/protocol.ts'
 
 const t = (key: string) => key
@@ -43,6 +44,7 @@ const DOC = [
 
 async function renderDiagrams(content: string): Promise<HTMLElement> {
   const store = createPreviewStore()
+  const leave = createLeaveIntentSeat()
   const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path: 'doc.md', content, fingerprint: 'v1' } }
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -52,6 +54,7 @@ async function renderDiagrams(content: string): Promise<HTMLElement> {
   const element = () => (
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
+      leave={leave}
       close={() => { store.set(null) }}
       read={(() => Promise.resolve(readResult)) as never}
       write={(vi.fn(() => Promise.resolve({ ok: true, value: { path: 'doc.md', fingerprint: 'v2' } }))) as never}

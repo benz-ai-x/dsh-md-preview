@@ -1,23 +1,24 @@
 /**
  * The workspace-docs browse capsule: a Session Header utility sitting next to
- * the shipped Session-log download capsule. It toggles the right overlay
- * layer — closed parks it on the tree face (the workspace tree shows first,
- * and opening a file reads it in the document face), open dismisses it.
+ * the shipped Session-log download capsule. One entry with one meaning
+ * (#21): closed enters workspace browsing (the tree face), open requests the
+ * collapse — both through the common leave-intent entry, so a dirty draft is
+ * asked about before the panel folds.
  */
 
 import type { ReactElement } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewState } from './preview-state.ts'
+import type { LeaveIntentSeat } from './leave-intent.ts'
 
 /** The composed props of the header utility: slot kit + inject face + locale. */
 export type WorkspaceDocsActionProps =
   PropsRuntime<'conversation.session.header.utilities'>
   & InjectFace<{
     hooks: { previewTarget: SnapshotStore<MdPreviewState> }
-    setTarget(target: { sessionId: SessionId; path: string; face: 'browse' } | null): void
+    leave: LeaveIntentSeat
   }>
   & PropsLocale<'md-preview'>
 
@@ -26,14 +27,14 @@ export type WorkspaceDocsActionProps =
  * @param props - the composed action props.
  * @returns the header utility button.
  */
-export function WorkspaceDocsAction({ sessionId, usePreviewTarget, setTarget, t }: WorkspaceDocsActionProps): ReactElement {
+export function WorkspaceDocsAction({ sessionId, usePreviewTarget, leave, t }: WorkspaceDocsActionProps): ReactElement {
   const open = usePreviewTarget(state => state !== null)
   // A true switch, pressed state included: open parks the tree on the
   // overlay; already open dismisses it. The carrier is the Session the
   // header shows.
   const toggle = (): void => {
-    if (open) setTarget(null)
-    else setTarget({ sessionId, path: '', face: 'browse' })
+    if (open) leave.request({ kind: 'close' })
+    else leave.request({ kind: 'open', target: { sessionId, path: '', face: 'browse' } })
   }
   return (
     <button

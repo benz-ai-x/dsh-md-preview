@@ -12,6 +12,7 @@ import { EditorView } from '@codemirror/view'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
+import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
 import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from '../src/client/outline.ts'
 import type { MdPreviewFile } from '../src/protocol.ts'
 
@@ -105,6 +106,7 @@ interface OutlineHarness {
 
 async function renderOutlinePanel(content: string): Promise<OutlineHarness> {
   const store = createPreviewStore()
+  const leave = createLeaveIntentSeat()
   const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path: 'doc.md', content, fingerprint: 'v1' } }
   const harness: OutlineHarness = {
     container: document.createElement('div'),
@@ -116,6 +118,7 @@ async function renderOutlinePanel(content: string): Promise<OutlineHarness> {
   const panelElement = () => (
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
+      leave={leave}
       close={() => { store.set(null) }}
       read={(() => Promise.resolve(readResult)) as never}
       write={(vi.fn(() => Promise.resolve({ ok: true, value: { path: 'doc.md', fingerprint: 'v2' } }))) as never}
