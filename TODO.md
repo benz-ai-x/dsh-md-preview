@@ -40,7 +40,11 @@
 - [x] 定稿:会话 header actions 末尾 📂 按钮 → 右侧面板直接开浏览脸
       (工作区树先进门);预览目标带可选 face;浏览脸空路径不触发 read。
       154/154 + verify EXIT 0,分支 header-browse-entry 合入 main(866b988)
-- [ ] 发布 0.7.2:verify → packed 冒烟 → npm publish → release
+- [x] 发布 0.7.2(2026-09-07):verify 154/154 → packed 冒烟(内嵌 v0.7.2 +
+      dock.browse)→ npm publish(重登录 token;EOTP 流程:真 pty + Press ENTER +
+      浏览器授权)→ web profile ^0.7.2 重启验证 → push + tag + release v0.7.2。
+      教训:**bump 前先 npm view 查 registry 已存在版本与内容**,避免幻影版本
+      (本轮 0.7.2 第一次 PUT 被 404 拒,因 registry 的 0.7.1 已是当前代码)
 
 ## 待办
 
