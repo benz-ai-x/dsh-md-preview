@@ -47,6 +47,9 @@ beforeAll(() => {
   // and an orphaned rAF after the test would otherwise surface it unhandled.
   ;(Range.prototype as unknown as { getClientRects?: () => [] }).getClientRects ??= () => []
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+  // Narrow but not compact (600 lands between the 560 compact threshold and
+  // the 640 rail threshold): the popover-bearing header this suite drives.
+  Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true })
 })
 
 describe('extractOutline', () => {
@@ -122,6 +125,8 @@ async function renderOutlinePanel(content: string): Promise<OutlineHarness> {
       close={() => { store.set(null) }}
       read={(() => Promise.resolve(readResult)) as never}
       write={(vi.fn(() => Promise.resolve({ ok: true, value: { path: 'doc.md', fingerprint: 'v2' } }))) as never}
+      list={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } })) as never}
+      setTarget={vi.fn() as never}
       t={t as never}
     />
   )

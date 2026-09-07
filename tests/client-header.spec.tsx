@@ -13,6 +13,7 @@ import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
 import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { WorkspaceDocsAction } from '../src/client/WorkspaceDocsAction.tsx'
 import type { MdPreviewFile } from '../src/protocol.ts'
 
@@ -24,20 +25,35 @@ beforeAll(() => {
     unobserve(): void {}
     disconnect(): void {}
   } as unknown as typeof ResizeObserver
+  ;(Range.prototype as unknown as { getClientRects?: () => [] }).getClientRects ??= () => []
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+  // A wide viewport: the default open is 720 and the header keeps its full
+  // action row; narrow-width behavior drags below the threshold instead.
+  Object.defineProperty(window, 'innerWidth', { value: 1928, configurable: true })
 })
 
 interface HeaderHarness {
   container: HTMLElement
+  strip: ReturnType<typeof createSnapshotStore>
   rerender: () => Promise<void>
 }
 
 async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promise<HeaderHarness> {
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
+  const strip = createSnapshotStore(0)
   const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path, content, fingerprint: 'v1' } }
+  // Stable seam identities, like the mount world's one-time closures: an
+  // inline arrow per render would re-run the read effect on every rerender
+  // and remount the editor mid-edit.
+  const close = () => { store.set(null) }
+  const read = () => Promise.resolve(readResult)
+  const write = vi.fn(() => Promise.resolve({ ok: true as const, value: { path, fingerprint: 'v2' } }))
+  const list = vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } }))
+  const setTarget = vi.fn()
   const harness: HeaderHarness = {
     container: document.createElement('div'),
+    strip,
     rerender: () => act(async () => { root.render(panelElement()) }),
   }
   const usePreviewTarget = (selector: (state: unknown) => unknown) =>
@@ -46,9 +62,12 @@ async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promi
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
       leave={leave}
-      close={() => { store.set(null) }}
-      read={(() => Promise.resolve(readResult)) as never}
-      write={(vi.fn(() => Promise.resolve({ ok: true, value: { path, fingerprint: 'v2' } }))) as never}
+      close={close}
+      read={read as never}
+      write={write as never}
+      list={list as never}
+      setTarget={setTarget as never}
+      headerStrip={strip}
       t={t as never}
     />
   )
@@ -203,5 +222,153 @@ describe('header browse capsule (session utilities)', () => {
     expect(button.getAttribute('aria-pressed')).toBe('true')
     await act(async () => { button.click() })
     expect(leave.getSnapshot()).toEqual({ kind: 'close' })
+  })
+})
+
+/** Narrow the overlay from its left-edge handle (right-anchored: drag right). */
+const dragNarrow = async (harness: HeaderHarness): Promise<void> => {
+  const handle = harness.container.querySelector('.dsh-md-preview-edgehandle') as HTMLElement
+  expect(handle).toBeTruthy()
+  const down = new MouseEvent('pointerdown', { bubbles: true, clientX: 1000 })
+  Object.assign(down, { pointerId: 1 })
+  await act(async () => { handle.dispatchEvent(down) })
+  const move = new MouseEvent('pointermove', { bubbles: true, clientX: 1400 })
+  Object.assign(move, { pointerId: 1 })
+  await act(async () => {
+    handle.dispatchEvent(move)
+    await new Promise(resolve => { setTimeout(resolve, 40) })
+  })
+  const up = new MouseEvent('pointerup', { bubbles: true, clientX: 1400 })
+  Object.assign(up, { pointerId: 1 })
+  await act(async () => { handle.dispatchEvent(up) })
+  await harness.rerender()
+}
+
+describe('header layout and entry reachability (#22)', () => {
+  it('orders the header one row: shrinkable identity first, maximize and close stable at the end', async () => {
+    const harness = await renderHeaderPanel('# T')
+    const header = harness.container.querySelector('.dsh-md-preview-header') as HTMLElement
+    expect(header).toBeTruthy()
+    const labels = [...header.querySelectorAll('button')].map(button => button.getAttribute('aria-label'))
+    // The document identity leads; maximize and close are the last two seats.
+    expect(labels[labels.indexOf('panel.maximize')]).toBe('panel.maximize')
+    expect(labels.indexOf('panel.close')).toBe(labels.length - 1)
+    expect(labels.indexOf('panel.maximize')).toBe(labels.length - 2)
+    // Long names ellipsize inside the identity; the full path stays readable.
+    const crumbs = header.querySelector('.dsh-md-preview-crumbs') as HTMLElement
+    expect(crumbs.getAttribute('title')).toContain('docs/guide.md')
+  })
+
+  it('keeps every header action on one row while editing (no wrap siblings)', async () => {
+    const harness = await renderHeaderPanel('# T\n\nbody')
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.edit"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    const header = harness.container.querySelector('.dsh-md-preview-header') as HTMLElement
+    // The edit face's whole toolset renders inside the single header element.
+    for (const label of ['panel.undo', 'panel.redo', 'panel.find', 'panel.save', 'panel.maximize', 'panel.close']) {
+      expect([...header.querySelectorAll('button')].some(button => button.getAttribute('aria-label') === label), label).toBe(true)
+    }
+  })
+
+  it('collects low-frequency actions behind the more menu when narrow; save and close stay direct', async () => {
+    const harness = await renderHeaderPanel('# T\n\nbody')
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.edit"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    await dragNarrow(harness)
+    await flush()
+    const header = harness.container.querySelector('.dsh-md-preview-header') as HTMLElement
+    const direct = [...header.querySelectorAll(':scope > * > button, :scope > button, :scope > span > button')]
+      .map(button => button.getAttribute('aria-label'))
+    // The editor toolset left the row for the menu…
+    expect(direct).not.toContain('panel.undo')
+    expect(direct).not.toContain('panel.find')
+    // …while save, face, maximize and close remain directly clickable.
+    for (const label of ['panel.save', 'panel.maximize', 'panel.close']) {
+      expect(direct).toContain(label)
+    }
+    // The more menu opens and carries the low-frequency actions.
+    const more = [...harness.container.querySelectorAll('button')].find(button => button.getAttribute('aria-label') === 'panel.more') as HTMLButtonElement
+    expect(more).toBeDefined()
+    await act(async () => { more.click() })
+    await flush()
+    const menu = harness.container.querySelector('.dsh-md-preview-more') as HTMLElement
+    expect(menu).toBeTruthy()
+    const menuLabels = [...menu.querySelectorAll('button')].map(button => button.getAttribute('aria-label'))
+    expect(menuLabels).toContain('panel.undo')
+    expect(menuLabels).toContain('panel.find')
+    // Esc closes the menu first; the panel itself survives.
+    const panel = harness.container.querySelector('.dsh-md-preview-panel') as HTMLElement
+    await act(async () => { panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
+    await flush()
+    expect(harness.container.querySelector('.dsh-md-preview-more')).toBeNull()
+    expect(harness.container.querySelector('.dsh-md-preview-panel')).toBeTruthy()
+  })
+
+  it('undoes a real edit from the more menu at narrow width', async () => {
+    const harness = await renderHeaderPanel('# T\n\nbody')
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="panel.edit"]') as HTMLButtonElement).click()
+    })
+    await flush()
+    const host = harness.container.querySelector('.cm-editor') as HTMLElement
+    const view = EditorView.findFromDOM(host)!
+    await act(async () => { view.dispatch({ changes: { from: 0, insert: 'x' } }) })
+    await flush()
+    await dragNarrow(harness)
+    await flush()
+    await act(async () => {
+      ([...harness.container.querySelectorAll('button')].find(button => button.getAttribute('aria-label') === 'panel.more') as HTMLButtonElement).click()
+    })
+    await flush()
+    const undoBtn = harness.container.querySelector('.dsh-md-preview-more button[aria-label="panel.undo"]') as HTMLButtonElement
+    await act(async () => { undoBtn.click() })
+    await flush()
+    expect(view.state.doc.toString()).not.toContain('x#')
+  })
+})
+
+describe('workspace-docs capsule occlusion (#22 measured strip)', () => {
+  it('publishes the host session-header strip bottom for the panel to clear', async () => {
+    const store = createPreviewStore()
+    const leave = createLeaveIntentSeat()
+    const strip = createSnapshotStore(0)
+    const hostHeader = document.createElement('header')
+    const utilities = document.createElement('div')
+    hostHeader.append(utilities)
+    document.body.append(hostHeader)
+    hostHeader.getBoundingClientRect = () => ({ bottom: 57 } as DOMRect)
+    const root: Root = createRoot(utilities)
+    const usePreviewTarget = (selector: (state: unknown) => unknown) =>
+      selector(useSyncExternalStore(store.subscribe, store.getSnapshot))
+    await act(async () => {
+      root.render(
+        <WorkspaceDocsAction
+          sessionId={'s1' as never}
+          usePreviewTarget={usePreviewTarget as never}
+          leave={leave}
+          headerStrip={strip}
+          t={t as never}
+        />,
+      )
+    })
+    expect(strip.getSnapshot()).toBe(57)
+    await act(async () => { root.unmount() })
+    hostHeader.remove()
+  })
+
+  it('starts the overlay below the measured strip and clears it when none publishes', async () => {
+    const harness = await renderHeaderPanel('# T')
+    const strip = (harness as unknown as { strip: ReturnType<typeof createSnapshotStore> }).strip
+    await act(async () => { strip.set(57) })
+    await harness.rerender()
+    const overlay = harness.container.querySelector('.dsh-md-preview-overlay') as HTMLElement
+    expect(overlay.style.top).toBe('57px')
+    await act(async () => { strip.set(0) })
+    await harness.rerender()
+    expect((harness.container.querySelector('.dsh-md-preview-overlay') as HTMLElement).style.top).toBe('0px')
   })
 })

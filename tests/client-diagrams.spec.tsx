@@ -58,6 +58,8 @@ async function renderDiagrams(content: string): Promise<HTMLElement> {
       close={() => { store.set(null) }}
       read={(() => Promise.resolve(readResult)) as never}
       write={(vi.fn(() => Promise.resolve({ ok: true, value: { path: 'doc.md', fingerprint: 'v2' } }))) as never}
+      list={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } })) as never}
+      setTarget={vi.fn() as never}
       t={t as never}
     />
   )
