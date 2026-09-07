@@ -9,3 +9,8 @@ proto-*.png
 .env
 .env.*
 !.env.example
+filemgr-header.png
+header-right-order.png
+pill-visible-check.png
+side-browser-live.png
+w2-walkthrough-final.png
