@@ -103,22 +103,17 @@ function registerUi(ctx: ClientContext): void {
     inject: (sessionId: SessionId) => ({ openPreview: openPreview(sessionId) }),
   }, PreviewAction))
 
-  // The root browse entry: a frame-wide corner button that opens the details
-  // column on the tree face. Root scope so it exists with or without a
-  // session; the host column opens through its own control.
-  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay',
+  // The workspace-docs browse capsule: joins the Session Header's right-side
+  // utilities, rendered ascending by order — the shipped Session-log download
+  // capsule sits at the default 0, so order 100 parks us to its right. Session
+  // scope hands the component its Session directly; the host details column
+  // opens through its own layout control.
+  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+    name: 'conversation.session.header.utilities',
     id: 'md-preview-docs',
-    order: 90,
+    order: 100,
     locale: NS,
     inject: () => ({
-      carrierSession: () => {
-        // The client sessions service's type merge lives in the session
-        // controller package this bundle does not depend on; the value is
-        // live, so read it through a narrow cast.
-        const list = (ctx.sessions as unknown as { list: { getSnapshot(): { current?: SessionId; ids: readonly SessionId[] } } }).list.getSnapshot()
-        return list.current ?? list.ids[0]
-      },
       setTarget,
       layout: { openDetails: () => { ctx.layout.openDetails() } },
     }),

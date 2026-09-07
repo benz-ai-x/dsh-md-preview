@@ -20,24 +20,33 @@ const CSS = `
   min-height: 0;
   background: var(--dsw-alias-bg-base);
 }
-.dsh-md-preview-rootdocs {
+.dsh-md-preview-docsbtn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 111px;
+  height: 32px;
+  padding: 6px 12px;
   gap: 4px;
-  min-height: 28px;
-  padding: 3px 8px;
-  border: none;
-  border-radius: 6px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 18px;
   background: transparent;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
-  font-size: 12px;
-  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  white-space: nowrap;
   cursor: pointer;
 }
-.dsh-md-preview-rootdocs:hover {
-  color: var(--dsw-alias-label-secondary);
-  background: var(--dsw-alias-fill-secondary);
+.dsh-md-preview-docsbtn:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
 }
+.dsh-md-preview-docsbtn span,
+.dsh-md-preview-docsbtn svg {
+  flex: none;
+}
+
 
 .dsh-md-preview-foot {
   flex: none;

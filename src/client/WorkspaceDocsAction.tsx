@@ -1,7 +1,8 @@
 /**
- * The header browse action: a file-tree button in the conversation header
- * that opens the right preview panel on its browse face — the workspace
- * tree shows first, and opening a file reads it in the document face.
+ * The workspace-docs browse capsule: a Session Header utility sitting next to
+ * the shipped Session-log download capsule. It opens the right details column
+ * on the panel's browse face — the workspace tree shows first, and opening a
+ * file reads it in the document face.
  */
 
 import type { ReactElement } from 'react'
@@ -9,12 +10,10 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
-/** The composed props of the header action: slot kit + inject face + locale. */
+/** The composed props of the header utility: slot kit + inject face + locale. */
 export type WorkspaceDocsActionProps =
-  PropsRuntime<'shell.overlay'>
+  PropsRuntime<'conversation.session.header.utilities'>
   & InjectFace<{
-    /** Resolve the read carrier session: the showing one, else the first. */
-    carrierSession(): SessionId | undefined
     setTarget(target: { sessionId: SessionId; path: string; face: 'browse' }): void
     /** The host layout's details control (opens the column we render into). */
     layout?: { openDetails(): void } | undefined
@@ -22,31 +21,28 @@ export type WorkspaceDocsActionProps =
   & PropsLocale<'md-preview'>
 
 /**
- * Render the header browse button for one session.
+ * Render the browse capsule for the showing Session.
  * @param props - the composed action props.
- * @returns the header button.
+ * @returns the header utility button.
  */
 export function WorkspaceDocsAction(props: WorkspaceDocsActionProps): ReactElement {
-  const { carrierSession, setTarget, layout, t } = props
-  // The root entry opens the tree on the details column; the host column
-  // expands through its own control. The read carrier is the showing session,
-  // else the first — no conversation at all leaves the entry inert.
+  const { sessionId, setTarget, layout, t } = props
+  // The capsule opens the tree on the details column; the host column expands
+  // through its own control. The carrier is the Session the header shows.
   const open = (): void => {
-    const sessionId = carrierSession()
-    if (sessionId === undefined) return
     layout?.openDetails()
     setTarget({ sessionId, path: '', face: 'browse' })
   }
   return (
     <button
-      type="button" className="dsh-md-preview-rootdocs"
+      type="button" className="dsh-md-preview-docsbtn"
       aria-label={t('dock.browse')} title={t('dock.browse')}
       onClick={open}
     >
-      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>
+      <span>{t('dock.browse')}</span>
+      <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
         <path d="M1.5 3.5h4l1.5 2h7.5v7h-13z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
       </svg>
-      <span>{t('dock.browse')}</span>
     </button>
   )
 }

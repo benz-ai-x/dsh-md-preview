@@ -163,20 +163,17 @@ describe('panel footer version (user feedback)', () => {
   })
 })
 
-describe('header browse action (file-manager design)', () => {
-  it('renders the header action that opens the panel on the tree face', async () => {
+describe('header browse capsule (session utilities)', () => {
+  it('opens the panel on the tree face for the showing Session', async () => {
     const store = createPreviewStore()
     const setTarget = vi.fn((value: { sessionId: string; path: string } | null) => { store.set(value as never) })
-    const usePreviewTarget = (selector: (state: unknown) => unknown) =>
-      selector(useSyncExternalStore(store.subscribe, store.getSnapshot))
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root: Root = createRoot(container)
     await act(async () => {
       root.render(
         <WorkspaceDocsAction
-          carrierSession={() => 's1' as never}
-          usePreviewTarget={usePreviewTarget as never}
+          sessionId={'s1' as never}
           setTarget={setTarget as never}
           t={t as never}
         />,
@@ -184,7 +181,7 @@ describe('header browse action (file-manager design)', () => {
     })
     const button = container.querySelector('button[aria-label="dock.browse"]') as HTMLButtonElement
     expect(button).toBeTruthy()
-    expect(button.getAttribute('aria-label')).toBe('dock.browse')
+    expect(button.classList.contains('dsh-md-preview-docsbtn')).toBe(true)
     await act(async () => { button.click() })
     expect(setTarget).toHaveBeenCalledWith({ sessionId: 's1', path: '', face: 'browse' })
   })

@@ -47,7 +47,6 @@ async function bench(options: { registrationFailure?: boolean } = {}) {
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
   ctx.provide('layout', { toggleSidebar: () => {}, openDetails: () => {}, closeDetails: () => {} })
-  ctx.provide('sessions', { list: { getSnapshot: () => ({ current: undefined, ids: [] }) } })
   await ctx.plugin(SlotRegistry).await()
   // Stub owners standing in for ui-layout's root entry and ui-chat's
   // turn-tail node: they declare the slots this plugin contributes into.
@@ -56,7 +55,6 @@ async function bench(options: { registrationFailure?: boolean } = {}) {
   const disposeRoot = ctx.slots.register({
     name: 'root',
     children: {
-      'shell.overlay': { kind: 'list', scope: 'root' },
       'details': { kind: 'single', scope: 'session' },
       'conversation.chat.node': { kind: 'keyed', scope: 'session' },
     },
@@ -68,6 +66,7 @@ async function bench(options: { registrationFailure?: boolean } = {}) {
       'conversation.chat.turnTail': { kind: 'chain', scope: 'session' },
       'conversation.chat.assistant-actions': { kind: 'list', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
+      'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
     },
   } as never, () => null)
   if (options.registrationFailure === true) {
@@ -88,7 +87,7 @@ describe('client registration lifecycle', () => {
     expect(entryFor(ctx, 'details', PreviewOverlay)).toBeDefined()
     expect(entryFor(ctx, 'conversation.chat.turnTail', MdChips)).toBeDefined()
     expect(entryFor(ctx, 'conversation.chat.assistant-actions', PreviewAction)).toBeDefined()
-    expect(entryFor(ctx, 'shell.overlay', WorkspaceDocsAction)).toBeDefined()
+    expect(entryFor(ctx, 'conversation.session.header.utilities', WorkspaceDocsAction)).toBeDefined()
     // The active locale is environment-derived (jsdom defaults to en), so
     // accept either dictionary: binding proves the namespace registered.
     const title = ctx.locale.bind('md-preview')('panel.title')
@@ -98,7 +97,7 @@ describe('client registration lifecycle', () => {
     expect(entryFor(ctx, 'details', PreviewOverlay)).toBeUndefined()
     expect(entryFor(ctx, 'conversation.chat.turnTail', MdChips)).toBeUndefined()
     expect(entryFor(ctx, 'conversation.chat.assistant-actions', PreviewAction)).toBeUndefined()
-    expect(entryFor(ctx, 'shell.overlay', WorkspaceDocsAction)).toBeUndefined()
+    expect(entryFor(ctx, 'conversation.session.header.utilities', WorkspaceDocsAction)).toBeUndefined()
   })
 
   it('rolls the Remote mount back when UI registration fails', async () => {
