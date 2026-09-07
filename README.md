@@ -12,7 +12,7 @@
 - Markdown chips in the produced-files row of a turn open a right-docked preview panel rendering GFM, syntax-highlighted code, and TeX.
 - A per-message "Preview documents" action lists that turn's markdown documents.
 - Non-markdown deliverables keep the shipped open-on-desktop behavior.
-- The panel is closable and draggable (320–1280 px, default 500); the dragged width persists for the app session.
+- The panel is a self-owned overlay above the frame (the host details column is untouched): it opens at 720 px (viewport-clamped), drags 360–1200 px from its left edge, maximizes to the full frame (⤢ button or edge double-click), and Esc dismisses it (a dirty draft is asked about first). The「工作区文档 / Workspace docs」capsule right of Session-log download in the header is a true toggle with a pressed state — one click parks the tree, another dismisses.
 - The panel renders nothing while no preview target is set.
 - **Editing** — the panel's Edit action enters a CodeMirror editor (line numbers, GFM highlighting, Cmd/Ctrl-S save); Save writes back to the workspace, flashes a "Saved" toast, and returns to the rendered view; Cancel discards the draft. Only existing files edit. Non-conflict save failures show the failure code with a Retry action.
 - **Conflict guard** — saving over a file that changed elsewhere (another session, the agent, an external editor) prompts "the file changed elsewhere": Reload or Overwrite; closing with unsaved edits asks first.
@@ -88,7 +88,7 @@ The panel shows `md-preview/<reason>` on failure. All codes:
 ## Known limits
 
 - Inline prose mentions of `.md` files still open on the desktop (owned by ui-deliverables, not this plugin).
-- The panel floats above the details column; it does not replace the three-column grid.
+- The panel is a self-owned overlay layer above the frame: it opens at 720px (viewport-clamped), drags 360–1200px from its left edge, maximizes to the full frame (button or edge double-click), and Esc dismisses it — the host details column keeps its shipped tool/approval surface.
 - Uploaded document attachments are not previewable (no transcript surface today).
 - The outline lists ATX headings only (setext forms render but stay out of the popover).
 - Mermaid renders with its default theme; documents mixing indented code blocks with fenced ones skip the diagram pass entirely (order-parity safety check).

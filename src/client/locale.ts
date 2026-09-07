@@ -7,6 +7,9 @@ export const NS = 'md-preview'
 export const zh = {
   'panel.title': 'Markdown 预览',
   'panel.close': '关闭预览',
+  'panel.maximize': '全屏显示',
+  'panel.restore': '还原',
+  'panel.pickFile': '在左侧选择一个文件开始阅读',
   'panel.loading': '正在加载…',
   'panel.empty': '没有可预览的文档',
   'panel.error': '加载失败',
@@ -85,6 +88,9 @@ export const zh = {
 export const en: Record<MdPreviewKey, string> = {
   'panel.title': 'Markdown preview',
   'panel.close': 'Close preview',
+  'panel.maximize': 'Maximize',
+  'panel.restore': 'Restore',
+  'panel.pickFile': 'Pick a file on the left to start reading',
   'panel.loading': 'Loading…',
   'panel.empty': 'No document to preview',
   'panel.error': 'Failed to load',

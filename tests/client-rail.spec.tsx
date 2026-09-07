@@ -24,6 +24,8 @@ beforeAll(() => {
   } as unknown as typeof ResizeObserver
   ;(Range.prototype as unknown as { getClientRects?: () => [] }).getClientRects ??= () => []
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+  // A wide viewport so the 720 default (min(720, innerWidth/2)) opens wide.
+  Object.defineProperty(window, 'innerWidth', { value: 1928, configurable: true })
 })
 
 interface RailHarness {
@@ -118,13 +120,10 @@ const TREE = new Map<string, ListScript>([
 
 describe('rail (#11)', () => {
 
-  it('shows the tree beside the document once widened past 640px', async () => {
+  it('docks the tree beside the document from the default open width', async () => {
     const harness = await renderRail(TREE)
-    // Default width 520: no tree until the workspace is opened (existing behavior).
-    expect(harness.container.querySelector('[role="tree"]')).toBeNull()
-    await dragHandle(harness, 100, -600)
-    expect(panelWidth(harness)).toBeGreaterThanOrEqual(640)
-    await flush()
+    // Default 720 ≥ 640: the rail is the first impression, no drag needed.
+    expect(panelWidth(harness)).toBe(720)
     expect(harness.container.querySelector('[role="tree"]')).toBeTruthy()
     const document = harness.container.querySelector('.dsh-md-preview-document') as HTMLElement
     expect(document.hidden).toBe(false)
@@ -155,10 +154,9 @@ describe('rail (#11)', () => {
 
   it('falls back to the browse-face swap below 640px', async () => {
     const harness = await renderRail(TREE)
-    await dragHandle(harness, 100, -600)
-    await flush()
-    // Shrink back below the threshold: rail disappears, the workspace button
-    // returns to swapping the browse face in (document hidden while browsing).
+    // From the default 720, one narrow drag lands below the threshold: rail
+    // disappears, the workspace button returns to swapping the browse face
+    // in (document hidden while browsing).
     await dragHandle(harness, -600, 200)
     expect(panelWidth(harness)).toBeLessThan(640)
     await flush()
@@ -220,6 +218,9 @@ describe('rail outline tab + navigation shortcuts (#12)', () => {
 
   it('routes the shortcuts by width: rail tab wide, popover/face narrow', async () => {
     const harness = await renderRail(OUTLINE_TREE, '# Alpha')
+    // Narrow first (the default open is wide now).
+    await dragHandle(harness, -600, 200)
+    await flush()
     // Narrow: Mod-Shift-O opens the outline popover.
     await pressPanelKey(harness, { key: 'O', shiftKey: true, metaKey: true })
     expect(harness.container.querySelector('.dsh-md-preview-outline')).toBeTruthy()
@@ -330,17 +331,102 @@ describe('rail resize handle (user feedback)', () => {
 })
 
 describe('browse-faced entry (header design)', () => {
-  it('opens the panel on the browse face when the target asks for it', async () => {
+  it('docks the tree immediately, with the document behind it at the default width', async () => {
     const harness = await renderRail(TREE)
     harness.setTarget({ sessionId: 'session-1', path: 'guide.md', face: 'browse' })
     await harness.rerender()
     await flush()
-    // The tree shows immediately — no document read, no document face swap.
+    // The tree shows immediately; wide by default it docks as the rail and
+    // the document takes the stage back without a face swap.
     expect(harness.container.querySelector('[role="tree"]')).toBeTruthy()
-    expect((harness.container.querySelector('.dsh-md-preview-document') as HTMLElement).hidden).toBe(true)
-    // The file list is the rail's own (no tree-mounted strip below 640px).
+    expect((harness.container.querySelector('.dsh-md-preview-document') as HTMLElement).hidden).toBe(false)
     const paths = [...harness.container.querySelectorAll<HTMLElement>('[role="treeitem"]')].map(li => li.dataset.path)
     expect(paths).toContain('notes.md')
+  })
+
+  it('titles the tree face and swaps to crumbs once a file opens', async () => {
+    const harness = await renderRail(TREE)
+    harness.setTarget({ sessionId: 'session-1', path: '', face: 'browse' })
+    await harness.rerender()
+    await flush()
+    expect(harness.container.querySelector('.dsh-md-preview-title')?.textContent).toBe('dock.browse')
+    const row = harness.container.querySelector('[data-path="notes.md"] .dsh-md-preview-treerow') as HTMLElement
+    await act(async () => { row.click() })
+    await flush()
+    expect(harness.container.querySelector('.dsh-md-preview-title')).toBeNull()
+    expect((harness.container.querySelector('.dsh-md-preview-crumbs') as HTMLElement).getAttribute('title')).toContain('notes.md')
+  })
+})
+
+describe('overlay interaction fixes (P0 batch)', () => {
+  it('hides the back arrow on a fresh browse entry; maximize shows the placeholder, not loading', async () => {
+    const harness = await renderRail(TREE)
+    harness.setTarget({ sessionId: 'session-1', path: '', face: 'browse' })
+    await harness.rerender()
+    await flush()
+    // No document behind the tree: no back arrow to a dead end.
+    expect(buttonByLabel(harness, 'browse.back')).toBeUndefined()
+    // Maximize: the wide preset docks the tree as the rail and flips the
+    // document face back in; the empty path shows the pick-a-file hint.
+    await act(async () => { buttonByLabel(harness, 'panel.maximize')!.click() })
+    await flush()
+    const overlay = harness.container.querySelector('.dsh-md-preview-overlay') as HTMLElement
+    expect(overlay.hasAttribute('data-maximized')).toBe(true)
+    expect(harness.container.querySelector('[role="tree"]')).toBeTruthy()
+    expect(harness.container.textContent).toContain('panel.pickFile')
+    expect(harness.container.textContent).not.toContain('panel.loading')
+    // Restore drops the preset and returns to the remembered width.
+    await act(async () => { buttonByLabel(harness, 'panel.restore')!.click() })
+    await flush()
+    expect((harness.container.querySelector('.dsh-md-preview-overlay') as HTMLElement).hasAttribute('data-maximized')).toBe(false)
+  })
+
+  it('keeps the back arrow once a document sits behind the tree', async () => {
+    const harness = await renderRail(TREE)
+    // Narrow first: only the swap mode trades the document away for the
+    // tree, and only that mode needs the way back.
+    await dragHandle(harness, -600, 200)
+    await flush()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
+    expect(buttonByLabel(harness, 'browse.back')).toBeTruthy()
+  })
+
+  it('closes the overlay on Esc; a dirty draft is asked about first', async () => {
+    const harness = await renderRail(TREE, '# Guide\n\nbody')
+    await act(async () => {
+      (harness.container.querySelector('.dsh-md-preview-seg button[aria-label="panel.edit"]') as HTMLElement).click()
+    })
+    await flush()
+    // Clean draft: Esc closes straight away.
+    await pressPanelKey(harness, { key: 'Escape' })
+    await flush()
+    expect(harness.container.querySelector('.dsh-md-preview-overlay')).toBeNull()
+    // Dirty draft: Esc raises the guard; the panel survives.
+    const second = await renderRail(TREE, '# Guide\n\nbody')
+    await act(async () => {
+      (second.container.querySelector('.dsh-md-preview-seg button[aria-label="panel.edit"]') as HTMLElement).click()
+    })
+    await flush()
+    const host = second.container.querySelector('.cm-editor') as HTMLElement
+    const view = (await import('@codemirror/view')).EditorView.findFromDOM(host)!
+    await act(async () => { view.dispatch({ changes: { from: 0, insert: 'x' } }) })
+    await flush()
+    await pressPanelKey(second, { key: 'Escape' })
+    await flush()
+    expect(second.container.textContent).toContain('panel.unsaved.title')
+    expect(second.container.querySelector('.dsh-md-preview-overlay')).toBeTruthy()
+  })
+})
+
+describe('open focus (#9)', () => {
+  it('hands focus to the tree filter when the panel opens', async () => {
+    const harness = await renderRail(TREE)
+    harness.setTarget({ sessionId: 'session-1', path: '', face: 'browse' })
+    await harness.rerender()
+    await flush()
+    await act(async () => { await new Promise(resolve => { setTimeout(resolve, 20) }) })
+    expect(document.activeElement?.classList.contains('dsh-md-preview-treefilter')).toBe(true)
   })
 })
 

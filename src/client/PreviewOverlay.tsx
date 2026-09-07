@@ -66,10 +66,20 @@ export type PreviewOverlayProps =
 /** Panel width from which the rail shows beside the document (#11). */
 const RAIL_MIN_WIDTH = 640
 
-/** The overlay's own width bounds: default 520, draggable 360–1200. */
+/** The overlay's own width bounds: default 720 (rail docks immediately),
+ * draggable 360–1200. */
 const OVERLAY_MIN_WIDTH = 360
 const OVERLAY_MAX_WIDTH = 1200
-const OVERLAY_DEFAULT_WIDTH = 520
+const OVERLAY_DEFAULT_WIDTH = 720
+
+/**
+ * The opening width: the 720 preset, or half the viewport when that is
+ * narrower — a small window still gets a sane, draggable column.
+ */
+function initialOverlayWidth(): number {
+  const half = typeof window === 'undefined' ? OVERLAY_DEFAULT_WIDTH : window.innerWidth * 0.5
+  return Math.min(OVERLAY_DEFAULT_WIDTH, Math.max(OVERLAY_MIN_WIDTH, Math.round(half)))
+}
 
 /**
  * Shared pointer-drag width driver: pointer capture with rAF-coalesced deltas.
@@ -133,7 +143,10 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // The overlay owns its width: a right-anchored layer stacked over the
   // frame, dragged wider/narrower from its left edge; it persists across
   // targets and closes for the whole app session (min/max clamped in the drag).
-  const [width, setWidth] = useState(OVERLAY_DEFAULT_WIDTH)
+  const [width, setWidth] = useState(initialOverlayWidth)
+  // Maximize (the B ask): a full-frame preset over the remembered width —
+  // restore returns to it exactly; the edge handle hides while taken.
+  const [maximized, setMaximized] = useState(false)
   // The browser face: entered from the header, kept mounted once entered so
   // its expansion state survives face switches (UI-local viewing state).
   const [face, setFace] = useState<'document' | 'browse'>('document')
@@ -150,7 +163,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // below the threshold the browse-face swap remains the fallback. Both are
   // component-local geometry state, like the dragged width.
   const [railCollapsed, setRailCollapsed] = useState(false)
-  const widePanel = width >= RAIL_MIN_WIDTH
+  const widePanel = maximized || width >= RAIL_MIN_WIDTH
   const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); remembered across collapses.
   const [railTab, setRailTab] = useState<'files' | 'outline'>('files')
@@ -287,7 +300,10 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // rail tab wide, popover/face swap narrow. Esc dismisses the popover.
   const onPanelKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape') {
+      // Popovers close first; otherwise Esc dismisses the floating panel —
+      // a dirty draft still asks through requestClose's guard.
       if (outlineOpen || keysOpen) { setOutlineOpen(false); setKeysOpen(false) }
+      else actions.requestClose()
       return
     }
     // '?' toggles the keymap help only outside the editor (inside it types).
@@ -307,7 +323,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
       if (widePanel) { setRailCollapsed(false); setRailTab('files') }
       else { setBrowserEverOpened(true); setFace('browse') }
     }
-  }, [outlineOpen, keysOpen, state.face, width])
+  }, [outlineOpen, keysOpen, state.face, width, actions])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
@@ -326,6 +342,18 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     if (railVisible || face === 'browse') setBrowserEverOpened(true)
   }, [railVisible, face])
 
+  // Opening the panel hands focus to the tree filter (#9): Esc and the
+  // tree's keyboard model go live without a click first. One frame late —
+  // the tree itself mounts in the effect pass above.
+  const opened = target !== null
+  useEffect(() => {
+    if (!opened) return
+    const frame = requestAnimationFrame(() => {
+      document.querySelector<HTMLInputElement>('.dsh-md-preview-treefilter')?.focus()
+    })
+    return () => { cancelAnimationFrame(frame) }
+  }, [opened])
+
   // Crossing the threshold up while browsing returns the face: the tree now
   // lives in the rail and the document takes the stage back.
   useEffect(() => {
@@ -340,27 +368,44 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   return (
     <div
       className="dsh-md-preview-overlay" data-width={width}
-      style={{ width: `${width}px` }} onKeyDown={onPanelKeyDown}
+      data-maximized={maximized || undefined}
+      style={maximized ? undefined : { width: `${width}px` }} onKeyDown={onPanelKeyDown}
     >
-      <div
-        aria-hidden
-        className="dsh-md-preview-edgehandle"
-        onPointerDown={onEdgeResize}
-        onPointerMove={onEdgeResize}
-        onPointerUp={onEdgeResize}
-      />
+      {!maximized && (
+        <div
+          aria-hidden
+          className="dsh-md-preview-edgehandle"
+          onDoubleClick={() => { setMaximized(value => !value) }}
+          onPointerDown={onEdgeResize}
+          onPointerMove={onEdgeResize}
+          onPointerUp={onEdgeResize}
+        />
+      )}
       <div className="dsh-md-preview-panel">
         <div className="dsh-md-preview-header">
-          <span className="dsh-md-preview-icon" aria-hidden>📄</span>
-          <div className="dsh-md-preview-crumbs" title={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`}>
-            {target.path.split('/').map((segment, index, all) => (
-              <span
-                key={`${index}-${segment}`}
-                className="dsh-md-preview-crumb"
-                aria-current={index === all.length - 1 ? 'page' : undefined}
-              >{segment}</span>
-            ))}
-          </div>
+          {target.path === '' ? (
+            // No document yet: the panel carries its own name instead of
+            // empty crumbs — the tree face is the identity.
+            <>
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden className="dsh-md-preview-titleicon">
+                <path d="M1.5 3.5h4l1.5 2h7.5v7h-13z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+              </svg>
+              <span className="dsh-md-preview-title">{t('dock.browse')}</span>
+            </>
+          ) : (
+            <>
+              <span className="dsh-md-preview-icon" aria-hidden>📄</span>
+              <div className="dsh-md-preview-crumbs" title={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`}>
+                {target.path.split('/').map((segment, index, all) => (
+                  <span
+                    key={`${index}-${segment}`}
+                    className="dsh-md-preview-crumb"
+                    aria-current={index === all.length - 1 ? 'page' : undefined}
+                  >{segment}</span>
+                ))}
+              </div>
+            </>
+          )}
           {state.face === 'edit' && isDirty(state) && (
             <span className="dsh-md-preview-dirty" title={t('panel.unsaved.title')} aria-hidden>●</span>
           )}
@@ -401,14 +446,18 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               </svg>
             </button>
           ) : (
-            <button
-              type="button" className="dsh-md-preview-icon" aria-label={t('browse.back')}
-              title={t('browse.back')} onClick={() => { setFace('document') }}
-            >
-              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                <path d="M9.5 3.5L5 8l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            // The back arrow only exists when a document waits behind the
+            // tree; the capsule's fresh-browse entry has nothing to return to.
+            target.path !== '' && (
+              <button
+                type="button" className="dsh-md-preview-icon" aria-label={t('browse.back')}
+                title={t('browse.back')} onClick={() => { setFace('document') }}
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  <path d="M9.5 3.5L5 8l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )
           )}
           {face === 'document' && state.content.state === 'ready' && isEditable(target.path) && (
             <div className="dsh-md-preview-seg" role="group" aria-label={t('panel.face')}>
@@ -499,6 +548,18 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
               )}
             </>
           )}
+          <button
+            type="button" className="dsh-md-preview-icon"
+            aria-label={maximized ? t('panel.restore') : t('panel.maximize')}
+            title={maximized ? t('panel.restore') : t('panel.maximize')}
+            onClick={() => { setMaximized(value => !value) }}
+          >
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+              {maximized
+                ? <path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                : <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
+            </svg>
+          </button>
           <button
             type="button" className="dsh-md-preview-icon" aria-label={t('panel.close')}
             onClick={actions.requestClose}
@@ -627,7 +688,9 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
             )}
             </>
           ) : (
-            <>
+            // An empty path has no read behind it — the placeholder points at
+            // the tree instead of an eternal "loading".
+            target.path === '' ? <div className="dsh-md-preview-state">{t('panel.pickFile')}</div> : <>
               {state.content.state === 'loading' && <div className="dsh-md-preview-state">{t('panel.loading')}</div>}
               {state.content.state === 'failed' && (
                 <div className="dsh-md-preview-state">
@@ -649,7 +712,8 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                   : <pre className="dsh-md-preview-plaintext">{state.content.file.content}</pre>
               )}
             </>
-          )}
+          )
+          }
           </div>
         </div>
         <div className="dsh-md-preview-foot" aria-hidden>{process.env.MD_PREVIEW_VERSION}</div>

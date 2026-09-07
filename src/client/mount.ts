@@ -111,7 +111,7 @@ function registerUi(ctx: ClientContext): void {
     id: 'md-preview-docs',
     order: 100,
     locale: NS,
-    inject: () => ({ setTarget }),
+    inject: () => ({ hooks: { previewTarget }, setTarget }),
   }, WorkspaceDocsAction))
 }
 

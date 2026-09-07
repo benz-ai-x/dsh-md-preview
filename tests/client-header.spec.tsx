@@ -164,25 +164,40 @@ describe('panel footer version (user feedback)', () => {
 })
 
 describe('header browse capsule (session utilities)', () => {
-  it('opens the panel on the tree face for the showing Session', async () => {
-    const store = createPreviewStore()
-    const setTarget = vi.fn((value: { sessionId: string; path: string } | null) => { store.set(value as never) })
+  const renderCapsule = async (store: ReturnType<typeof createPreviewStore>, setTarget: ReturnType<typeof vi.fn>) => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root: Root = createRoot(container)
+    const usePreviewTarget = (selector: (state: unknown) => unknown) =>
+      selector(useSyncExternalStore(store.subscribe, store.getSnapshot))
     await act(async () => {
       root.render(
         <WorkspaceDocsAction
           sessionId={'s1' as never}
+          usePreviewTarget={usePreviewTarget as never}
           setTarget={setTarget as never}
           t={t as never}
         />,
       )
     })
+    return container
+  }
+
+  it('toggles the panel: closed parks the tree, open dismisses', async () => {
+    const store = createPreviewStore()
+    const setTarget = vi.fn()
+    const container = await renderCapsule(store, setTarget)
     const button = container.querySelector('button[aria-label="dock.browse"]') as HTMLButtonElement
-    expect(button).toBeTruthy()
     expect(button.classList.contains('dsh-md-preview-docsbtn')).toBe(true)
+    // Closed: not pressed; the click parks the tree face.
+    expect(button.getAttribute('aria-pressed')).toBe('false')
     await act(async () => { button.click() })
     expect(setTarget).toHaveBeenCalledWith({ sessionId: 's1', path: '', face: 'browse' })
+    // Open (any target): pressed; the click dismisses instead of re-opening.
+    store.set({ sessionId: 's1', path: 'guide.md' } as never)
+    await act(async () => { await Promise.resolve() })
+    expect(button.getAttribute('aria-pressed')).toBe('true')
+    await act(async () => { button.click() })
+    expect(setTarget).toHaveBeenCalledWith(null)
   })
 })

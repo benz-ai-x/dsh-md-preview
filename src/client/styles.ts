@@ -15,8 +15,10 @@ const CSS = `
   flex-direction: column;
   min-height: 0;
   background: var(--dsw-alias-bg-base);
-  border-left: 0.5px solid var(--dsw-alias-border-l3);
-  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.10);
+  /* #8: 1px edge + a heavier shadow keeps the layer's boundary legible in
+   * dark themes, where the light shadow alone disappears. */
+  border-left: 1px solid var(--dsw-alias-border-l3);
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.14);
   /* The host overlay layer is pointer-events: none; the panel re-arms itself. */
   pointer-events: auto;
 }
@@ -49,6 +51,10 @@ const CSS = `
 .dsh-md-preview-edgehandle:hover::after {
   opacity: 1;
 }
+.dsh-md-preview-overlay[data-maximized] {
+  left: 0;
+  width: auto;
+}
 .dsh-md-preview-panel {
   display: flex;
   flex-direction: column;
@@ -77,6 +83,9 @@ const CSS = `
 }
 .dsh-md-preview-docsbtn:hover {
   background: var(--dsw-alias-interactive-bg-hover);
+}
+.dsh-md-preview-docsbtn[aria-pressed='true'] {
+  background: var(--dsw-alias-interactive-bg-active);
 }
 .dsh-md-preview-docsbtn span,
 .dsh-md-preview-docsbtn svg {
@@ -125,6 +134,21 @@ const CSS = `
   background: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
   color: #fff;
   font-weight: 500;
+}
+.dsh-md-preview-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+.dsh-md-preview-titleicon {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
 }
 .dsh-md-preview-crumbs {
   flex: 1;
@@ -549,6 +573,14 @@ const CSS = `
 }
 .dsh-md-preview-treeitem[aria-expanded="true"] > .dsh-md-preview-treerow .dsh-md-preview-treeexpander svg {
   transform: rotate(90deg);
+}
+/* Hierarchy (#7): directories read one level above files — primary icon,
+ * 500-weight names — so the tree stops being a flat gray list. */
+.dsh-md-preview-treebranch > .dsh-md-preview-treerow .dsh-md-preview-tree-icon {
+  color: var(--dsw-alias-label-primary);
+}
+.dsh-md-preview-treebranch > .dsh-md-preview-treerow .dsh-md-preview-treename {
+  font-weight: 500;
 }
 .dsh-md-preview-treespacer { width: 16px; flex: none; }
 .dsh-md-preview-tree-icon { flex: none; color: var(--dsw-alias-label-secondary); }
