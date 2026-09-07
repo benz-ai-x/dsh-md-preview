@@ -47,6 +47,7 @@ async function bench(options: { registrationFailure?: boolean } = {}) {
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
   ctx.provide('layout', { toggleSidebar: () => {}, openDetails: () => {}, closeDetails: () => {} })
+  ctx.provide('sessions', { list: { getSnapshot: () => ({ current: undefined, ids: [] }) } })
   await ctx.plugin(SlotRegistry).await()
   // Stub owners standing in for ui-layout's root entry and ui-chat's
   // turn-tail node: they declare the slots this plugin contributes into.
