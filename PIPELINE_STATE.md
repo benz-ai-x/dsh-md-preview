@@ -73,7 +73,8 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-1 已 merged（PR #33，rebase，main=f380b79，合并后回归 186/186 绿；review 轮 2 全 pass：blocking 解决、findings 空、专项转 pass；分支已删）。待开 PR-2 ①
+- 上次中断位置：PR-2 ② 隔离开发进行中（pr2-dev，分支 feat/batch-2-r2-reading-continuity，单执行者无兜底闹钟）
+- 下一步：收到开发回传 → 更新状态文件 → ③（verify + 建 PR）→ ④ 隔离评审（新 agent）→ ⑤ 闸门 → ⑥ 合并 → ⑦ 记录 → PR-3
 - PR-1 流程完整记录：② 四票 8/8 AC（两次独立真机走查互为复核）→ ③ verify exit 0 + PR #33 → ④ 轮 1 发现 1 blocking（reload 分支零交互覆盖）→ 修复 5248ec7 → 轮 2 复核通过 → ⑤ 闸门三绿 → ⑥ 总检 8/8 + rebase 合并 → main 回归绿
 - PR-1 ②③ 完成：四票 8/8 AC 全勾（#24 走查证据见 issue 评论 5571706599）；pnpm verify exit 0（185/185，调度会话实测复核）；main 无漂移；PR #33 已建（Closes #21-#24，四票 AC 全勾故全用 Closes）
 - 开发过程记录：pr1-dev 两次 429 中断（17:05/17:50，GLM 5h 限额），改派 pr1-dev2（sonnet）接手 #24；限额重置后 pr1-dev 恢复并回传最终报告。兜底闹钟已撤
