@@ -12,6 +12,7 @@ import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { filterEntries } from '../src/client/WorkspaceBrowser.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
+import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
 import type { MdPreviewEntry, MdPreviewFile, MdPreviewListResult } from '../src/protocol.ts'
 
 const t = (key: string) => key
@@ -41,6 +42,7 @@ interface ListScript {
 
 async function renderBrowse(script: Map<string, ListScript>): Promise<BrowseHarness> {
   const store = createPreviewStore()
+  const leave = createLeaveIntentSeat()
   const harness: BrowseHarness = {
     container: document.createElement('div'),
     list: vi.fn((sessionId: string, path: string) => {
@@ -60,6 +62,7 @@ async function renderBrowse(script: Map<string, ListScript>): Promise<BrowseHarn
   const panelElement = () => (
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
+      leave={leave}
       close={() => { store.set(null) }}
       read={((sessionId: string, path: string) => {
         harness.reads.push({ path })

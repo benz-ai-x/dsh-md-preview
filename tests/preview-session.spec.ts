@@ -130,20 +130,11 @@ describe('save', () => {
 })
 
 describe('close', () => {
-  it('a dirty draft raises the unsaved guard instead of closing', () => {
-    const state = transition(session(...edited), { type: 'REQUEST_CLOSE' })
-    expect(state.unsavedPrompt).toBe(true)
-    expect(state.closeRequested).toBe(false)
-  })
-
-  it('a clean document closes immediately; DISCARD closes from the guard', () => {
+  it('REQUEST_CLOSE executes the close the leave seat already approved', () => {
+    // The unsaved guard lives at the leave-intent seat (#21): whatever close
+    // reaches the machine has already settled the dirty-draft question, so
+    // it executes — dirty or not.
+    expect(transition(session(...edited), { type: 'REQUEST_CLOSE' }).closeRequested).toBe(true)
     expect(transition(session(...loaded), { type: 'REQUEST_CLOSE' }).closeRequested).toBe(true)
-    expect(transition(session(...edited, { type: 'REQUEST_CLOSE' }), { type: 'DISCARD' }).closeRequested).toBe(true)
-  })
-
-  it('KEEP_EDITING drops the guard', () => {
-    const state = transition(session(...edited, { type: 'REQUEST_CLOSE' }), { type: 'KEEP_EDITING' })
-    expect(state.unsavedPrompt).toBe(false)
-    expect(state.closeRequested).toBe(false)
   })
 })

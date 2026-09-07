@@ -43,8 +43,6 @@ export interface PanelDocumentSession {
     reload(): void
     retryRead(): void
     requestClose(): void
-    discard(): void
-    keepEditing(): void
   }
 }
 
@@ -114,8 +112,6 @@ export function usePanelDocumentSession(
   const edit = useCallback((draft: string) => { dispatch({ type: 'EDIT', draft }) }, [])
   const cancelEdit = useCallback(() => { dispatch({ type: 'CANCEL_EDIT' }) }, [])
   const requestClose = useCallback(() => { dispatch({ type: 'REQUEST_CLOSE' }) }, [])
-  const discard = useCallback(() => { dispatch({ type: 'DISCARD' }) }, [])
-  const keepEditing = useCallback(() => { dispatch({ type: 'KEEP_EDITING' }) }, [])
   const retryRead = useCallback(() => { setRevision(value => value + 1) }, [])
   const reload = useCallback(() => {
     dispatch({ type: 'CANCEL_EDIT' })
@@ -146,6 +142,6 @@ export function usePanelDocumentSession(
     state,
     canSave: canSave(state),
     dirty: isDirty(state),
-    actions: { enterEdit, edit, save, cancelEdit, reload, retryRead, requestClose, discard, keepEditing },
+    actions: { enterEdit, edit, save, cancelEdit, reload, retryRead, requestClose },
   }
 }

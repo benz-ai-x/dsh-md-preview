@@ -3,10 +3,12 @@
  * `shell.overlay` list as a layer stacked over the frame. Rendering,
  * geometry, and locale only: the preview session — read lifecycle, edit
  * face, guarded save, prompts — lives in the PreviewSession machine behind
- * usePanelDocumentSession. The panel renders null while no preview target
+ * usePanelDocumentSession, and every leave (close, face switch, opening
+ * another document) arrives through the leave-intent seat, which this panel
+ * guards and executes. The panel renders null while no preview target
  * is set.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { MarkdownText, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -18,6 +20,7 @@ import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '.
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
 import { isEditable } from './preview-state.ts'
 import { isDirty } from './preview-session.ts'
+import type { LeaveIntentSeat } from './leave-intent.ts'
 import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from './outline.ts'
 import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
 import { MarkdownEditor, type EditorStatus, type SearchStatus } from './editor.tsx'
@@ -30,6 +33,8 @@ export interface PreviewOverlayInjected {
     /** Current preview target; null while the panel is closed. */
     previewTarget: SnapshotStore<MdPreviewState>
   }
+  /** The common leave-intent entry every plugin outlet shares (#21). */
+  leave: LeaveIntentSeat
   /** Dismiss the panel and drop the target. */
   close(): void
   /** Set the preview target (the browser face's file-open handoff). */
@@ -133,13 +138,17 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
 
 /**
  * Render the preview panel for the current target.
- * @param props - target hook, read/write RPCs, dismissal, and the locale seat.
+ * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write, list, t }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, t }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
   const session = usePanelDocumentSession({ read, write, close }, target)
   const { state, canSave, actions } = session
+  // The pending leave intent: the panel is the guard's only owner — external
+  // entries (chips, the preview action, the docs capsule, tree rows) request
+  // into the seat, and this single consumer executes or holds them (#21).
+  const pendingLeave = useSyncExternalStore(leave.subscribe, leave.getSnapshot)
   // The overlay owns its width: a right-anchored layer stacked over the
   // frame, dragged wider/narrower from its left edge; it persists across
   // targets and closes for the whole app session (min/max clamped in the drag).
@@ -184,17 +193,51 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   useEffect(() => { if (state.toast && state.face === 'view') setSavedAt(new Date()) }, [state.toast, state.face])
   useEffect(() => { setSavedAt(null) }, [target])
-  // The dirty-draft guard (#14, #10 story 5): UI-local — it gates the
-  // segmented switch back and tree file opens alike, composing the cancel
-  // action; the machine's close-time prompt keeps its own meaning.
-  const [switchGuard, setSwitchGuard] = useState(false)
-  // A tree-open held back by that guard; released on 放弃修改.
-  const [pendingFile, setPendingFile] = useState<string | null>(null)
+  // The dirty-draft guard is the pending leave intent itself (#21): a dirty
+  // draft holds the first intent behind the 放弃修改/继续编辑 bar; a clean one
+  // executes it at once. The effect also runs while the panel is closed —
+  // external entries from a closed panel (the docs capsule) execute directly.
+  const requestClose = actions.requestClose
+  const cancelEdit = actions.cancelEdit
+  useEffect(() => {
+    if (pendingLeave === null) return
+    const intent = pendingLeave
+    // Document identity is (session, the path the host resolved on the read
+    // that opened this session): re-opening the document already showing
+    // resets nothing — no guard, no new edit session, no re-read, no scroll
+    // reset (#21). The client never guesses symlink equivalences.
+    if (intent.kind === 'open' && target !== null
+      && target.sessionId === intent.target.sessionId
+      && target.path === intent.target.path) {
+      leave.clear()
+      if (face === 'browse') setFace('document')
+      return
+    }
+    if (state.face === 'edit' && isDirty(state)) return
+    leave.clear()
+    if (intent.kind === 'close') {
+      requestClose()
+    } else if (intent.kind === 'switchFace') {
+      cancelEdit()
+    } else {
+      setTarget(intent.target)
+      if (intent.target.face !== 'browse') setFace('document')
+    }
+  }, [pendingLeave, state, target, face, leave, setTarget, setFace, requestClose, cancelEdit])
+  // Focus handback after 「继续编辑」 (#21): the button only flags it — the
+  // focus lands once the dismissed guard has left the tree, so the editor
+  // keeps it through the re-render.
+  const refocusEditor = useRef(false)
+  useEffect(() => {
+    if (pendingLeave !== null || !refocusEditor.current) return
+    refocusEditor.current = false
+    editorViewRef.current?.focus()
+  }, [pendingLeave])
   // The keymap help popover (#16): button or '?' outside the editor.
   const [keysOpen, setKeysOpen] = useState(false)
   // The inline-HTML warning (#17): once per edit session.
   const [htmlWarnDismissed, setHtmlWarnDismissed] = useState(false)
-  useEffect(() => { setSwitchGuard(false); setPendingFile(null); setKeysOpen(false); setHtmlWarnDismissed(false) }, [state.face])
+  useEffect(() => { setKeysOpen(false); setHtmlWarnDismissed(false) }, [state.face])
   const searchPhrases = useMemo(() => ({
     Find: t('find.phrases.find'),
     Replace: t('find.phrases.replace'),
@@ -300,10 +343,14 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   // rail tab wide, popover/face swap narrow. Esc dismisses the popover.
   const onPanelKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>): void => {
     if (event.key === 'Escape') {
-      // Popovers close first; otherwise Esc dismisses the floating panel —
-      // a dirty draft still asks through requestClose's guard.
+      // The current popover closes first, then the editor's own find panel
+      // keeps its Esc (CodeMirror's keymap owns it); only then does Esc
+      // request the panel close through the leave entry — never a discard.
       if (outlineOpen || keysOpen) { setOutlineOpen(false); setKeysOpen(false) }
-      else actions.requestClose()
+      else if (state.face === 'edit'
+        && (event.target as HTMLElement).closest('.cm-editor') !== null
+        && documentRef.current?.querySelector('.cm-panel.cm-search') != null) return
+      else leave.request({ kind: 'close' })
       return
     }
     // '?' toggles the keymap help only outside the editor (inside it types).
@@ -323,18 +370,14 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
       if (widePanel) { setRailCollapsed(false); setRailTab('files') }
       else { setBrowserEverOpened(true); setFace('browse') }
     }
-  }, [outlineOpen, keysOpen, state.face, width, actions])
+  }, [outlineOpen, keysOpen, state.face, width, leave])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
-    // A dirty draft never dies silently: the guard asks first (#10 story 5).
-    if (state.face === 'edit' && isDirty(state)) {
-      setPendingFile(path)
-      return
-    }
-    setTarget({ sessionId: target.sessionId, path })
-    setFace('document')
-  }, [setTarget, target, state])
+    // A dirty draft never dies silently: the open routes through the common
+    // leave entry and the guard asks first (#21).
+    leave.request({ kind: 'open', target: { sessionId: target.sessionId, path } })
+  }, [leave, target])
 
   // The tree mounts once anything shows it (rail or browse face) and stays
   // mounted so expansion state survives every switch.
@@ -466,8 +509,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
                 onClick={() => {
                   if (state.face !== 'edit') return
                   // A dirty draft switches through the guard, never silently.
-                  if (isDirty(state)) setSwitchGuard(true)
-                  else actions.cancelEdit()
+                  leave.request({ kind: 'switchFace' })
                 }}
               >{t('panel.view')}</button>
               <button
@@ -562,7 +604,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           </button>
           <button
             type="button" className="dsh-md-preview-icon" aria-label={t('panel.close')}
-            onClick={actions.requestClose}
+            onClick={() => { leave.request({ kind: 'close' }) }}
           >
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -616,24 +658,18 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           {state.toast && state.face === 'view' && (
             <div className="dsh-md-preview-toast" role="status">✓ {t('panel.saved')}</div>
           )}
-          {(switchGuard || pendingFile !== null) && state.face === 'edit' && (
+          {pendingLeave !== null && state.face === 'edit' && isDirty(state) && (
             <div className="dsh-md-preview-bar" role="alert">
               <span>{t('panel.unsaved.title')}</span>
               <button type="button" aria-label={t('panel.unsaved.discard')} onClick={() => {
-                const held = pendingFile
-                setSwitchGuard(false)
-                setPendingFile(null)
+                // The draft dies here; the still-pending intent then executes
+                // exactly once through the leave consumer above.
                 actions.cancelEdit()
-                if (held !== null && target !== null) setTarget({ sessionId: target.sessionId, path: held })
               }}>{t('panel.unsaved.discard')}</button>
-              <button type="button" aria-label={t('panel.unsaved.keep')} onClick={() => { setSwitchGuard(false); setPendingFile(null) }}>{t('panel.unsaved.keep')}</button>
-            </div>
-          )}
-          {state.unsavedPrompt && (
-            <div className="dsh-md-preview-bar" role="alert">
-              <span>{t('panel.unsaved.title')}</span>
-              <button type="button" onClick={actions.discard}>{t('panel.unsaved.discard')}</button>
-              <button type="button" onClick={actions.keepEditing}>{t('panel.unsaved.keep')}</button>
+              <button type="button" aria-label={t('panel.unsaved.keep')} onClick={() => {
+                leave.clear()
+                refocusEditor.current = true
+              }}>{t('panel.unsaved.keep')}</button>
             </div>
           )}
           {state.saveError !== null && state.face === 'edit' && (

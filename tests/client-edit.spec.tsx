@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
+import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
 import type { MdPreviewFile, MdPreviewWriteResult } from '../src/protocol.ts'
 
 // Identity locale: labels assert by dictionary key.
@@ -47,6 +48,7 @@ interface PanelHarness {
 
 async function renderPanel(): Promise<PanelHarness> {
   const store = createPreviewStore()
+  const leave = createLeaveIntentSeat()
   const harness: PanelHarness = {
     container: document.createElement('div'),
     reads: 0,
@@ -69,6 +71,7 @@ async function renderPanel(): Promise<PanelHarness> {
   const panelElement = () => (
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
+      leave={leave}
       close={() => { store.set(null) }}
       read={read as never}
       write={harness.write as never}
@@ -274,6 +277,7 @@ describe('editor find', () => {
 
 async function renderFindPanel(content: string): Promise<PanelHarness> {
   const store = createPreviewStore()
+  const leave = createLeaveIntentSeat()
   const harness: PanelHarness = {
     container: document.createElement('div'),
     reads: 0,
@@ -290,6 +294,7 @@ async function renderFindPanel(content: string): Promise<PanelHarness> {
   const panelElement = () => (
     <PreviewOverlay
       usePreviewTarget={usePreviewTarget as never}
+      leave={leave}
       close={() => { store.set(null) }}
       read={() => Promise.resolve(harness.readResult) as never}
       write={harness.write as never}

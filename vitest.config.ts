@@ -41,5 +41,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.spec.{ts,tsx}'],
+    // jsdom focus (document.activeElement) is timing-sensitive under parallel
+    // workers: a focus set inside one act pass can be observed as null when
+    // CPU contention delays a re-render between focus and assertion (seen on
+    // the tree roving-focus and the leave-guard focus-handback tests). The
+    // suite is small; serial files buy determinism for ~2s.
+    fileParallelism: false,
   },
 })
