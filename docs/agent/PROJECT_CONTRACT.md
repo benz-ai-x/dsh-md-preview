@@ -17,14 +17,36 @@ produced become clickable in two additive places:
 Either entry opens a right-docked preview panel beside the conversation that
 renders the document (GFM, fenced code with highlighting, TeX) through the
 platform `MarkdownText` primitive. The panel is closable, width-draggable,
-and idle (renders nothing) while no target is set. A 「编辑」 action enters a
+and idle (renders nothing) while no target is set; it starts below the
+session-header strip that the 「工作区文档」 capsule measures at runtime
+(never a preset offset), keeping that entry clickable while the panel is
+open. A 「编辑」 action enters a
 CodeMirror 6 editor (line numbers, GFM highlighting, Cmd/Ctrl-S) whose
 「保存」 writes the draft back into the session workspace and returns to the
 rendered view; 「取消编辑」 discards the draft. Saving over a file that
-changed since the read raises a conflict bar (重新加载 / 强制覆盖), and
-closing with unsaved edits asks first (放弃修改 / 继续编辑). Editing targets
+changed since the read raises a conflict bar (重新加载 / 强制覆盖) with a
+consequence line spelling out what each choice does. Every way out of the
+current preview session — the panel close button, Esc, the 「工作区文档」
+collapse, the segmented switch back to the view face, tree rows, the
+produced-file chips, and the preview-documents action — routes through one
+leave-intent seat; with a dirty draft the first intent waits behind the
+放弃修改/继续编辑 guard (later requests are dropped, never silently swapped;
+继续编辑 restores editor focus with draft, cursor, and selection intact;
+放弃修改 writes nothing and executes the held intent exactly once), while a
+clean draft executes at once. Re-opening the document already showing is a
+no-op that resets nothing — identity is the session plus the path the host
+resolved on the opening read, and the client never guesses symlink
+equivalences. Esc serves the open popover, then the editor's own find
+panel, and only then requests the close; it never confirms a discard.
+Editing targets
 existing files only — no creation. The edit face carries a CodeMirror search
-panel (header button and Mod-F). The header's outline popover navigates the
+panel (header button and Mod-F). The header renders one row: the document
+identity shrinks (the last crumb ellipsizes; the tooltip keeps the full
+workspace path and version), the 预览/编辑 control and edit tools group
+after it, and maximize/close hold the last two seats; below 560px the
+low-frequency tools (outline, undo/redo/find, keymap help) fold into a ⋯
+menu while save and close stay directly clickable. The header's outline
+popover navigates the
 document's ATX headings — scrolling the rendered heading in the view face,
 jumping the cursor to the source line in the edit face. The outline tracks
 the reading position: the popover marks the entry owning the current scroll
@@ -38,12 +60,13 @@ whose files page hosts the workspace tree beside the document (browsing
 never swaps the document away) and whose outline page hosts the heading
 list with the reading-position highlight; narrow panels fall back to the
 browse-face swap and the outline popover, with Mod-Shift-O/E routing by
-width and Esc dismissing popovers. The header's segmented 预览|编辑 control
-carries the face: switching back with a dirty draft — or opening another
-file from the tree while editing — raises the 放弃修改/继续编辑 guard (a
-panel-level composition of the cancel action; close-time prompts remain
-machine-owned); the edit face's status bar reports cursor position, size,
-and the resident last-saved time; undo/redo buttons surface the editor
+width and Esc dismissing popovers. The edit face's status bar walks
+保存中… → 未保存 / 保存失败 · code → 已保存 HH:MM while the save button
+itself turns busy and refuses a second submission; a write that succeeds
+but is then failed by its confirming re-read surfaces both results
+distinctly — the saved toast stands, the read failure carries its own
+retry, and the stale pre-save body never returns. Undo/redo buttons surface
+the editor
 history; Mod-B/I/K wrap selections in markup with the ?/Mod-/ popover
 listing the keys; a document containing inline HTML warns once per edit
 session that the edit face is plain text. The tree's filter box narrows
@@ -83,10 +106,14 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   only pays mermaid's parse cost when a document actually carries a mermaid
   block; the client bundle grows to ~3.9 MB minified / ~1.1 MB gzip for it).
   The panel's whole state — read lifecycle,
-  edit session, guarded save, close-time prompts — is one pure machine
+  edit session, guarded save — is one pure machine
   (`src/client/preview-session.ts`, `READ_STARTED` on a new target being the
   single full reset) behind the effectful adapter
-  `src/client/use-preview-session.ts`; the component renders and owns only
+  `src/client/use-preview-session.ts`; the unsaved guard itself is a
+  leave-intent seat (`src/client/leave-intent.ts`) shared by every plugin
+  outlet and executed only by the panel, which also renders the measured
+  session-header strip geometry the 「工作区文档」 capsule publishes. The
+  component renders and owns only
   geometry and locale. The outline (`src/client/outline.ts`) and the diagram
   pass (`src/client/diagrams.ts`) are UI-local modules over the settled
   document — no service state involved.
@@ -136,9 +163,12 @@ contexts.
 - File content is workspace truth; every panel open re-reads through the
   Remote (no client cache), and every successful save re-reads before
   returning to the rendered view. A manual retry re-runs the read for the
-  same target.
-- The preview target (`{sessionId, path} | null`), the editor draft, and the
-  conflict/unsaved prompts are UI-local viewing state; the draft never
+  same target. Re-setting the preview target to the document already
+  showing (same session, same resolved path) resets nothing — no re-read, no
+  new edit session, no reading-position loss.
+- The preview target (`{sessionId, path} | null`), the editor draft, the
+  pending leave intent, and the
+  conflict prompts are UI-local viewing state; the draft never
   reaches the workspace except through an explicit guarded `write`. The
   panel's dragged width persists across opens for the app session (clamped
   320–1280, opening at 500); the target itself resets per open. Session data, turn membership,
@@ -148,7 +178,13 @@ contexts.
 
 - Panel target changes and unmount abort the in-flight read via the
   transport-carried AbortSignal; a target change or panel close during a
-  save aborts it the same way, so a late save cannot land on a stale file.
+  save aborts it the same way. Every read-effect run opens a new epoch, and
+  a read or save outcome may only land while its issuing epoch still owns
+  the session — an approved close, a switch, or dispose therefore drops
+  late responses before they can touch the successor document, its prompts,
+  errors, or save state. Cancellation is never surfaced as a business
+  failure; a transport rejection maps to `md-preview/unavailable`. Nothing
+  promises to undo a write that already landed atomically.
 - Client disposal: the mount disposer removes the UI fiber (slot entries,
   locale dictionary) then unmounts the Remote namespace; a failed UI
   registration rolls back the Remote mount. Collapsing a declaring owner
