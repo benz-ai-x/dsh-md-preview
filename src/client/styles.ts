@@ -62,6 +62,56 @@ const CSS = `
   min-height: 0;
   background: var(--dsw-alias-bg-base);
 }
+/* The header is one row (#22): the document identity shrinks (flex 1,
+ * min-width 0, the last crumb ellipsizes), the face control and edit tools
+ * group after it, and maximize/close hold the last two seats. Nothing
+ * wraps and nothing overflows horizontally; the low-frequency tools fold
+ * into the ⋯ menu below the compact width instead. */
+.dsh-md-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  min-width: 0;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+/* Visible focus for every interactive header/chip control (#22): the ring
+ * rides the accent token, so light and dark both hold. */
+.dsh-md-preview-icon:focus-visible,
+.dsh-md-preview-seg button:focus-visible,
+.dsh-md-preview-chip:focus-visible,
+.dsh-md-preview-docsbtn:focus-visible,
+.dsh-md-preview-doc:focus-visible,
+.dsh-md-preview-docsbtn:focus-visible,
+.dsh-md-preview-outline button:focus-visible,
+.dsh-md-preview-more button:focus-visible {
+  outline: 2px solid var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  outline-offset: 1px;
+}
+/* The compact ⋯ menu (#22): same floating-panel language as the outline
+ * popover, right-aligned under the button. */
+.dsh-md-preview-more {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-float, var(--dsw-alias-bg-base));
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+}
+/* Starting below the measured host header strip (#22): a rounded top-left
+ * corner and a matching top border read the panel as sitting beside the
+ * host's own column chrome instead of over it. */
+.dsh-md-preview-overlay[data-below-strip] {
+  border-top: 1px solid var(--dsw-alias-border-l3);
+  border-top-left-radius: 10px;
+  box-shadow: -16px -8px 40px rgba(0, 0, 0, 0.14);
+}
 .dsh-md-preview-docsbtn {
   display: inline-flex;
   align-items: center;

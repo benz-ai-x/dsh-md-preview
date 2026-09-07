@@ -31,6 +31,9 @@ beforeAll(() => {
   // and an orphaned rAF after a test would surface it as an unhandled error.
   ;(Range.prototype as unknown as { getClientRects?: () => [] }).getClientRects ??= () => []
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+  // A wide viewport: the default 720 open keeps the full header action row;
+  // compact-width behavior is covered where it is the subject (#22).
+  Object.defineProperty(window, 'innerWidth', { value: 1928, configurable: true })
 })
 
 interface PanelHarness {
@@ -298,6 +301,8 @@ async function renderFindPanel(content: string): Promise<PanelHarness> {
       close={() => { store.set(null) }}
       read={() => Promise.resolve(harness.readResult) as never}
       write={harness.write as never}
+      list={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } })) as never}
+      setTarget={vi.fn() as never}
       t={t as never}
     />
   )

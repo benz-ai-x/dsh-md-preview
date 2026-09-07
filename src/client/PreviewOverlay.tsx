@@ -33,6 +33,8 @@ export interface PreviewOverlayInjected {
     /** Current preview target; null while the panel is closed. */
     previewTarget: SnapshotStore<MdPreviewState>
   }
+  /** Viewport bottom of the host session-header strip (0 = none measured). */
+  headerStrip?: SnapshotStore<number>
   /** The common leave-intent entry every plugin outlet shares (#21). */
   leave: LeaveIntentSeat
   /** Dismiss the panel and drop the target. */
@@ -70,6 +72,15 @@ export type PreviewOverlayProps =
 
 /** Panel width from which the rail shows beside the document (#11). */
 const RAIL_MIN_WIDTH = 640
+
+/** Panel width below which low-frequency header tools fold into the ⋯ menu (#22). */
+const OVERLAY_COMPACT_WIDTH = 560
+
+/** The no-strip stand-in: a permanent zero, for benches that pass no store. */
+const NO_STRIP = {
+  getSnapshot: (): number => 0,
+  subscribe: (): (() => void) => () => {},
+}
 
 /** The overlay's own width bounds: default 720 (rail docks immediately),
  * draggable 360–1200. */
@@ -141,14 +152,30 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, t }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, t, headerStrip }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
+  const stripStore = headerStrip ?? NO_STRIP
   const session = usePanelDocumentSession({ read, write, close }, target)
   const { state, canSave, actions } = session
   // The pending leave intent: the panel is the guard's only owner — external
   // entries (chips, the preview action, the docs capsule, tree rows) request
   // into the seat, and this single consumer executes or holds them (#21).
   const pendingLeave = useSyncExternalStore(leave.subscribe, leave.getSnapshot)
+  // The host session-header strip (#22): the capsule sitting in that strip
+  // publishes its measured bottom, and the panel starts below it — the
+  // capsule stays visible and clickable while the panel is open. Nothing is
+  // preset: no strip published (or a hidden header) means top 0.
+  const stripBottom = useSyncExternalStore(stripStore.subscribe, stripStore.getSnapshot)
+  const [layerTop, setLayerTop] = useState(0)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    // The inset lives in the overlay layer's coordinate space (the layer is
+    // inset 0 of the frame): subtract its own viewport top, measured — never
+    // assumed — once per published strip change.
+    const layer = overlayRef.current?.closest<HTMLElement>('[data-shell-overlay]') ?? null
+    setLayerTop(layer === null ? 0 : Math.max(0, layer.getBoundingClientRect().top))
+  }, [stripBottom])
+  const stripInset = Math.max(0, Math.round(stripBottom - layerTop))
   // The overlay owns its width: a right-anchored layer stacked over the
   // frame, dragged wider/narrower from its left edge; it persists across
   // targets and closes for the whole app session (min/max clamped in the drag).
@@ -176,6 +203,12 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); remembered across collapses.
   const [railTab, setRailTab] = useState<'files' | 'outline'>('files')
+  // The compact header (#22): below OVERLAY_COMPACT_WIDTH the low-frequency
+  // tools (outline, undo/redo/find, keymap help) fold into a ⋯ menu; save,
+  // the face control, maximize, and close stay directly clickable, and the
+  // identity shrinks instead of pushing them off the row.
+  const compact = !maximized && width < OVERLAY_COMPACT_WIDTH
+  const [moreOpen, setMoreOpen] = useState(false)
   // The rail's dragged width (user feedback): persists like the panel width.
   const [railWidth, setRailWidth] = useState(148)
   const onRailResize = useDragWidth(120, 320, 1, setRailWidth)
@@ -237,7 +270,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   const [keysOpen, setKeysOpen] = useState(false)
   // The inline-HTML warning (#17): once per edit session.
   const [htmlWarnDismissed, setHtmlWarnDismissed] = useState(false)
-  useEffect(() => { setKeysOpen(false); setHtmlWarnDismissed(false) }, [state.face])
+  useEffect(() => { setKeysOpen(false); setHtmlWarnDismissed(false); setMoreOpen(false) }, [state.face])
   const searchPhrases = useMemo(() => ({
     Find: t('find.phrases.find'),
     Replace: t('find.phrases.replace'),
@@ -346,7 +379,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
       // The current popover closes first, then the editor's own find panel
       // keeps its Esc (CodeMirror's keymap owns it); only then does Esc
       // request the panel close through the leave entry — never a discard.
-      if (outlineOpen || keysOpen) { setOutlineOpen(false); setKeysOpen(false) }
+      if (outlineOpen || keysOpen || moreOpen) { setOutlineOpen(false); setKeysOpen(false); setMoreOpen(false) }
       else if (state.face === 'edit'
         && (event.target as HTMLElement).closest('.cm-editor') !== null
         && documentRef.current?.querySelector('.cm-panel.cm-search') != null) return
@@ -370,7 +403,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
       if (widePanel) { setRailCollapsed(false); setRailTab('files') }
       else { setBrowserEverOpened(true); setFace('browse') }
     }
-  }, [outlineOpen, keysOpen, state.face, width, leave])
+  }, [outlineOpen, keysOpen, moreOpen, state.face, width, leave])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
@@ -406,13 +439,100 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   // The panel stays mounted across targets and opens; the user's widths
   // (overlay edge and rail) persist for the whole app session.
 
+  // The low-frequency header tools (#22): rendered inline on the wide row,
+  // folded into the ⋯ menu when compact. One definition, two homes.
+  const showOutlineControl = outline.length > 0 && state.content.state === 'ready'
+  const outlineTool = (
+    <button
+      type="button" className="dsh-md-preview-icon" aria-label={t('outline.open')}
+      aria-expanded={widePanel ? undefined : outlineOpen} title={t('outline.open')}
+      onClick={() => {
+        if (widePanel) { setRailCollapsed(false); setRailTab('outline') }
+        else setOutlineOpen(value => !value)
+      }}
+    >
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <path d="M2.5 3.5h11M5 8h8.5M2.5 12.5h11M2.5 8h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    </button>
+  )
+  const undoTool = (
+    <button
+      type="button" className="dsh-md-preview-icon" aria-label={t('panel.undo')}
+      title={`${t('panel.undo')} · Mod-Z`} disabled={editorStatus === null || !editorStatus.canUndo}
+      onClick={() => { const view = editorViewRef.current; if (view !== null) undo(view) }}
+    >
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <path d="M6 3.5L2.5 7 6 10.5M2.5 7h7a4 4 0 1 1 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  )
+  const redoTool = (
+    <button
+      type="button" className="dsh-md-preview-icon" aria-label={t('panel.redo')}
+      title={`${t('panel.redo')} · Mod-Shift-Z`} disabled={editorStatus === null || !editorStatus.canRedo}
+      onClick={() => { const view = editorViewRef.current; if (view !== null) redo(view) }}
+    >
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <path d="M10 3.5L13.5 7 10 10.5M13.5 7h-7a4 4 0 1 0 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  )
+  const findTool = (
+    <button
+      type="button" className="dsh-md-preview-icon" aria-label={t('panel.find')}
+      title={`${t('panel.find')} · Mod-F`} onClick={() => {
+        const view = editorViewRef.current
+        if (view !== null) openSearchPanel(view)
+      }}
+    >
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <path d="M7 12a5 5 0 1 1 4.3-2.5L14 12.2 12.2 14l-2.7-2.7A5 5 0 0 1 7 12zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor" opacity="0.9" />
+      </svg>
+    </button>
+  )
+  const keysTool = (
+    <button
+      type="button" className="dsh-md-preview-icon" aria-label={t('panel.keys')}
+      title={t('panel.keys')} aria-expanded={keysOpen} onClick={() => { setKeysOpen(value => !value) }}
+    >
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <path d="M5.2 6a2.8 2.8 0 1 1 4 2.6c-.8.4-1.2 1-1.2 1.9v.3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+        <circle cx="8" cy="13" r=".9" fill="currentColor" />
+      </svg>
+    </button>
+  )
+  /** The compact ⋯ menu carrying whatever low-frequency tools exist here. */
+  const renderMoreMenu = (tools: React.ReactNode): React.ReactNode => (
+    <span className="dsh-md-preview-anchor">
+      <button
+        type="button" className="dsh-md-preview-icon" aria-label={t('panel.more')}
+        title={t('panel.more')} aria-expanded={moreOpen}
+        onClick={() => { setMoreOpen(value => !value) }}
+      >
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+          <circle cx="3.5" cy="8" r="1.3" fill="currentColor" /><circle cx="8" cy="8" r="1.3" fill="currentColor" /><circle cx="12.5" cy="8" r="1.3" fill="currentColor" />
+        </svg>
+      </button>
+      {moreOpen && (
+        <div className="dsh-md-preview-more" role="menu" onClickCapture={() => { setMoreOpen(false) }}>
+          {tools}
+        </div>
+      )}
+    </span>
+  )
 
   if (target === null) return null
   return (
     <div
+      ref={overlayRef}
       className="dsh-md-preview-overlay" data-width={width}
       data-maximized={maximized || undefined}
-      style={maximized ? undefined : { width: `${width}px` }} onKeyDown={onPanelKeyDown}
+      data-below-strip={stripInset > 0 || undefined}
+      style={{
+        top: `${stripInset}px`,
+        ...(maximized ? {} : { width: `${width}px` }),
+      }} onKeyDown={onPanelKeyDown}
     >
       {!maximized && (
         <div
@@ -452,20 +572,9 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
           {state.face === 'edit' && isDirty(state) && (
             <span className="dsh-md-preview-dirty" title={t('panel.unsaved.title')} aria-hidden>●</span>
           )}
-          {outline.length > 0 && state.content.state === 'ready' && (
+          {showOutlineControl && (
             <span className="dsh-md-preview-anchor">
-              <button
-                type="button" className="dsh-md-preview-icon" aria-label={t('outline.open')}
-                aria-expanded={widePanel ? undefined : outlineOpen} title={t('outline.open')}
-                onClick={() => {
-                  if (widePanel) { setRailCollapsed(false); setRailTab('outline') }
-                  else setOutlineOpen(value => !value)
-                }}
-              >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M2.5 3.5h11M5 8h8.5M2.5 12.5h11M2.5 8h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                </svg>
-              </button>
+              {!compact && outlineTool}
               {outlineOpen && (
                 <div className="dsh-md-preview-outline" role="menu" ref={outlineRef}>
                   {renderOutlineList(true)}
@@ -520,35 +629,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
           )}
           {face === 'document' && state.face === 'edit' && (
             <>
-              <button
-                type="button" className="dsh-md-preview-icon" aria-label={t('panel.undo')}
-                title={`${t('panel.undo')} · Mod-Z`} disabled={editorStatus === null || !editorStatus.canUndo}
-                onClick={() => { const view = editorViewRef.current; if (view !== null) undo(view) }}
-              >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M6 3.5L2.5 7 6 10.5M2.5 7h7a4 4 0 1 1 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button
-                type="button" className="dsh-md-preview-icon" aria-label={t('panel.redo')}
-                title={`${t('panel.redo')} · Mod-Shift-Z`} disabled={editorStatus === null || !editorStatus.canRedo}
-                onClick={() => { const view = editorViewRef.current; if (view !== null) redo(view) }}
-              >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M10 3.5L13.5 7 10 10.5M13.5 7h-7a4 4 0 1 0 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button
-                type="button" className="dsh-md-preview-icon" aria-label={t('panel.find')}
-                title={`${t('panel.find')} · Mod-F`} onClick={() => {
-                  const view = editorViewRef.current
-                  if (view !== null) openSearchPanel(view)
-                }}
-              >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M7 12a5 5 0 1 1 4.3-2.5L14 12.2 12.2 14l-2.7-2.7A5 5 0 0 1 7 12zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor" opacity="0.9" />
-                </svg>
-              </button>
+              {!compact && <>{undoTool}{redoTool}{findTool}</>}
               {searchStatus !== null && (
                 <span className="dsh-md-preview-findcount" aria-label={t('find.status')}>
                   {searchStatus.index}/{searchStatus.count}
@@ -563,15 +644,8 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                   <path d="M2 2h9l3 3v9H2zM5 2v4h6V2M4 14V9h8v5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
                 </svg>
               </button>
-              <button
-                type="button" className="dsh-md-preview-icon" aria-label={t('panel.keys')}
-                title={t('panel.keys')} aria-expanded={keysOpen} onClick={() => { setKeysOpen(value => !value) }}
-              >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M5.2 6a2.8 2.8 0 1 1 4 2.6c-.8.4-1.2 1-1.2 1.9v.3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-                  <circle cx="8" cy="13" r=".9" fill="currentColor" />
-                </svg>
-              </button>
+              {!compact && keysTool}
+              {compact && renderMoreMenu(<>{showOutlineControl ? outlineTool : undefined}{undoTool}{redoTool}{findTool}{keysTool}</>)}
               {keysOpen && (
                 <div className="dsh-md-preview-keypop" role="dialog" aria-label={t('panel.keys')}>
                   <dl>
@@ -590,6 +664,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
               )}
             </>
           )}
+          {compact && state.face !== 'edit' && showOutlineControl && renderMoreMenu(outlineTool)}
           <button
             type="button" className="dsh-md-preview-icon"
             aria-label={maximized ? t('panel.restore') : t('panel.maximize')}
@@ -604,6 +679,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
           </button>
           <button
             type="button" className="dsh-md-preview-icon" aria-label={t('panel.close')}
+            title={t('panel.close')}
             onClick={() => { leave.request({ kind: 'close' }) }}
           >
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>

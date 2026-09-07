@@ -1,6 +1,7 @@
 /** Source-safe MdPreview browser registration and Remote mount lifecycle. */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -41,6 +42,10 @@ function registerUi(ctx: ClientContext): void {
   // closes here; the panel owns the guard and the execution. UI-local
   // viewing state only — it dies with the mount.
   const leave = createLeaveIntentSeat()
+  // The measured host session-header strip (#22): the capsule publishes its
+  // bottom; the panel starts below it so the entry stays clickable while
+  // open. Plain UI-local geometry — zero when nothing publishes.
+  const headerStrip = createSnapshotStore<number>(0)
   const openPreview = (sessionId: SessionId) => (path: string): void => {
     leave.request({ kind: 'open', target: { sessionId, path } })
   }
@@ -79,6 +84,7 @@ function registerUi(ctx: ClientContext): void {
     inject: () => ({
       hooks: { previewTarget },
       leave,
+      headerStrip,
       close: () => { previewTarget.set(null) },
       setTarget,
       read,
@@ -117,7 +123,7 @@ function registerUi(ctx: ClientContext): void {
     id: 'md-preview-docs',
     order: 100,
     locale: NS,
-    inject: () => ({ hooks: { previewTarget }, leave }),
+    inject: () => ({ hooks: { previewTarget }, leave, headerStrip }),
   }, WorkspaceDocsAction))
 }
 
