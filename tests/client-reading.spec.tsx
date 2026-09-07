@@ -34,7 +34,7 @@ beforeAll(() => {
 
 /** Let the scheduled restore frame (jsdom rAF ≈ one timer tick) fire. */
 const settleRestore = async (): Promise<void> => {
-  await act(async () => { await new Promise(resolve => { setTimeout(resolve, 40) }) })
+  await act(async () => { await new Promise(resolve => { setTimeout(resolve, 120) }) })
 }
 
 const flush = async (): Promise<void> => {
