@@ -63,8 +63,14 @@ export function usePanelDocumentSession(
   const [revision, setRevision] = useState(0)
   const lastTarget = useRef<MdPreviewTarget | null>(null)
   const saveController = useRef<AbortController | null>(null)
+  // Every read-effect run supersedes the previous one (#23): late responses
+  // — reads and saves alike — may only land while their epoch still owns the
+  // session, so an approved close or switch can never be overridden.
+  const epoch = useRef(0)
 
   useEffect(() => {
+    epoch.current += 1
+    const run = epoch.current
     if (target === null) {
       lastTarget.current = null
       return
@@ -84,19 +90,26 @@ export function usePanelDocumentSession(
       || previous.path !== target.path
     dispatch({ type: isNewTarget ? 'READ_STARTED' : 'RETRY_READ' })
     const controller = new AbortController()
-    void read(target.sessionId, target.path, controller.signal).then((result) => {
-      if (controller.signal.aborted) return
-      dispatch(result.ok
-        ? { type: 'READ_RESOLVED', file: result.value }
-        : { type: 'READ_FAILED', code: result.error.code, message: result.error.message })
-    })
+    void read(target.sessionId, target.path, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted || epoch.current !== run) return
+        dispatch(result.ok
+          ? { type: 'READ_RESOLVED', file: result.value }
+          : { type: 'READ_FAILED', code: result.error.code, message: result.error.message })
+      })
+      .catch((error: unknown) => {
+        // Cancellation is an outcome of the call, not a business failure.
+        if (controller.signal.aborted || epoch.current !== run) return
+        dispatch({ type: 'READ_FAILED', code: 'md-preview/unavailable', message: error instanceof Error ? error.message : String(error) })
+      })
     return () => { controller.abort() }
   }, [read, target, revision])
 
-  // A target change or unmount aborts an in-flight save so it cannot land on
-  // the previous document; its outcome dispatch is skipped, and the new
-  // target's READ_STARTED has already reset the machine.
-  useEffect(() => () => { saveController.current?.abort() }, [])
+  // A target change (an approved close or switch included) or unmount aborts
+  // an in-flight save so it cannot land on the previous document: its outcome
+  // dispatch is skipped, and the successor's READ_STARTED has already reset
+  // the machine. Nothing here promises to undo an atomically completed write.
+  useEffect(() => () => { saveController.current?.abort() }, [target])
 
   useEffect(() => {
     if (state.closeRequested) close()
@@ -123,10 +136,11 @@ export function usePanelDocumentSession(
     const file = state.content.file
     const controller = new AbortController()
     saveController.current = controller
+    const run = epoch.current
     dispatch({ type: 'SAVE_STARTED' })
     void write(target.sessionId, target.path, state.draft, force ? undefined : file.fingerprint, force, controller.signal)
       .then((result) => {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted || epoch.current !== run) return
         if (result.ok) {
           dispatch({ type: 'SAVE_RESOLVED', result: result.value })
           setRevision(value => value + 1)
@@ -135,6 +149,11 @@ export function usePanelDocumentSession(
         } else {
           dispatch({ type: 'SAVE_FAILED', code: result.error.code, message: result.error.message })
         }
+      })
+      .catch((error: unknown) => {
+        // Cancellation is not a business failure; a transport rejection is.
+        if (controller.signal.aborted || epoch.current !== run) return
+        dispatch({ type: 'SAVE_FAILED', code: 'md-preview/unavailable', message: error instanceof Error ? error.message : String(error) })
       })
   }, [state, target, write])
 

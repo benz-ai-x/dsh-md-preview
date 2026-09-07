@@ -123,6 +123,21 @@ describe('save', () => {
     expect(state.saving).toBe(false)
   })
 
+  it('marks the post-save re-read so its failure reads as a read failure', () => {
+    // The write succeeded (SAVE_RESOLVED), the adapter re-reads; that read's
+    // failure must distinguish itself from a write failure (#23).
+    const saved = session(...edited, { type: 'SAVE_STARTED' }, { type: 'SAVE_RESOLVED', result: WRITE_OK })
+    expect(saved.savedPendingRead).toBe(true)
+    const rereading = transition(saved, { type: 'RETRY_READ' })
+    expect(rereading.savedPendingRead).toBe(true)
+    const failed = transition(rereading, { type: 'READ_FAILED', code: 'md-preview/unavailable', message: 'io' })
+    expect(failed.savedPendingRead).toBe(true)
+    expect(failed.toast).toBe(true)
+    // A resolving re-read clears the mark; a brand-new target resets all.
+    expect(transition(rereading, { type: 'READ_RESOLVED', file: FILE }).savedPendingRead).toBe(false)
+    expect(transition(failed, { type: 'READ_STARTED' }).savedPendingRead).toBe(false)
+  })
+
   it('TOAST_EXPIRED drops the toast', () => {
     const state = session(...edited, { type: 'SAVE_STARTED' }, { type: 'SAVE_RESOLVED', result: WRITE_OK }, { type: 'TOAST_EXPIRED' })
     expect(state.toast).toBe(false)

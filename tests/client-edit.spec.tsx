@@ -490,3 +490,139 @@ describe('inline-HTML warning bar (#17)', () => {
     expect(harness.container.querySelector('.dsh-md-preview-warnbar')).toBeNull()
   })
 })
+
+describe('save feedback and request isolation (#23)', () => {
+  it('shows one in-flight save and refuses a second submission', async () => {
+    const harness = await renderPanel()
+    let resolveWrite!: (value: { ok: true; value: MdPreviewWriteResult }) => void
+    harness.writeImpl = () => new Promise(resolve => { resolveWrite = resolve })
+    await enterEdit(harness)
+    await typeInto(harness, ' once')
+    await click(harness, 'panel.save')
+    expect(harness.write).toHaveBeenCalledTimes(1)
+    // In flight: the button reports busy and declines a repeat click…
+    const saveButton = byText(harness, 'panel.save')!
+    expect(saveButton.getAttribute('aria-busy')).toBe('true')
+    expect(saveButton.disabled).toBe(true)
+    expect(harness.container.querySelector('.dsh-md-preview-statusbar')?.textContent).toContain('status.saving')
+    await act(async () => { saveButton.click() })
+    expect(harness.write).toHaveBeenCalledTimes(1)
+    resolveWrite({ ok: true, value: { path: 'README.md', fingerprint: 'v2' } })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+  })
+
+  it('saves through the editor keymap with the same single-submission guard', async () => {
+    const harness = await renderPanel()
+    let resolveWrite!: (value: { ok: true; value: MdPreviewWriteResult }) => void
+    harness.writeImpl = () => new Promise(resolve => { resolveWrite = resolve })
+    await enterEdit(harness)
+    await typeInto(harness, ' key')
+    const view = EditorView.findFromDOM(harness.container.querySelector('.cm-editor') as HTMLElement)!
+    const binding = view.state.facet(keymap).flat().find(b => b.key === 'Mod-s')
+    expect(binding).toBeDefined()
+    await act(async () => { binding!.run!(view) })
+    expect(harness.write).toHaveBeenCalledTimes(1)
+    // The same in-flight feedback the button path shows.
+    expect(harness.container.querySelector('.dsh-md-preview-statusbar')?.textContent).toContain('status.saving')
+    resolveWrite({ ok: true, value: { path: 'README.md', fingerprint: 'v2' } })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+  })
+
+  it('separates a successful write from its failed re-read and retries the read', async () => {
+    const harness = await renderPanel()
+    await enterEdit(harness)
+    await typeInto(harness, ' more')
+    // The initial read already resolved; from here the seam reads the
+    // failure, so the post-save confirming re-read fails while the write
+    // itself succeeded.
+    harness.readResult = { ok: false, error: { code: 'md-preview/unavailable', message: 'disk busy' } }
+    await click(harness, 'panel.save')
+    // Distinguished: the save is acknowledged AND the read failure is spelled
+    // out as a read failure with a retry — never a write failure, never the
+    // stale pre-save body.
+    expect(harness.container.querySelector('.dsh-md-preview-toast')?.textContent).toContain('panel.saved')
+    expect(harness.container.textContent).toContain('panel.saved.readFailed')
+    expect(harness.container.textContent).toContain('md-preview/unavailable')
+    expect(harness.container.querySelector('.dsh-md-preview-body h1')).toBeNull()
+    // Read retry succeeds: the fresh content (the written draft) shows.
+    harness.readResult = { ok: true, value: { path: 'README.md', content: '# Hi more', fingerprint: 'v3' } }
+    await click(harness, 'panel.retry')
+    expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toBe('Hi more')
+    expect(harness.write).toHaveBeenCalledTimes(1)
+  })
+
+  it('a late save resolution after an approved close changes nothing', async () => {
+    const harness = await renderPanel()
+    let resolveWrite!: (value: { ok: true; value: MdPreviewWriteResult }) => void
+    harness.writeImpl = () => new Promise(resolve => { resolveWrite = resolve })
+    await enterEdit(harness)
+    await typeInto(harness, ' doomed')
+    await click(harness, 'panel.save')
+    expect(harness.write).toHaveBeenCalledTimes(1)
+    // The guard approves the close while the save is in flight.
+    await click(harness, 'panel.close')
+    await click(harness, 'panel.unsaved.discard')
+    expect(harness.container.querySelector('.dsh-md-preview-panel')).toBeNull()
+    resolveWrite({ ok: true, value: { path: 'README.md', fingerprint: 'v9' } })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    // Nothing resurrects: no panel, no toast, no error surface.
+    expect(harness.container.querySelector('.dsh-md-preview-panel')).toBeNull()
+    expect(harness.container.querySelector('.dsh-md-preview-toast')).toBeNull()
+  })
+
+  it('a late save resolution after a switch leaves the successor untouched', async () => {
+    const harness = await renderPanel()
+    let resolveFirst!: (value: { ok: true; value: MdPreviewWriteResult }) => void
+    harness.writeImpl = () => new Promise(resolve => { resolveFirst = resolve })
+    await enterEdit(harness)
+    await typeInto(harness, ' stale')
+    await click(harness, 'panel.save')
+    harness.setTarget({ sessionId: 'session-1', path: 'OTHER.md' })
+    await act(async () => { await Promise.resolve() })
+    resolveFirst({ ok: true, value: { path: 'README.md', fingerprint: 'v9' } })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    // The successor document carries no toast, no error, no saving state.
+    expect(harness.container.querySelector('.dsh-md-preview-toast')).toBeNull()
+    expect(harness.container.textContent).not.toContain('panel.saveError')
+    expect(harness.container.textContent).not.toContain('panel.conflict.title')
+    // And its own edit session can still save.
+    await enterEdit(harness)
+    await typeInto(harness, ' next')
+    harness.writeImpl = () => Promise.resolve({ ok: true, value: { path: 'OTHER.md', fingerprint: 'v10' } })
+    await click(harness, 'panel.save')
+    expect(harness.write).toHaveBeenCalledTimes(2)
+  })
+
+  it('maps a transport rejection to a retryable failure and keeps the draft', async () => {
+    const harness = await renderPanel()
+    harness.writeImpl = () => Promise.reject(new Error('transport boom'))
+    await enterEdit(harness)
+    await typeInto(harness, ' x')
+    await click(harness, 'panel.save')
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    // The draft stays; the failure is spelled out with its stable code.
+    expect(harness.container.querySelector('.cm-editor')).toBeTruthy()
+    const bar = harness.container.querySelector('.dsh-md-preview-bar[role="alert"]')
+    expect(bar?.textContent).toContain('panel.saveError')
+    expect(bar?.textContent).toContain('md-preview/unavailable')
+    expect(harness.container.querySelector('.dsh-md-preview-statusbar')?.textContent).toContain('status.saveFailed')
+    harness.writeImpl = () => Promise.resolve({ ok: true, value: { path: 'README.md', fingerprint: 'v9' } })
+    await click(harness, 'panel.save.retry')
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+  })
+
+  it('spells out the conflict consequences beside the two choices', async () => {
+    const harness = await renderPanel()
+    harness.writeResult = { ok: false, error: { code: 'md-preview/conflict', message: 'changed since read' } }
+    await enterEdit(harness)
+    await typeInto(harness, ' x')
+    await click(harness, 'panel.save')
+    const bar = harness.container.querySelector('.dsh-md-preview-bar[role="alert"]')
+    expect(bar?.textContent).toContain('panel.conflict.title')
+    expect(bar?.textContent).toContain('panel.conflict.hint')
+    expect(bar?.textContent).toContain('panel.conflict.reload')
+    expect(bar?.textContent).toContain('panel.conflict.force')
+  })
+})

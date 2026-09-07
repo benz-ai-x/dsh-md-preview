@@ -684,6 +684,25 @@ const CSS = `
   pointer-events: none;
   white-space: nowrap;
 }
+/* The in-flight save marker (#23): a small spinner in the save seat. */
+.dsh-md-preview-savebusy {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--dsw-alias-border-l3, var(--dsw-alias-border-l2));
+  border-top-color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  animation: dsh-md-preview-spin 0.8s linear infinite;
+}
+@keyframes dsh-md-preview-spin {
+  to { transform: rotate(360deg); }
+}
+/* The conflict bar's consequence line (#23): full-width caption under the
+ * title, above the two choices. */
+.dsh-md-preview-barhint {
+  flex-basis: 100%;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
 `
 
 let injected = false
