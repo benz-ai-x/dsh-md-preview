@@ -212,9 +212,16 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   // below the threshold the browse-face swap remains the fallback. Both are
   // component-local geometry state, like the dragged width — and the manual
   // collapse choice persists through the preference record (#26).
-  const [railCollapsed, setRailCollapsed] = useState(() => {
-    try { return preferences?.geometry().railCollapsed ?? false } catch { return false }
+  // The rail's collapse state (#11/#26/#27): a manual choice — this
+  // session's or the remembered one — or, until any exists, the open's
+  // intent: a direct document entry gives the body priority, an explicit
+  // workspace-browse entry expands the navigation. Derived at render so
+  // the first paint already carries the arrangement (no flash, no eager
+  // tree mount), and nothing re-decides a manual choice.
+  const [manualRailCollapsed, setManualRailCollapsed] = useState<boolean | null>(() => {
+    try { return preferences?.geometry().railCollapsed ?? null } catch { return null }
   })
+  const railCollapsed = manualRailCollapsed ?? target?.face !== 'browse'
   const widePanel = maximized || width >= RAIL_MIN_WIDTH
   const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); the choice is document-related
@@ -240,9 +247,10 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   }, [preferences])
   const onRailResize = useDragWidth(120, 320, 1, setRailWidth, recordDraggedGeometry)
   const onEdgeResize = useDragWidth(OVERLAY_MIN_WIDTH, OVERLAY_MAX_WIDTH, -1, setWidth, recordDraggedGeometry)
-  /** A user's rail collapse choice becomes the restore basis (#26). */
+  /** A user's rail collapse choice becomes the restore basis (#26) and
+   * ends the automatic intent arrangement (#27). */
   const collapseRail = useCallback((next: boolean): void => {
-    setRailCollapsed(next)
+    setManualRailCollapsed(next)
     try { preferences?.recordGeometry({ railCollapsed: next }) } catch { /* hostile store */ }
   }, [preferences])
   /** The files/outline choice is remembered per owning session (#26). */
@@ -1011,9 +1019,14 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                 </div>
               )}
               {state.content.state === 'ready' && (
-                isEditable(target.path)
-                  ? <MarkdownText text={state.content.file.content} labels={labels} />
-                  : <pre className="dsh-md-preview-plaintext">{state.content.file.content}</pre>
+                // The read measure (#27): the body centers on a reading
+                // measure instead of stretching with the panel — one
+                // measure for normal widths, a wider one when maximized.
+                <div className="dsh-md-preview-read">
+                  {isEditable(target.path)
+                    ? <MarkdownText text={state.content.file.content} labels={labels} />
+                    : <pre className="dsh-md-preview-plaintext">{state.content.file.content}</pre>}
+                </div>
               )}
             </>
           )

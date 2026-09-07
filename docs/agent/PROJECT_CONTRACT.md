@@ -94,7 +94,16 @@ remembered sessions; degraded to memory when storage fails). Restored
 widths clamp into the support range and the live viewport; an absent
 preference derives from the viewport instead of falling to the minimum,
 and threshold crossings or maximize round-trips never overwrite a manual
-width. The browse face
+width. Until any manual choice exists, the panel arranges space by the
+open's intent (#27): a direct document entry opens body-first (the rail
+stays out of the way, expandable at any time), while an explicit
+workspace-browse entry expands the navigation; a manual choice — this
+session's or the remembered one — always outranks the automatic
+arrangement across renders and document switches. The rendered body
+centers on a reading measure with one width for normal panels and a
+wider, more spacious one when maximized; long tables and code blocks
+scroll inside their own regions, and the header's necessary actions stay
+reachable at every width. The browse face
 silently revalidates every expanded directory on re-entry (and from its
 refresh button): fresh listings replace current ones, a failed refresh
 changes nothing. After the platform renderer settles the document, a diagram
