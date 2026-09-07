@@ -16,7 +16,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { EditorView } from '@codemirror/view'
 import { openSearchPanel } from '@codemirror/search'
 import { redo, undo } from '@codemirror/commands'
-import type { MdPreviewFile, MdPreviewListResult, MdPreviewWriteResult } from '../protocol.ts'
+import type { MdPreviewFile, MdPreviewListResult, MdPreviewSearchResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
 import { isEditable } from './preview-state.ts'
 import { isDirty } from './preview-session.ts'
@@ -66,6 +66,12 @@ export interface PreviewOverlayInjected {
     path: string,
     signal: AbortSignal,
   ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewListResult>>
+  /** One workspace document search; the transport carries the AbortSignal. */
+  search(
+    sessionId: SessionId,
+    query: string,
+    signal: AbortSignal,
+  ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewSearchResult>>
   /** The reading record store (#25): per-(session, path) positions. */
   reading: ReadingStore
   /** The panel preference record (#26): manual geometry and navigation choices. */
@@ -157,7 +163,7 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, reading, preferences, t, headerStrip }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, search, reading, preferences, t, headerStrip }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
   const stripStore = headerStrip ?? NO_STRIP
   const session = usePanelDocumentSession({ read, write, close }, target)
@@ -614,14 +620,14 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     if (railVisible || face === 'browse') setBrowserEverOpened(true)
   }, [railVisible, face])
 
-  // Opening the panel hands focus to the tree filter (#9): Esc and the
+  // Opening the panel hands focus to the search box (#9): Esc and the
   // tree's keyboard model go live without a click first. One frame late —
   // the tree itself mounts in the effect pass above.
   const opened = target !== null
   useEffect(() => {
     if (!opened) return
     const frame = requestAnimationFrame(() => {
-      document.querySelector<HTMLInputElement>('.dsh-md-preview-treefilter')?.focus()
+      document.querySelector<HTMLInputElement>('.dsh-md-preview-searchinput')?.focus()
     })
     return () => { cancelAnimationFrame(frame) }
   }, [opened])
@@ -920,6 +926,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                     sessionId={target.sessionId}
                     active={railVisible || face === 'browse'}
                     list={list}
+                    search={search}
                     onOpenFile={openFromBrowser}
                     currentPath={target.path}
                     continueTarget={continueTarget}

@@ -4,21 +4,24 @@ import { describe, expect, it } from 'vitest'
 import { isTypertRemoteSegment } from '@deepseek-ai/dsh-typert-protocol'
 import { TYPERT_REMOTE } from '../src/typert/remote-client.ts'
 
-const [descriptor, writeDescriptor, listDescriptor] = TYPERT_REMOTE.descriptors
+const [descriptor, writeDescriptor, listDescriptor, searchDescriptor] = TYPERT_REMOTE.descriptors
 if (descriptor === undefined) throw new Error('contribution must carry the read descriptor')
 if (writeDescriptor === undefined) throw new Error('contribution must carry the write descriptor')
 if (listDescriptor === undefined) throw new Error('contribution must carry the list descriptor')
+if (searchDescriptor === undefined) throw new Error('contribution must carry the search descriptor')
 
 describe('TYPERT_REMOTE', () => {
-  it('names this package and its read, write, and list methods', () => {
+  it('names this package and its read, write, list, and search methods', () => {
     expect(TYPERT_REMOTE.package).toBe('@benz-ai-x/dsh-md-preview')
-    expect(TYPERT_REMOTE.descriptors).toHaveLength(3)
+    expect(TYPERT_REMOTE.descriptors).toHaveLength(4)
     expect(descriptor.method).toBe('read')
     expect(writeDescriptor.method).toBe('write')
     expect(listDescriptor.method).toBe('list')
+    expect(searchDescriptor.method).toBe('search')
     expect(descriptor.mode).toBeUndefined()
     expect(writeDescriptor.mode).toBeUndefined()
     expect(listDescriptor.mode).toBeUndefined()
+    expect(searchDescriptor.mode).toBeUndefined()
   })
 
   it('carries wire-legal segments', () => {
@@ -29,9 +32,11 @@ describe('TYPERT_REMOTE', () => {
     expect(descriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/read')
     expect(writeDescriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/write')
     expect(listDescriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/list')
+    expect(searchDescriptor.id).toBe('@benz-ai-x/dsh-md-preview#mdPreview/search')
     expect(descriptor.service).toBe('mdPreview')
     expect(writeDescriptor.service).toBe('mdPreview')
     expect(listDescriptor.service).toBe('mdPreview')
+    expect(searchDescriptor.service).toBe('mdPreview')
   })
 
   it('takes the session identity as an explicit first business argument', () => {
@@ -116,5 +121,31 @@ describe('TYPERT_REMOTE', () => {
     const result = writeDescriptor.result.mode === 'strict' ? writeDescriptor.result.schema : undefined
     expect(result?.parse({ path: 'README.md', fingerprint: 'v2' })).toEqual({ path: 'README.md', fingerprint: 'v2' })
     expect(() => result?.parse({ path: 'README.md' })).toThrow()
+  })
+
+  it('takes the search query with session identity and transport cancellation', () => {
+    expect(searchDescriptor.invocation).toEqual({ kind: 'direct' })
+    expect(searchDescriptor.parameters.map(parameter => parameter.wire)).toEqual(['sessionId', 'query'])
+    const query = searchDescriptor.parameters[1]
+    expect(query?.codec.mode === 'strict' ? query.codec.schema.parse('gu') : undefined).toBe('gu')
+    expect(() => query?.codec.mode === 'strict' ? query.codec.schema.parse('') : undefined).toThrow()
+    expect(searchDescriptor.cancellation).toEqual({ parameter: 'signal' })
+    expect(searchDescriptor.result.mode).toBe('strict')
+  })
+
+  it('round-trips the search result codec with its completeness vocabulary', () => {
+    const result = searchDescriptor.result.mode === 'strict' ? searchDescriptor.result.schema : undefined
+    const answer = {
+      query: 'guide',
+      matches: [{ name: 'guide.md', path: 'docs/guide.md' }],
+      complete: false,
+      limits: ['directory-failure', 'result-limit'],
+    }
+    expect(result?.parse(answer)).toEqual(answer)
+    expect(result?.parse({ query: 'x', matches: [], complete: true, limits: [] }))
+      .toEqual({ query: 'x', matches: [], complete: true, limits: [] })
+    // The limit vocabulary is closed: unknown reasons fail the wire boundary.
+    expect(() => result?.parse({ query: 'x', matches: [], complete: false, limits: ['nope'] })).toThrow()
+    expect(() => result?.parse({ query: 'x', matches: [], complete: true })).toThrow()
   })
 })

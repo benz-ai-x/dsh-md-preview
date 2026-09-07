@@ -69,9 +69,23 @@ retry, and the stale pre-save body never returns. Undo/redo buttons surface
 the editor
 history; Mod-B/I/K wrap selections in markup with the ?/Mod-/ popover
 listing the keys; a document containing inline HTML warns once per edit
-session that the edit face is plain text. The tree's filter box narrows
-entries by substring — hits highlight, a name-matched directory keeps its
-subtree, and clearing restores the tree. Reopening a document restores the
+session that the edit face is plain text. The browse area's search box is a
+workspace document search (#30) — unlike the editor's in-document find, it
+searches document names across the whole session workspace, unexpanded
+directories included, through a cancellable host traversal that never reads
+file bodies. Typing debounces into one search; while a query is live the
+results list replaces the tree (kept mounted and hidden), each result naming
+the document and its workspace-relative path so same-name documents stay
+apart, and opening one rides the same leave-guarded open path with a fresh
+read — a search result is never a read grant. States stay distinguishable:
+搜索中… while in flight; 没有结果 only when the search completed whole with
+zero hits; an incomplete answer states 结果不完整 with its reasons (部分目录
+无法读取 / 已达遍历目录上限 / 已达结果数量上限) and keeps what it found; a
+failure names its stable code with a retry. A new query cancels the previous
+search's work and a late answer never overwrites the live one; clearing the
+query, switching the owning session, or disposing the panel cancels
+everything pending, and clearing restores the exact tree expansion state the
+reader left (silent revalidation untouched). Reopening a document restores the
 reading position (#25): the open always re-reads the workspace's latest
 content through the Remote first, and once the rendered document settles,
 one restore per open scrolls back to the recorded section — matched by
@@ -129,8 +143,10 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
 - **Host half** (`src/index.ts` → `lib/index.js`): namespace function plugin
   registering `MdPreviewService` (a `TypertRemoteService`, service key
   `mdPreview`, namespace `mdPreview`) exposing
-  `read(sessionId, path, signal)` and
-  `write(sessionId, path, content, fingerprint | force, signal)`.
+  `read(sessionId, path, signal)`,
+  `write(sessionId, path, content, fingerprint | force, signal)`,
+  `list(sessionId, path, signal)`, and
+  `search(sessionId, query, signal)`.
 - **Client half** (`src/client/index.ts` → `lib/client.js`): browser bundle
   in the DSH lazy-CJS factory protocol (minified); mounts the hand-maintained
   Remote contribution (`src/typert/remote-client.ts` →
@@ -193,6 +209,22 @@ failure codes (declared in `RemoteErrorDetailsMap`, thrown as `RemoteError`):
 cancellation propagates through resolve/stat/read/write and is never mapped
 to a business failure.
 
+`search` traverses the session workspace through the same authority chain
+(session → cwd → root resolve → containment) as a breadth-first walk over
+directory listings: entries stay inside the workspace (`ctx.fs.contains`),
+revisiting link targets is deduped by resolved path so links cannot loop or
+widen the walk, no file body is ever read, and the walk carries bounds —
+`searchConcurrency` parallel listings at a time (default 8), at most
+`searchMaxDirectories` directories admitted (default 2000), at most
+`searchMaxResults` matches returned (default 200; measured basis: real DSH
+agent workspaces hold tens to low hundreds of documents and shallow trees, so
+the defaults only bind pathological workspaces). First-version matching is a
+case-insensitive substring test on entry names, restricted to the previewable
+extension union. The answer carries `complete` plus `limits` —
+`directory-failure` when a listing failed, `traversal-limit` /
+`result-limit` when a bound stopped the walk — and the client renders
+"no results" only from a complete answer.
+
 The client passes the session identity explicitly as the first business
 argument (the `goals/*` direct calling convention) rather than relying on the
 agent Context scope, because the panel and actions call from root-scoped
@@ -236,8 +268,11 @@ contexts.
 ## Configuration
 
 `maxBytes` (default 1048576, caps reads and writes), `allowedExtensions`
-(default `[".md", ".markdown"]`) — validated by the schemastery `Config`
-twin during load.
+(default `[".md", ".markdown"]`), `previewExtensions` (default
+`[".md", ".markdown", ".txt"]`), and the workspace search bounds
+`searchMaxResults` (default 200), `searchMaxDirectories` (default 2000),
+`searchConcurrency` (default 8) — validated by the schemastery `Config`
+twin during load; defaults live in the schema.
 
 ## Delivery
 

@@ -619,7 +619,7 @@ const CSS = `
 .dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read :where(h1, h2, h3) {
   margin-top: 36px;
 }
-.dsh-md-preview-treefilter {
+.dsh-md-preview-searchinput {
   flex: 1;
   min-width: 0;
   border: 1px solid var(--dsw-alias-border-l2);
@@ -629,6 +629,61 @@ const CSS = `
   line-height: 1.4;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-base);
+}
+/* The clear (✕) seat beside the workspace search box (#30): same quiet
+ * 22px hit area language as the refresh button. */
+.dsh-md-preview-searchclear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+.dsh-md-preview-searchclear:hover { background: var(--dsw-alias-fill-secondary); color: var(--dsw-alias-label-primary); }
+/* The workspace search results (#30): one column of option rows under the
+ * toolbar, same row rhythm as the tree. The name carries the hit mark; the
+ * path rides a quieter second span so same-name documents stay apart. */
+.dsh-md-preview-searchresults {
+  list-style: none;
+  margin: 0;
+  padding: 2px 0;
+}
+.dsh-md-preview-searchitem {
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dsh-md-preview-searchitem[aria-selected='true'] { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-searchitem:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-searchrow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: var(--dsh-alias-label-primary);
+}
+.dsh-md-preview-searchpath {
+  flex: none;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+}
+.dsh-md-preview-searchlimit {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--dsw-alias-label-secondary);
 }
 .dsh-md-preview-treename mark {
   background: none;

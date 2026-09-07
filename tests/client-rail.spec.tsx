@@ -435,13 +435,13 @@ describe('overlay interaction fixes (P0 batch)', () => {
 })
 
 describe('open focus (#9)', () => {
-  it('hands focus to the tree filter when the panel opens', async () => {
+  it('hands focus to the workspace search box when the panel opens', async () => {
     const harness = await renderRail(TREE)
     harness.setTarget({ sessionId: 'session-1', path: '', face: 'browse' })
     await harness.rerender()
     await flush()
     await act(async () => { await new Promise(resolve => { setTimeout(resolve, 20) }) })
-    expect(document.activeElement?.classList.contains('dsh-md-preview-treefilter')).toBe(true)
+    expect(document.activeElement?.classList.contains('dsh-md-preview-searchinput')).toBe(true)
   })
 })
 

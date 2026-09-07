@@ -17,7 +17,7 @@ import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { buildRenderApp } from '#harness/renderer/app'
 import { createSlotRenderer } from '#harness/renderer/scoped-slots'
 import { EditorView } from '@codemirror/view'
-import { beforeAll, afterEach, describe, expect, it } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { mountMdPreview } from '../src/client/mount.ts'
 import { TYPERT_REMOTE } from '../src/typert/remote-client.ts'
 
@@ -65,6 +65,7 @@ function chatSnapshotOf(produced: ReadonlyArray<{ seq: number; path: string }>) 
 interface AssemblyBench {
   container: HTMLElement
   reads: Array<{ sessionId: string; path: string }>
+  searches: Array<{ sessionId: string; query: string }>
   writes: Array<{ path: string; content: string }>
   files: Map<string, string>
   disposeMount(): Promise<void>
@@ -82,6 +83,7 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>):
   const bench: AssemblyBench = {
     container: document.createElement('div'),
     reads: [],
+    searches: [],
     writes: [],
     files: new Map([
       ['guide.md', '# Guide\n\nbody'],
@@ -111,6 +113,14 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>):
     list: (sessionId: string, path: string) => {
       const entries = [...bench.files.keys()].map(name => ({ name, type: 'file' as const, path: name }))
       return Promise.resolve({ ok: true as const, value: { path, entries } })
+    },
+    search: (sessionId: string, query: string) => {
+      bench.searches.push({ sessionId, query })
+      const q = query.toLowerCase()
+      const matches = [...bench.files.keys()]
+        .filter(name => name.toLowerCase().includes(q))
+        .map(name => ({ name, path: name }))
+      return Promise.resolve({ ok: true as const, value: { query, matches, complete: true, limits: [] } })
     },
   }
   const remoteTable = {
@@ -329,6 +339,35 @@ describe('client assembly against the real slot machinery (#21)', () => {
       expect((bench.container.querySelector('.dsh-md-preview-crumbs') as HTMLElement).getAttribute('title')).toContain('guide.md')
       expect(bench.reads.filter(read => read.path === 'notes.md')).toHaveLength(0)
     } finally {
+      await bench.unmount()
+    }
+  })
+
+  it('wires the workspace search from the Remote boundary to the browse area (#30)', async () => {
+    const bench = await assemble(PRODUCED)
+    try {
+      await act(async () => { buttonByAria(bench, 'Workspace docs')!.click() })
+      await flush()
+      const input = bench.container.querySelector('.dsh-md-preview-searchinput') as HTMLInputElement
+      expect(input).toBeTruthy()
+      vi.useFakeTimers()
+      await act(async () => {
+        const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+        set.call(input, 'guide')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+      await act(async () => { vi.advanceTimersByTime(250) })
+      await act(async () => { await Promise.resolve(); await Promise.resolve() })
+      // The mounted Remote namespace answered with the fake workspace's match.
+      expect(bench.searches).toEqual([{ sessionId: SESSION, query: 'guide' }])
+      const option = bench.container.querySelector<HTMLElement>('[role="option"][data-path="guide.md"]')
+      expect(option).toBeTruthy()
+      await act(async () => { option!.click() })
+      await flush()
+      // Opening the result read the document fresh through the same seam.
+      expect(bench.reads.at(-1)).toEqual({ sessionId: SESSION, path: 'guide.md' })
+    } finally {
+      vi.useRealTimers()
       await bench.unmount()
     }
   })

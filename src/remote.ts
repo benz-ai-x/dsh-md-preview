@@ -12,7 +12,10 @@ import type { FsDirEntry, FsInfo, FsTarget, FsVersion } from '@deepseek-ai/dsh-f
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Config } from './config.ts'
-import type { MdPreviewEntry, MdPreviewFile, MdPreviewFailureCode, MdPreviewListResult, MdPreviewWriteResult } from './protocol.ts'
+import type {
+  MdPreviewEntry, MdPreviewFile, MdPreviewFailureCode, MdPreviewListResult,
+  MdPreviewSearchLimit, MdPreviewSearchMatch, MdPreviewSearchResult, MdPreviewWriteResult,
+} from './protocol.ts'
 
 /** Business rejection with a stable code; the transport preserves it verbatim. */
 function failure(code: MdPreviewFailureCode, message: string): RemoteError {
@@ -204,6 +207,86 @@ export class MdPreviewService extends TypertRemoteService {
   }
 
   /**
+   * Search previewable documents by name across the whole session workspace,
+   * including directories the browser face never expanded. First-version
+   * semantics: case-insensitive substring match on the entry name. The walk
+   * stays inside the session authority (root resolve + containment, visited
+   * dedupe so links cannot loop it), never reads file bodies, and reports
+   * honestly whether the answer is complete — a permission failure, a
+   * traversal bound, or the result cap each mark it incomplete with the
+   * matching limit.
+   * @param sessionId - owning session; its header cwd roots the walk.
+   * @param query - raw search text; matched case-insensitively against names.
+   * @param signal - caller cancellation carried through every fs call.
+   * @returns the query, its matches with workspace-relative paths, and
+   *   whether the walk finished whole.
+   * @throws RemoteError with a stable MdPreview failure code.
+   */
+  @Remote
+  async search(sessionId: SessionId, query: string, signal: AbortSignal): Promise<MdPreviewSearchResult> {
+    const q = query.trim().toLowerCase()
+    if (q.length === 0) {
+      throw failure('md-preview/bad-request', 'mdPreview/search requires a non-empty query')
+    }
+    const { root } = await this.resolveContainedTarget(sessionId, '', signal, 'search')
+    const rootPath = root.displayPath
+    const previewable = [...this.config.allowedExtensions, ...this.config.previewExtensions]
+    const matches: MdPreviewSearchMatch[] = []
+    const limits = new Set<MdPreviewSearchLimit>()
+    // BFS over directory targets, keyed by resolved display path so a
+    // revisiting link target never re-enters the walk. `visited` counts
+    // every directory admitted to the walk; the traversal bound caps it.
+    const visited = new Set<string>([rootPath])
+    let frontier: string[] = [rootPath]
+    while (frontier.length > 0) {
+      if (signal.aborted) throw new DOMException('aborted', 'AbortError')
+      const batch = frontier.splice(0, this.config.searchConcurrency)
+      const listings = await Promise.all(batch.map(async dirPath => {
+        try {
+          const entries = await this.ctx.fs.listDir({ displayPath: dirPath } as FsTarget, signal)
+          return { entries: entries as readonly FsDirEntry[] }
+        } catch (error) {
+          if (signal.aborted) throw error
+          return { entries: null }
+        }
+      }))
+      for (const { entries } of listings) {
+        if (entries === null) {
+          limits.add('directory-failure')
+          continue
+        }
+        for (const entry of entries) {
+          if (entry.type === 'file' && entry.name.toLowerCase().includes(q)
+            && isAllowedExtension(entry.name, previewable)) {
+            matches.push({
+              name: entry.name,
+              path: workspaceRelative(rootPath, entry.target.displayPath, entry.name),
+            })
+          }
+          if (entry.type !== 'directory') continue
+          const child = entry.target.displayPath
+          // Containment and visited-dedupe keep the walk inside the
+          // workspace and finite even when links point back up the tree.
+          if (visited.has(child) || !this.ctx.fs.contains(root, entry.target)) continue
+          if (visited.size >= this.config.searchMaxDirectories) {
+            limits.add('traversal-limit')
+            continue
+          }
+          visited.add(child)
+          frontier.push(child)
+        }
+      }
+      if (matches.length >= this.config.searchMaxResults) {
+        limits.add('result-limit')
+        matches.length = this.config.searchMaxResults
+        break
+      }
+    }
+    matches.sort((a, b) => a.path.localeCompare(b.path))
+    return { query, matches, complete: limits.size === 0, limits: [...limits] }
+  }
+
+  /**
    * The shared authority preamble of the remote methods: resolve a path to a
    * live, contained, regular workspace file, or reject it with the stable
    * failure code. One home for the check order and the aborted-rethrow
@@ -254,7 +337,7 @@ export class MdPreviewService extends TypertRemoteService {
     sessionId: SessionId,
     path: string,
     signal: AbortSignal,
-    op: 'read' | 'write' | 'list',
+    op: 'read' | 'write' | 'list' | 'search',
   ): Promise<{ root: FsTarget; target: FsTarget; cwd: string }> {
     const session = this.ctx.sessions.get(sessionId)
     if (session === undefined) {
