@@ -73,7 +73,10 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-2 ④ 隔离评审进行中（pr2-review）
+- 上次中断位置：PR-2 ④ 评审暂挂——pr2-review 于 00:32 撞 429（全部模型共享同一 5h 窗口，02:12:09 重置；pr2-dev 00:08 撞墙后已交付完整回传并待命待修复任务）。已设 02:13 one-shot 唤醒 pr2-review 继续评审
+- 若唤醒失败：按本文件对账（PR #34 in-review、verify 252/252 已实测、main 无漂移），重派全新评审 agent（派发模板见 dispatch-templates.md 第 2 节 + 双专项 correctness/断言质量）
+- PR-2 ②③ 完成：五票 AC 全勾（#29 走查证据 docs/verification/r2-acceptance/，16 截图；走查发现缩窗宽度不重钳缺陷已修复+回归锁定；恢复操作成本 R1 3 次 → R2 1 次）；pnpm verify exit 0（252/252，调度实测复核）；main 无漂移；PR #34 已建（Closes #25-#29）
+- 下一步：④ 评审回传 → 无 blocking 则 ⑤⑥⑦ → PR-3 ①
 - PR-2 ②③ 完成：五票 8/8、7/7、8/8、7/7、8/8 AC 全勾（#29 走查证据 docs/verification/r2-acceptance/，16 截图；走查发现缩窗宽度不重钳缺陷已修复+回归锁定；恢复操作成本 R1 3 次 → R2 1 次）；pnpm verify exit 0（252/252，调度实测复核）；main 无漂移；PR #34 已建（Closes #25-#29）
 - 下一步：④ 评审回传 → 无 blocking 则 ⑤⑥⑦ → PR-3 ①
 - PR-1 流程完整记录：② 四票 8/8 AC（两次独立真机走查互为复核）→ ③ verify exit 0 + PR #33 → ④ 轮 1 发现 1 blocking（reload 分支零交互覆盖）→ 修复 5248ec7 → 轮 2 复核通过 → ⑤ 闸门三绿 → ⑥ 总检 8/8 + rebase 合并 → main 回归绿
