@@ -21,6 +21,7 @@ import { WorkspaceDocsAction } from './WorkspaceDocsAction.tsx'
 import { en, NS, zh } from './locale.ts'
 import { createPreviewStore } from './preview-state.ts'
 import { createLeaveIntentSeat } from './leave-intent.ts'
+import { browserStorage, createMemoryStorage, createReadingStore } from './reading.ts'
 import { selectMdTurnFiles } from './turn-files.ts'
 import { ensureStyles } from './styles.ts'
 
@@ -46,6 +47,10 @@ function registerUi(ctx: ClientContext): void {
   // bottom; the panel starts below it so the entry stays clickable while
   // open. Plain UI-local geometry — zero when nothing publishes.
   const headerStrip = createSnapshotStore<number>(0)
+  // The reading record (#25): per-(session, path) positions over the
+  // browser's localStorage when reachable, else in-memory for the session.
+  // UI-local viewing state only — positions, never bodies or fingerprints.
+  const reading = createReadingStore(browserStorage() ?? createMemoryStorage())
   const openPreview = (sessionId: SessionId) => (path: string): void => {
     leave.request({ kind: 'open', target: { sessionId, path } })
   }
@@ -90,6 +95,7 @@ function registerUi(ctx: ClientContext): void {
       read,
       write,
       list,
+      reading,
     }),
   }, PreviewOverlay))
 

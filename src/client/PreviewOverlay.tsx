@@ -21,6 +21,8 @@ import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
 import { isEditable } from './preview-state.ts'
 import { isDirty } from './preview-session.ts'
 import type { LeaveIntentSeat } from './leave-intent.ts'
+import type { ReadingPosition, ReadingStore } from './reading.ts'
+import { applyReadingPosition, captureViewPosition } from './reading.ts'
 import { activeIndexForLine, activeIndexForScroll, extractOutline, findHeadingElement } from './outline.ts'
 import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.ts'
 import { MarkdownEditor, type EditorStatus, type SearchStatus } from './editor.tsx'
@@ -62,6 +64,8 @@ export interface PreviewOverlayInjected {
     path: string,
     signal: AbortSignal,
   ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewListResult>>
+  /** The reading record store (#25): per-(session, path) positions. */
+  reading: ReadingStore
 }
 
 /** Full composed panel props. */
@@ -152,7 +156,7 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, t, headerStrip }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, reading, t, headerStrip }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
   const stripStore = headerStrip ?? NO_STRIP
   const session = usePanelDocumentSession({ read, write, close }, target)
@@ -288,6 +292,120 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     () => state.content.state === 'ready' ? extractOutline(state.content.file.content) : [],
     [state.content],
   )
+
+  // Reading continuity (#25). One restore per open: `openId` increments at
+  // every open boundary (target change, close→reopen) and a restore may
+  // fire only while its open has not consumed one. The pending restore
+  // rides one animation frame so the freshly rendered document settles
+  // first (diagram pass included); a scroll or outline navigation before
+  // that frame cancels it — the reader who moved first is never pulled
+  // back. Positions capture synchronously from the scroll events and flush
+  // to the store on close, switch, unmount, and (debounced) while reading,
+  // so a reload without a close still persists.
+  const [openId, setOpenId] = useState(0)
+  const openIdentity = useRef<{ sessionId: SessionId; path: string } | null>(null)
+  const lastOpenKey = useRef('')
+  const latestPosition = useRef<ReadingPosition | null>(null)
+  const restorePending = useRef<{ frame: number } | null>(null)
+  const restoredOpen = useRef(-1)
+  const writeTimer = useRef<number | null>(null)
+  const flushPosition = useCallback((): void => {
+    if (writeTimer.current !== null) {
+      window.clearTimeout(writeTimer.current)
+      writeTimer.current = null
+    }
+    const identity = openIdentity.current
+    const position = latestPosition.current
+    openIdentity.current = null
+    latestPosition.current = null
+    if (reading === undefined || identity === null || position === null) return
+    try { reading.record(identity.sessionId, identity.path, position) } catch { /* hostile store: reading state only */ }
+  }, [reading])
+  const flushRef = useRef(flushPosition)
+  flushRef.current = flushPosition
+  useEffect(() => {
+    if (target === null) {
+      // The open is over (closed): record what the last scroll observed.
+      flushPosition()
+      lastOpenKey.current = ''
+      return
+    }
+    const key = `${target.sessionId} ${target.path}`
+    if (lastOpenKey.current === key) return
+    // A different document takes the stage: the previous open's position
+    // is already captured in the ref — flush it, then start the new open.
+    flushPosition()
+    lastOpenKey.current = key
+    openIdentity.current = { sessionId: target.sessionId, path: target.path }
+    restoredOpen.current = -1
+    setOpenId(value => value + 1)
+  }, [target, flushPosition])
+  // Unmount (dispose) still records: the position survives the teardown.
+  useEffect(() => () => { flushRef.current() }, [])
+
+  // Arm the one restore of this open once the fresh content is rendered.
+  useEffect(() => {
+    if (reading === undefined || target === null || target.path === '') return
+    if (face !== 'document' || state.face !== 'view' || state.content.state !== 'ready') return
+    if (restoredOpen.current === openId) return
+    restoredOpen.current = openId
+    let position: ReadingPosition | null = null
+    try { position = reading.get(target.sessionId, target.path) } catch { /* hostile store: no restore */ }
+    if (position === null) return
+    const restore = position
+    const frame = requestAnimationFrame(() => {
+      restorePending.current = null
+      const container = documentRef.current
+      if (container === null) return
+      applyReadingPosition(container, outline, restore)
+    })
+    restorePending.current = { frame }
+    return () => {
+      if (restorePending.current?.frame === frame) {
+        cancelAnimationFrame(frame)
+        restorePending.current = null
+      }
+    }
+  }, [reading, target, openId, face, state.face, state.content.state, outline])
+
+  // The capture listener: cancels a pending restore (the reader moved
+  // first) and keeps the latest observed position; the store write itself
+  // is debounced so a reading burst costs nothing.
+  useEffect(() => {
+    const container = documentRef.current
+    if (container === null) return
+    const capture = (): ReadingPosition | null => {
+      if (target === null || target.path === '' || face !== 'document'
+        || state.face !== 'view' || state.content.state !== 'ready') return null
+      return captureViewPosition(container, outline, Date.now())
+    }
+    const onScroll = (): void => {
+      if (restorePending.current !== null) {
+        cancelAnimationFrame(restorePending.current.frame)
+        restorePending.current = null
+      }
+      const captured = capture()
+      if (captured !== null) latestPosition.current = captured
+      if (writeTimer.current === null) {
+        writeTimer.current = window.setTimeout(() => {
+          writeTimer.current = null
+          const identity = openIdentity.current
+          const position = latestPosition.current
+          if (reading === undefined || identity === null || position === null) return
+          try { reading.record(identity.sessionId, identity.path, position) } catch { /* hostile store */ }
+        }, 600)
+      }
+    }
+    container.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    return () => {
+      container.removeEventListener('scroll', onScroll, { capture: true })
+      if (writeTimer.current !== null) {
+        window.clearTimeout(writeTimer.current)
+        writeTimer.current = null
+      }
+    }
+  }, [reading, target, face, state.face, state.content, outline])
+
   // The outline popover dies with the face switch and the editor view with
   // its mount; both are navigation aids, not session state.
   useEffect(() => { setOutlineOpen(false) }, [face])
@@ -360,6 +478,12 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     setOutlineOpen(false)
     const entry = outline[index]
     if (entry === undefined) return
+    // Navigation is the reader acting first (#25): a restore still waiting
+    // for its frame is dead — the jump wins, the old position never returns.
+    if (restorePending.current !== null) {
+      cancelAnimationFrame(restorePending.current.frame)
+      restorePending.current = null
+    }
     // The session's edit face (state.face), not the panel's browse face.
     if (state.face === 'edit') {
       const view = editorViewRef.current
@@ -835,6 +959,15 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                     onClick={actions.retryRead}
                   >
                     {t('panel.retry')}
+                  </button>
+                  {/* A moved, deleted, or unreadable document (#25): the way
+                    * back to finding documents is one explicit click away. */}
+                  <button
+                    type="button" className="dsh-md-preview-retry"
+                    aria-label={t('panel.failBrowse')}
+                    onClick={() => { setBrowserEverOpened(true); setFace('browse') }}
+                  >
+                    {t('panel.failBrowse')}
                   </button>
                 </div>
               )}
