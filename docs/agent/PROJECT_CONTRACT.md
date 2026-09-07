@@ -337,3 +337,10 @@ compose, boot, serve the client bundle, remove.
   `.md-code-block`s: any document mixing indented code blocks with fenced
   ones refuses the pass wholesale, mermaid renders with its default theme,
   and only fenced ` ```mermaid ` blocks qualify.
+- Workspace search matches document **names** (case-insensitive substring,
+  first-version semantics): directory names never match, and same-name
+  results are told apart only by the rendered workspace-relative path.
+- Documents read without ever scrolling leave no reading record (the record
+  is position facts, not an access log), so they never appear in 「最近阅读」;
+  a dead record holds the 「继续阅读」 seat until a later read replaces it
+  (opening it then lands on the normal failure state with the way back).
