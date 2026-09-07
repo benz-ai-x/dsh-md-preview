@@ -25,7 +25,7 @@ stdout**(否则 npm 判非交互直抛 EOTP),保持真 pty 再 send-keys Enter�
 | `docs/agent/PROJECT_CONTRACT.md` | 行为契约:权威、失败码、状态归属、验收断言 |
 | `CONTEXT.md` | 领域词汇表(含 _Avoid_ 弃用词);新概念必须入册 |
 | `docs/adr/0001-0003` | 三条已决:FsVersion 乐观锁、写入沙箱以会话工作区为根、peers 只放 host 运行时 external |
-| `TODO.md` | 全程履历(每个版本、每次事故、每个修复) |
+| `TODO.md` | 当前状态、未完成事项与发布记录入口(历史细节查 Git) |
 | `docs/agents/issue-tracker.md` | issue 走 GitHub Issues(`gh`) |
 | `docs/research/workspace-browser-ux.md` | 浏览脸 UX 的证据基线(改树交互前先读) |
 | GitHub | spec #1(待人工验收关闭)、票 #2-#6(已关)、PR #7(已合) |
@@ -69,7 +69,7 @@ stdout**(否则 npm 判非交互直抛 EOTP),保持真 pty 再 send-keys Enter�
 - [x] `npm deprecate @benz-ai-x/dsh-md-preview@0.2.4`(2026-09-06 完成,
       "stale client bundle; use >=0.2.5",走 tmux 真 pty + 浏览器授权)
 - [x] 0.6.0 浏览器端到端:编辑→保存→冲突条三段自动化实测通过;强制覆盖/
-      重新加载两点击因并发手动导航未点成(见 TODO 0.2.0 节更新)
+      重新加载两点击因并发手动导航未点成(待补验，见 TODO「验证与评估」)
 - [ ] 独立双轴审查(自查版已做并修复 5 项;子代理版因 API 配额限流未跑,可择机补)
 - [ ] 架构留观候选:classifyProduced 收拢(三处重复循环)、线契约 zod 单源(见架构报告,docs/research 或 issue 历史)
 - [ ] HMR 热替换走查(TODO 长期项;需 dev-link profile + watch:client 的专用 rig)
