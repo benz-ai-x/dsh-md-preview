@@ -10,6 +10,7 @@ import { act } from 'react-dom/test-utils'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { createPreviewStore } from '../src/client/preview-state.ts'
 import type { MdPreviewEntry, MdPreviewFile, MdPreviewListResult } from '../src/protocol.ts'
 
@@ -29,6 +30,7 @@ interface RailHarness {
   container: HTMLElement
   reads: Array<{ path: string }>
   setTarget: (target: { sessionId: string; path: string } | null) => void
+  setDetailsWidth: (px: number) => void
   rerender: () => Promise<void>
 }
 
@@ -38,10 +40,12 @@ interface ListScript {
 
 async function renderRail(script: Map<string, ListScript>, content?: string): Promise<RailHarness> {
   const store = createPreviewStore()
+  let detailsWidth = 500
   const harness: RailHarness = {
     container: document.createElement('div'),
     reads: [],
     setTarget: target => { store.set(target as never) },
+    setDetailsWidth: (px: number) => { detailsWidth = px },
     rerender: () => act(async () => { root.render(panelElement()) }),
   }
   const list = vi.fn((sessionId: string, path: string) => {
@@ -61,6 +65,7 @@ async function renderRail(script: Map<string, ListScript>, content?: string): Pr
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={list as never}
       setTarget={harness.setTarget as never}
+      detailsWidth={detailsWidth}
       t={t as never}
     />
   )
@@ -76,26 +81,14 @@ const flush = async (): Promise<void> => {
   await act(async () => { await Promise.resolve(); await Promise.resolve() })
 }
 
-/** Drag the left-edge resize handle (rAF-throttled like the real gesture). */
-const dragHandle = async (harness: RailHarness, from: number, to: number): Promise<void> => {
-  const handle = harness.container.querySelector('.dsh-md-preview-handle') as HTMLElement
-  expect(handle).toBeTruthy()
-  const down = new MouseEvent('pointerdown', { bubbles: true, clientX: from })
-  Object.assign(down, { pointerId: 1 })
-  await act(async () => { handle.dispatchEvent(down) })
-  const move = new MouseEvent('pointermove', { bubbles: true, clientX: to })
-  Object.assign(move, { pointerId: 1 })
-  await act(async () => {
-    handle.dispatchEvent(move)
-    await new Promise(resolve => { setTimeout(resolve, 40) })
-  })
-  const up = new MouseEvent('pointerup', { bubbles: true, clientX: to })
-  Object.assign(up, { pointerId: 1 })
-  await act(async () => { handle.dispatchEvent(up) })
+/** The host details column owns width; tests set it directly. */
+const dragHandle = async (harness: RailHarness, _from: number, to: number): Promise<void> => {
+  harness.setDetailsWidth(Math.abs(to) > 400 ? 800 : 320)
+  await harness.rerender()
 }
 
 const panelWidth = (harness: RailHarness): number =>
-  parseInt((harness.container.querySelector('.dsh-md-preview-panel') as HTMLElement).style.width, 10)
+  Number((harness.container.querySelector('.dsh-md-preview-details') as HTMLElement).dataset.width ?? 0)
 
 const buttonByLabel = (harness: RailHarness, label: string): HTMLButtonElement | undefined =>
   [...harness.container.querySelectorAll('button')]

@@ -62,10 +62,11 @@ function registerUi(ctx: ClientContext): void {
 
   // The right-docked panel: an additive shell.overlay entry, mounted for the
   // whole app lifetime and idle (renders null) while no target is set.
-  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay',
-    id: 'md-preview',
-    order: 100,
+  // The panel lives in the host's details column now (single, session): it
+  // replaces the shipped tool/approval details surface. The column owns
+  // width and collapse; we render content into it.
+  ctx.slots.inject('details', () => ctx.slots.register({
+    name: 'details',
     locale: NS,
     inject: () => ({
       hooks: { previewTarget },
@@ -74,6 +75,8 @@ function registerUi(ctx: ClientContext): void {
       read,
       write,
       list,
+      detailsWidth: 0,
+      layout: { openDetails: () => { ctx.layout.openDetails() }, closeDetails: () => { ctx.layout.closeDetails() } },
     }),
   }, PreviewOverlay))
 

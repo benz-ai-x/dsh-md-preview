@@ -6,21 +6,18 @@
  */
 
 const CSS = `
-.dsh-md-preview-dock {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  justify-content: flex-end;
-  pointer-events: none;
-}
-.dsh-md-preview-panel {
-  position: relative;
-  pointer-events: auto;
+.dsh-md-preview-details {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  min-width: 280px;
-  border-left: 1px solid var(--dsw-alias-border-l2);
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-alias-bg-base);
+}
+.dsh-md-preview-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   background: var(--dsw-alias-bg-base);
 }
 .dsh-md-preview-foot {
@@ -31,36 +28,6 @@ const CSS = `
   font-variant-numeric: tabular-nums;
   color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
   user-select: none;
-}
-.dsh-md-preview-handle {
-  position: absolute;
-  left: -4px;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: col-resize;
-  touch-action: none;
-  z-index: 1;
-}
-.dsh-md-preview-handle::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: transparent;
-}
-.dsh-md-preview-handle:hover::after,
-.dsh-md-preview-handle[data-dragging]::after {
-  background: var(--dsw-alias-border-l3, var(--dsw-alias-border-l2));
-}
-.dsh-md-preview-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 12px 12px;
-  border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
 .dsh-md-preview-dirty {
   flex: none;

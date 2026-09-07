@@ -28,6 +28,8 @@ export interface PanelDocumentSessionDeps {
     signal: AbortSignal,
   ) => Promise<RemoteResult<MdPreviewWriteResult>>
   readonly close: () => void
+  /** Host details-column controls (open/close on target set/clear). */
+  layout?: { openDetails(): void; closeDetails(): void } | undefined
 }
 
 /** The panel-facing surface: machine state plus intent actions. */
@@ -58,7 +60,7 @@ export function usePanelDocumentSession(
   deps: PanelDocumentSessionDeps,
   target: MdPreviewTarget | null,
 ): PanelDocumentSession {
-  const { read, write, close } = deps
+  const { read, write, close, layout } = deps
   const [state, dispatch] = useReducer(transition, undefined, initialPreviewSession)
   // Manual retry and the post-save re-read re-run the read effect for the
   // same target; only a target change is a full session reset.
@@ -94,6 +96,14 @@ export function usePanelDocumentSession(
     })
     return () => { controller.abort() }
   }, [read, target, revision])
+
+  // The host details column is the panel's container: a set target opens it,
+  // clearing closes it. layout is the column's own control, not a probe.
+  useEffect(() => {
+    if (layout === undefined) return
+    if (target !== null) layout.openDetails()
+    else layout.closeDetails()
+  }, [layout, target])
 
   // A target change or unmount aborts an in-flight save so it cannot land on
   // the previous document; its outcome dispatch is skipped, and the new

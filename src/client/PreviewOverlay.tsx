@@ -54,6 +54,10 @@ export interface PreviewOverlayInjected {
     path: string,
     signal: AbortSignal,
   ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewListResult>>
+  /** The host details column's live width (0 while collapsed). */
+  detailsWidth: number
+  /** The host layout's details controls (open on target set, close on clear). */
+  layout?: { openDetails(): void; closeDetails(): void }
 }
 
 /** Full composed panel props. */
@@ -62,10 +66,6 @@ export type PreviewOverlayProps =
   & InjectFace<PreviewOverlayInjected>
   & PropsLocale<'md-preview'>
 
-/** Docked width bounds in CSS pixels. */
-const MIN_WIDTH = 320
-const MAX_WIDTH = 1280
-const DEFAULT_WIDTH = 500
 /** Panel width from which the rail shows beside the document (#11). */
 const RAIL_MIN_WIDTH = 640
 
@@ -81,11 +81,12 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write, list, t }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write, list, detailsWidth, layout, t }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
-  const session = usePanelDocumentSession({ read, write, close }, target)
+  const session = usePanelDocumentSession({ read, write, close, layout }, target)
   const { state, canSave, actions } = session
-  const [width, setWidth] = useState(DEFAULT_WIDTH)
+  // The details column owns the width now; 0 means collapsed.
+  const width = detailsWidth
   // The browser face: entered from the header, kept mounted once entered so
   // its expansion state survives face switches (UI-local viewing state).
   const [face, setFace] = useState<'document' | 'browse'>('document')
@@ -317,14 +318,11 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     drag.active = false
   }, [])
 
-  const onResize = useCallback((deltaX: number) => {
-    setWidth(current => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, current - deltaX)))
-  }, [])
 
   if (target === null) return null
   return (
-    <div className="dsh-md-preview-dock" onKeyDown={onPanelKeyDown}>
-      <div className="dsh-md-preview-panel" style={{ width: `${width}px` }}>
+    <div className="dsh-md-preview-details" data-width={width} onKeyDown={onPanelKeyDown}>
+      <div className="dsh-md-preview-panel">
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>
           <div className="dsh-md-preview-crumbs" title={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`}>
@@ -628,61 +626,7 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
           </div>
         </div>
         <div className="dsh-md-preview-foot" aria-hidden>{process.env.MD_PREVIEW_VERSION}</div>
-        <ResizeHandle onResize={onResize} />
       </div>
     </div>
-  )
-}
-
-/** Left-edge drag handle; pointer capture (best effort) with rAF-throttled dx reports. */
-function ResizeHandle(props: { onResize: (deltaX: number) => void }) {
-  const [dragging, setDragging] = useState(false)
-  const active = useRef(false)
-  const origin = useRef(0)
-  const latest = useRef(0)
-  const frame = useRef<number | null>(null)
-  const callback = useRef(props.onResize)
-  callback.current = props.onResize
-
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    // Capture keeps off-element moves flowing with a real pointer; a failed
-    // capture (synthetic events, detached node) must not break the drag.
-    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* drag still works over the strip */ }
-    active.current = true
-    origin.current = e.clientX
-    latest.current = e.clientX
-    setDragging(true)
-  }, [])
-  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!active.current) return
-    latest.current = e.clientX
-    frame.current ??= requestAnimationFrame(() => {
-      frame.current = null
-      callback.current(latest.current - origin.current)
-      origin.current = latest.current
-    })
-  }, [])
-  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!active.current) return
-    // Best effort, like the capture in pointerDown: a partial pointer API
-    // (synthetic events, jsdom) must not break the drag's completion.
-    try {
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
-    } catch { /* release is advisory; the gesture is over either way */ }
-    if (frame.current !== null) { cancelAnimationFrame(frame.current); frame.current = null }
-    active.current = false
-    setDragging(false)
-  }, [])
-
-  return (
-    <div
-      aria-hidden
-      className="dsh-md-preview-handle"
-      data-dragging={dragging || undefined}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-    />
   )
 }
