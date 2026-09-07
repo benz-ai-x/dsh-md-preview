@@ -111,7 +111,17 @@ function registerUi(ctx: ClientContext): void {
     id: 'md-preview-docs',
     order: 90,
     locale: NS,
-    inject: () => ({ setTarget, layout: { openDetails: () => { ctx.layout.openDetails() } } }),
+    inject: () => ({
+      carrierSession: () => {
+        // The client sessions service's type merge lives in the session
+        // controller package this bundle does not depend on; the value is
+        // live, so read it through a narrow cast.
+        const list = (ctx.sessions as unknown as { list: { getSnapshot(): { current?: SessionId; ids: readonly SessionId[] } } }).list.getSnapshot()
+        return list.current ?? list.ids[0]
+      },
+      setTarget,
+      layout: { openDetails: () => { ctx.layout.openDetails() } },
+    }),
   }, WorkspaceDocsAction))
 }
 

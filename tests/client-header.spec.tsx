@@ -175,7 +175,7 @@ describe('header browse action (file-manager design)', () => {
     await act(async () => {
       root.render(
         <WorkspaceDocsAction
-          sessionId={'s1' as never}
+          carrierSession={() => 's1' as never}
           usePreviewTarget={usePreviewTarget as never}
           setTarget={setTarget as never}
           t={t as never}
@@ -186,6 +186,6 @@ describe('header browse action (file-manager design)', () => {
     expect(button).toBeTruthy()
     expect(button.getAttribute('aria-label')).toBe('dock.browse')
     await act(async () => { button.click() })
-    expect(setTarget).toHaveBeenCalledWith({ sessionId: '', path: '', face: 'browse' })
+    expect(setTarget).toHaveBeenCalledWith({ sessionId: 's1', path: '', face: 'browse' })
   })
 })

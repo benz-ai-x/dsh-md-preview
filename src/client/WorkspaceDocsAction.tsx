@@ -13,6 +13,8 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 export type WorkspaceDocsActionProps =
   PropsRuntime<'shell.overlay'>
   & InjectFace<{
+    /** Resolve the read carrier session: the showing one, else the first. */
+    carrierSession(): SessionId | undefined
     setTarget(target: { sessionId: SessionId; path: string; face: 'browse' }): void
     /** The host layout's details control (opens the column we render into). */
     layout?: { openDetails(): void } | undefined
@@ -25,13 +27,15 @@ export type WorkspaceDocsActionProps =
  * @returns the header button.
  */
 export function WorkspaceDocsAction(props: WorkspaceDocsActionProps): ReactElement {
-  const { setTarget, layout, t } = props
+  const { carrierSession, setTarget, layout, t } = props
   // The root entry opens the tree on the details column; the host column
-  // expands through its own control. A blank sessionId means "no conversation
-  // yet" — the tree still needs a workspace, so we defer to the first one.
+  // expands through its own control. The read carrier is the showing session,
+  // else the first — no conversation at all leaves the entry inert.
   const open = (): void => {
+    const sessionId = carrierSession()
+    if (sessionId === undefined) return
     layout?.openDetails()
-    setTarget({ sessionId: '' as SessionId, path: '', face: 'browse' })
+    setTarget({ sessionId, path: '', face: 'browse' })
   }
   return (
     <button
