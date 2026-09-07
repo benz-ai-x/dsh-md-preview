@@ -21,7 +21,7 @@
 | 批 | PR | 分支名 | issue 列表 | 主题 | 复杂度 | 依赖 | 状态 | review轮 | CI轮 |
 |----|----|--------|-----------|------|--------|------|------|---------|------|
 | 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | merged | 2 | 0 |
-| 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | developing | 0 | 0 |
+| 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | in-review | 0 | 0 |
 | 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | planned | 0 | 0 |
 
 状态枚举：planned / developing / in-review / merged / blocked（只允许这五个值）。
@@ -73,8 +73,9 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-2 ② 隔离开发进行中（pr2-dev，分支 feat/batch-2-r2-reading-continuity，单执行者无兜底闹钟）
-- 下一步：收到开发回传 → 更新状态文件 → ③（verify + 建 PR）→ ④ 隔离评审（新 agent）→ ⑤ 闸门 → ⑥ 合并 → ⑦ 记录 → PR-3
+- 上次中断位置：PR-2 ④ 隔离评审进行中（pr2-review）
+- PR-2 ②③ 完成：五票 8/8、7/7、8/8、7/7、8/8 AC 全勾（#29 走查证据 docs/verification/r2-acceptance/，16 截图；走查发现缩窗宽度不重钳缺陷已修复+回归锁定；恢复操作成本 R1 3 次 → R2 1 次）；pnpm verify exit 0（252/252，调度实测复核）；main 无漂移；PR #34 已建（Closes #25-#29）
+- 下一步：④ 评审回传 → 无 blocking 则 ⑤⑥⑦ → PR-3 ①
 - PR-1 流程完整记录：② 四票 8/8 AC（两次独立真机走查互为复核）→ ③ verify exit 0 + PR #33 → ④ 轮 1 发现 1 blocking（reload 分支零交互覆盖）→ 修复 5248ec7 → 轮 2 复核通过 → ⑤ 闸门三绿 → ⑥ 总检 8/8 + rebase 合并 → main 回归绿
 - PR-1 ②③ 完成：四票 8/8 AC 全勾（#24 走查证据见 issue 评论 5571706599）；pnpm verify exit 0（185/185，调度会话实测复核）；main 无漂移；PR #33 已建（Closes #21-#24，四票 AC 全勾故全用 Closes）
 - 开发过程记录：pr1-dev 两次 429 中断（17:05/17:50，GLM 5h 限额），改派 pr1-dev2（sonnet）接手 #24；限额重置后 pr1-dev 恢复并回传最终报告。兜底闹钟已撤
