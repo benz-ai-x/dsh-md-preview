@@ -65,5 +65,6 @@ review轮 / CI轮：当前累计轮次，熔断判定用（review≥3 或 CI≥2
 
 ## 恢复注记
 - 上次中断位置：PR-1 ② 隔离开发进行中（子 agent pr1-dev，分支 feat/batch-1-r1-reliable-use）
+- 2026-09-07 17:05 pr1-dev 因 API 429（账号 5 小时限额，19:06 重置）中断于 #21 TDD 中途（leave-intent.ts + client-leave.spec.tsx 未提交中间态）；用户切换模型后 17:1x 经 SendMessage 恢复，现场无损未剥离
 - 下一步：收到开发回传 → 更新状态文件 → 执行 ③（全量测试 + 建 PR）→ ④ 隔离评审 → ⑤ 闸门 → ⑥ 合并
 - 未发送通知：无
