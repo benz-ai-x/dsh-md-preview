@@ -566,6 +566,27 @@ const CSS = `
 .dsh-md-preview-refresh:hover { background: var(--dsw-alias-fill-secondary); color: var(--dsw-alias-label-primary); }
 .dsh-md-preview-document { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; padding: 16px; }
 .dsh-md-preview-document[hidden] { display: none; }
+/* The read measure (#27): the rendered body centers on a comfortable
+ * reading measure at normal panel widths instead of stretching edge to
+ * edge; long tables and code blocks keep scrolling inside their own
+ * regions (the primitive's wrappers) within the measure. */
+.dsh-md-preview-read {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+/* Maximized widens the measure and breathes more between paragraphs and
+ * headings — a different arrangement, not one limit stretched (#27). */
+.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read {
+  max-width: 940px;
+}
+.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read :where(p, ul, ol) {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read :where(h1, h2, h3) {
+  margin-top: 36px;
+}
 .dsh-md-preview-treefilter {
   flex: 1;
   min-width: 0;

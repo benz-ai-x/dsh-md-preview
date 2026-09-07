@@ -254,6 +254,8 @@ describe('common leave-intent entry (#21)', () => {
 
   it('opens a tree file through the same guard', async () => {
     const harness = await renderLeave()
+    // The rail starts out of the way (#27); expand it so tree rows show.
+    await click(harness, 'browse.open')
     await editWithDraft(harness)
     const row = harness.container.querySelector('[data-path="notes.md"] .dsh-md-preview-treerow') as HTMLElement
     await act(async () => { row.click() })

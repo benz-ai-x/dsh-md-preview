@@ -218,6 +218,11 @@ describe('the remembered panel width (#26)', () => {
 describe('the remembered navigation state (#26)', () => {
   it('restores a dragged rail width', async () => {
     const harness = await renderPrefsPanel()
+    // The document entry opens body-first (#27): expand the rail to drag it.
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="browse.open"]') as HTMLButtonElement).click()
+    })
+    await flush()
     await dragRail(harness, 100, 153)
     const browser = harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement
     expect(browser.style.width).toBe('201px')
@@ -229,7 +234,12 @@ describe('the remembered navigation state (#26)', () => {
 
   it('restores a collapsed rail across a revisit', async () => {
     const harness = await renderPrefsPanel()
-    // Wide open (720): the rail docks; the workspace action folds it.
+    // The document entry opens body-first (#27); the workspace action
+    // expands, and folding it back is the manual collapse choice.
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="browse.open"]') as HTMLButtonElement).click()
+    })
+    await flush()
     expect(harness.container.querySelector('.dsh-md-preview-railtabs')).toBeTruthy()
     await act(async () => {
       (harness.container.querySelector('button[aria-label="browse.open"]') as HTMLButtonElement).click()
@@ -249,6 +259,10 @@ describe('the remembered navigation state (#26)', () => {
 
   it('keeps the files/outline choice per session', async () => {
     const harness = await renderPrefsPanel({ sessionId: 'session-1' })
+    await act(async () => {
+      (harness.container.querySelector('button[aria-label="browse.open"]') as HTMLButtonElement).click()
+    })
+    await flush()
     await act(async () => {
       (harness.container.querySelector('.dsh-md-preview-railtabs button[aria-selected="false"]') as HTMLButtonElement).click()
     })

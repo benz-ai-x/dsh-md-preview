@@ -123,10 +123,14 @@ const TREE = new Map<string, ListScript>([
 
 describe('rail (#11)', () => {
 
-  it('docks the tree beside the document from the default open width', async () => {
+  it('gives the body priority by default and docks the tree on demand (#27)', async () => {
     const harness = await renderRail(TREE)
-    // Default 720 ≥ 640: the rail is the first impression, no drag needed.
+    // Default 720 ≥ 640, but a document entry opens body-first: the rail
+    // stays out of the way until the workspace button expands it.
     expect(panelWidth(harness)).toBe(720)
+    expect(harness.container.querySelector('[role="tree"]')).toBeNull()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
     expect(harness.container.querySelector('[role="tree"]')).toBeTruthy()
     const document = harness.container.querySelector('.dsh-md-preview-document') as HTMLElement
     expect(document.hidden).toBe(false)
@@ -139,20 +143,20 @@ describe('rail (#11)', () => {
     expect(document.textContent).not.toContain('guide.md')
   })
 
-  it('collapses the rail from the workspace button at wide widths', async () => {
+  it('expands and collapses the rail from the workspace button at wide widths', async () => {
     const harness = await renderRail(TREE)
     await dragHandle(harness, 100, -600)
     await flush()
-    expect(harness.container.querySelector('[role="tree"]')).toBeTruthy()
+    expect(harness.container.querySelector('[role="tree"]')).toBeNull()
     const browser = () => harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement
-    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
-    await flush()
-    expect(browser().hasAttribute('hidden')).toBe(true)
-    expect(browser().hasAttribute('data-open')).toBe(false)
     await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
     await flush()
     expect(browser().hasAttribute('hidden')).toBe(false)
     expect(browser().hasAttribute('data-open')).toBe(true)
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
+    expect(browser().hasAttribute('hidden')).toBe(true)
+    expect(browser().hasAttribute('data-open')).toBe(false)
   })
 
   it('falls back to the browse-face swap below 640px', async () => {
@@ -188,6 +192,8 @@ describe('rail outline tab + navigation shortcuts (#12)', () => {
   it('lists the outline in the rail and keeps the tab across collapse', async () => {
     const harness = await renderRail(OUTLINE_TREE, '# Alpha\n\n## Beta')
     await dragHandle(harness, 100, -600)
+    await flush()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
     await flush()
     await act(async () => {
       (harness.container.querySelector('.dsh-md-preview-railtabs [role="tab"][aria-selected="false"]') as HTMLElement).click()
@@ -249,6 +255,8 @@ describe('dirty-draft guard on tree file opens (#10 story 5)', () => {
     const harness = await renderRail(TREE, '# Guide\n\nbody')
     await dragHandle(harness, 100, -600)
     await flush()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
     await act(async () => {
       (harness.container.querySelector('.dsh-md-preview-seg button[aria-label="panel.edit"]') as HTMLElement).click()
     })
@@ -303,6 +311,8 @@ describe('rail resize handle (user feedback)', () => {
     const harness = await renderRail(TREE)
     await dragHandle(harness, 100, -600)
     await flush()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
+    await flush()
     const browser = () => harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement
     const width = () => parseInt(browser().style.width, 10)
     expect(width()).toBe(148)
@@ -317,6 +327,8 @@ describe('rail resize handle (user feedback)', () => {
   it('keeps the rail width across collapse and below-threshold round trips', async () => {
     const harness = await renderRail(TREE)
     await dragHandle(harness, 100, -600)
+    await flush()
+    await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
     await flush()
     await dragRailHandle(harness, 52)
     await act(async () => { buttonByLabel(harness, 'browse.open')!.click() })
