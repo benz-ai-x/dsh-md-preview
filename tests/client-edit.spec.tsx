@@ -625,4 +625,23 @@ describe('save feedback and request isolation (#23)', () => {
     expect(bar?.textContent).toContain('panel.conflict.reload')
     expect(bar?.textContent).toContain('panel.conflict.force')
   })
+
+  it('discards the draft and re-reads the workspace from the conflict reload', async () => {
+    const harness = await renderPanel()
+    harness.writeResult = { ok: false, error: { code: 'md-preview/conflict', message: 'changed since read' } }
+    await enterEdit(harness)
+    await typeInto(harness, ' keep-or-discard')
+    await click(harness, 'panel.save')
+    expect(harness.write).toHaveBeenCalledTimes(1)
+    expect(harness.container.textContent).toContain('panel.conflict.title')
+    const readsBefore = harness.reads
+    await click(harness, 'panel.conflict.reload')
+    // 重新加载 discards the draft (the edit face closes), re-reads the
+    // workspace body once, and never issues a second write.
+    expect(harness.container.querySelector('.cm-editor')).toBeNull()
+    expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toBe('Hi')
+    expect(harness.reads).toBe(readsBefore + 1)
+    expect(harness.write).toHaveBeenCalledTimes(1)
+    expect(harness.container.textContent).not.toContain('panel.conflict.title')
+  })
 })
