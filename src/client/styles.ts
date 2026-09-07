@@ -76,16 +76,15 @@ const CSS = `
   padding: 6px 8px 6px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
-/* Visible focus for every interactive header/chip control (#22): the ring
- * rides the accent token, so light and dark both hold. */
-.dsh-md-preview-icon:focus-visible,
-.dsh-md-preview-seg button:focus-visible,
-.dsh-md-preview-chip:focus-visible,
+/* Visible focus for every interactive control this plugin renders (#22):
+ * header icons, segmented control, rail tabs, tree rows and filter, bars
+ * and popovers, chips, the docs capsule — one accent-token ring, so light
+ * and dark both hold. */
+.dsh-md-preview-overlay :is(button, input, [role="treeitem"]):focus-visible,
 .dsh-md-preview-docsbtn:focus-visible,
 .dsh-md-preview-doc:focus-visible,
-.dsh-md-preview-docsbtn:focus-visible,
-.dsh-md-preview-outline button:focus-visible,
-.dsh-md-preview-more button:focus-visible {
+.dsh-md-preview-chip:focus-visible,
+.dsh-md-preview-list button:focus-visible {
   outline: 2px solid var(--dsw-alias-accent, var(--dsw-alias-label-primary));
   outline-offset: 1px;
 }
