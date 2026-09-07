@@ -79,7 +79,8 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 |--------|------|------|----------|------|
 
 ## 恢复注记
-- 上次中断位置：PR-3 ② 隔离开发进行中（pr3-dev，分支 feat/batch-3-r3-find-efficiency，单执行者；#30 → #31 → #32 → #20 收尾）
+- 上次中断位置：PR-3 ② 暂挂——pr3-dev 于 00:49 撞 429（重置 02:12:09；刚开工无成果损失）。已设 01:10 探测唤醒（额度波动：pr2-review 00:32 撞墙 00:46 即恢复），若再撞则 02:13 后重试
+- 若 pr3-dev 无法恢复：读本文件 + /tmp/pr3-issues.md，按 dispatch-templates.md 第 1 节模板重派（#30 → #31 → #32 → #20，路由与要点见该模板历史派发）
 - 下一步：收到开发回传 → ③（verify 实测 + 建 PR，Closes #30-#32 + #20）→ ④ 隔离评审（新 agent，双专项）→ ⑤ 闸门 → ⑥ 合并 → ⑦ 记录 → 终局总结（含全部非 merged 明细与 follow-up 清单）
 - PR-2 已 merged（PR #34，main=429a4c2 后推进，回归 252/252 绿）；PR-1 已 merged（PR #33）；两批 agent 均已释放
 - PR-2 ②③ 完成：五票 8/8、7/7、8/8、7/7、8/8 AC 全勾（#29 走查证据 docs/verification/r2-acceptance/，16 截图；走查发现缩窗宽度不重钳缺陷已修复+回归锁定；恢复操作成本 R1 3 次 → R2 1 次）；pnpm verify exit 0（252/252，调度实测复核）；main 无漂移；PR #34 已建（Closes #25-#29）
