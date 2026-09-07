@@ -103,13 +103,15 @@ function registerUi(ctx: ClientContext): void {
     inject: (sessionId: SessionId) => ({ openPreview: openPreview(sessionId) }),
   }, PreviewAction))
 
-  // The header browse action: opens the panel on the tree face.
-  ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
-    name: 'conversation.session.header.actions',
-    id: 'md-preview',
+  // The root browse entry: a frame-wide corner button that opens the details
+  // column on the tree face. Root scope so it exists with or without a
+  // session; the host column opens through its own control.
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
+    id: 'md-preview-docs',
     order: 90,
     locale: NS,
-    inject: () => ({ setTarget }),
+    inject: () => ({ setTarget, layout: { openDetails: () => { ctx.layout.openDetails() } } }),
   }, WorkspaceDocsAction))
 }
 
