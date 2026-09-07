@@ -1,6 +1,6 @@
 /**
  * The workspace-docs browse capsule: a Session Header utility sitting next to
- * the shipped Session-log download capsule. It opens the right details column
+ * the shipped Session-log download capsule. It opens the right overlay layer
  * on the panel's browse face — the workspace tree shows first, and opening a
  * file reads it in the document face.
  */
@@ -15,8 +15,6 @@ export type WorkspaceDocsActionProps =
   PropsRuntime<'conversation.session.header.utilities'>
   & InjectFace<{
     setTarget(target: { sessionId: SessionId; path: string; face: 'browse' }): void
-    /** The host layout's details control (opens the column we render into). */
-    layout?: { openDetails(): void } | undefined
   }>
   & PropsLocale<'md-preview'>
 
@@ -26,11 +24,10 @@ export type WorkspaceDocsActionProps =
  * @returns the header utility button.
  */
 export function WorkspaceDocsAction(props: WorkspaceDocsActionProps): ReactElement {
-  const { sessionId, setTarget, layout, t } = props
-  // The capsule opens the tree on the details column; the host column expands
-  // through its own control. The carrier is the Session the header shows.
+  const { sessionId, setTarget, t } = props
+  // The capsule opens the overlay on the tree for the Session the header
+  // shows; the layer appears on target set, no host column involved.
   const open = (): void => {
-    layout?.openDetails()
     setTarget({ sessionId, path: '', face: 'browse' })
   }
   return (

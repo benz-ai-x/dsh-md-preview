@@ -46,7 +46,6 @@ async function bench(options: { registrationFailure?: boolean } = {}) {
   })
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
-  ctx.provide('layout', { toggleSidebar: () => {}, openDetails: () => {}, closeDetails: () => {} })
   await ctx.plugin(SlotRegistry).await()
   // Stub owners standing in for ui-layout's root entry and ui-chat's
   // turn-tail node: they declare the slots this plugin contributes into.
@@ -55,7 +54,7 @@ async function bench(options: { registrationFailure?: boolean } = {}) {
   const disposeRoot = ctx.slots.register({
     name: 'root',
     children: {
-      'details': { kind: 'single', scope: 'session' },
+      'shell.overlay': { kind: 'list', scope: 'root' },
       'conversation.chat.node': { kind: 'keyed', scope: 'session' },
     },
   } as never, () => null)
@@ -84,7 +83,7 @@ describe('client registration lifecycle', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply: clientCtx => mountMdPreview(clientCtx, TYPERT_REMOTE) })
     await fiber.await()
     expect(remote.mounted).toEqual([TYPERT_REMOTE])
-    expect(entryFor(ctx, 'details', PreviewOverlay)).toBeDefined()
+    expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeDefined()
     expect(entryFor(ctx, 'conversation.chat.turnTail', MdChips)).toBeDefined()
     expect(entryFor(ctx, 'conversation.chat.assistant-actions', PreviewAction)).toBeDefined()
     expect(entryFor(ctx, 'conversation.session.header.utilities', WorkspaceDocsAction)).toBeDefined()
@@ -94,7 +93,7 @@ describe('client registration lifecycle', () => {
     expect(['Markdown 预览', 'Markdown preview']).toContain(title)
     await fiber.dispose()
     expect(remote.unmounted).toEqual([TYPERT_REMOTE])
-    expect(entryFor(ctx, 'details', PreviewOverlay)).toBeUndefined()
+    expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeUndefined()
     expect(entryFor(ctx, 'conversation.chat.turnTail', MdChips)).toBeUndefined()
     expect(entryFor(ctx, 'conversation.chat.assistant-actions', PreviewAction)).toBeUndefined()
     expect(entryFor(ctx, 'conversation.session.header.utilities', WorkspaceDocsAction)).toBeUndefined()
@@ -104,7 +103,7 @@ describe('client registration lifecycle', () => {
     const { ctx, remote } = await bench({ registrationFailure: true })
     await expect(mountMdPreview(ctx, TYPERT_REMOTE)).rejects.toThrow(/slot registration failed/)
     expect(remote.unmounted).toEqual([TYPERT_REMOTE])
-    expect(entryFor(ctx, 'details', PreviewOverlay)).toBeUndefined()
+    expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeUndefined()
   })
 
   it('unmounts both halves when mountMdPreview disposer runs', async () => {
@@ -113,7 +112,7 @@ describe('client registration lifecycle', () => {
     expect(remote.mounted).toHaveLength(1)
     await dispose()
     expect(remote.unmounted).toHaveLength(1)
-    expect(entryFor(ctx, 'details', PreviewOverlay)).toBeUndefined()
+    expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeUndefined()
   })
 
   it('collapses contributions when the declaring owner unmounts', async () => {
@@ -123,7 +122,7 @@ describe('client registration lifecycle', () => {
     disposeChatNode()
     expect(entryFor(ctx, 'conversation.chat.turnTail', MdChips)).toBeUndefined()
     // The Remote namespace and the root-scope overlay survive the collapse.
-    expect(entryFor(ctx, 'details', PreviewOverlay)).toBeDefined()
+    expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeDefined()
     expect(remote.unmounted).toEqual([])
   })
 })

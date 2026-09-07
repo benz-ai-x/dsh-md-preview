@@ -6,12 +6,48 @@
  */
 
 const CSS = `
-.dsh-md-preview-details {
+.dsh-md-preview-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: 0;
   background: var(--dsw-alias-bg-base);
+  border-left: 0.5px solid var(--dsw-alias-border-l3);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.10);
+  /* The host overlay layer is pointer-events: none; the panel re-arms itself. */
+  pointer-events: auto;
+}
+.dsh-md-preview-edgehandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 2;
+}
+.dsh-md-preview-edgehandle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 32px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: var(--dsw-alias-button-floating-fill);
+  border: 0.5px solid var(--dsw-alias-border-l2-darkmode-thin);
+  opacity: 0;
+  transition: opacity var(--ds-transition-duration-slow, 0.2s) ease-in-out;
+}
+.dsh-md-preview-overlay:hover .dsh-md-preview-edgehandle::after,
+.dsh-md-preview-edgehandle:hover::after {
+  opacity: 1;
 }
 .dsh-md-preview-panel {
   display: flex;

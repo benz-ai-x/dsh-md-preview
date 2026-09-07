@@ -1,9 +1,10 @@
 /**
  * The right-docked preview panel, contributed into the additive
- * `shell.overlay` list. Rendering, geometry, and locale only: the preview
- * session — read lifecycle, edit face, guarded save, prompts — lives in the
- * PreviewSession machine behind usePanelDocumentSession. The panel renders
- * null while no preview target is set.
+ * `shell.overlay` list as a layer stacked over the frame. Rendering,
+ * geometry, and locale only: the preview session — read lifecycle, edit
+ * face, guarded save, prompts — lives in the PreviewSession machine behind
+ * usePanelDocumentSession. The panel renders null while no preview target
+ * is set.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MarkdownText, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -54,10 +55,6 @@ export interface PreviewOverlayInjected {
     path: string,
     signal: AbortSignal,
   ): Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<MdPreviewListResult>>
-  /** The host details column's live width (0 while collapsed). */
-  detailsWidth: number
-  /** The host layout's details controls (open on target set, close on clear). */
-  layout?: { openDetails(): void; closeDetails(): void }
 }
 
 /** Full composed panel props. */
@@ -68,6 +65,54 @@ export type PreviewOverlayProps =
 
 /** Panel width from which the rail shows beside the document (#11). */
 const RAIL_MIN_WIDTH = 640
+
+/** The overlay's own width bounds: default 520, draggable 360–1200. */
+const OVERLAY_MIN_WIDTH = 360
+const OVERLAY_MAX_WIDTH = 1200
+const OVERLAY_DEFAULT_WIDTH = 520
+
+/**
+ * Shared pointer-drag width driver: pointer capture with rAF-coalesced deltas.
+ * `sign` maps the drag direction to growth — the rail widens with the pointer
+ * (+1); the right-anchored overlay widens against it (−1).
+ */
+function useDragWidth(
+  min: number,
+  max: number,
+  sign: 1 | -1,
+  set: React.Dispatch<React.SetStateAction<number>>,
+): (e: React.PointerEvent<HTMLDivElement>) => void {
+  const drag = useRef<{ active: boolean; origin: number; latest: number; frame: number | null }>({
+    active: false, origin: 0, latest: 0, frame: null,
+  })
+  return useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const current = drag.current
+    if (e.type === 'pointerdown') {
+      e.preventDefault()
+      try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* drag over the strip */ }
+      current.active = true
+      current.origin = e.clientX
+      current.latest = e.clientX
+      return
+    }
+    if (!current.active) return
+    if (e.type === 'pointermove') {
+      current.latest = e.clientX
+      current.frame ??= requestAnimationFrame(() => {
+        current.frame = null
+        const next = current.latest - current.origin
+        current.origin = current.latest
+        set(width => Math.min(max, Math.max(min, width + sign * next)))
+      })
+      return
+    }
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch { /* release is advisory */ }
+    if (current.frame !== null) { cancelAnimationFrame(current.frame); current.frame = null }
+    current.active = false
+  }, [min, max, sign, set])
+}
 
 function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
   return {
@@ -81,12 +126,14 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write, list, detailsWidth, layout, t }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write, list, t }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
-  const session = usePanelDocumentSession({ read, write, close, layout }, target)
+  const session = usePanelDocumentSession({ read, write, close }, target)
   const { state, canSave, actions } = session
-  // The details column owns the width now; 0 means collapsed.
-  const width = detailsWidth
+  // The overlay owns its width: a right-anchored layer stacked over the
+  // frame, dragged wider/narrower from its left edge; it persists across
+  // targets and closes for the whole app session (min/max clamped in the drag).
+  const [width, setWidth] = useState(OVERLAY_DEFAULT_WIDTH)
   // The browser face: entered from the header, kept mounted once entered so
   // its expansion state survives face switches (UI-local viewing state).
   const [face, setFace] = useState<'document' | 'browse'>('document')
@@ -109,6 +156,8 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
   const [railTab, setRailTab] = useState<'files' | 'outline'>('files')
   // The rail's dragged width (user feedback): persists like the panel width.
   const [railWidth, setRailWidth] = useState(148)
+  const onRailResize = useDragWidth(120, 320, 1, setRailWidth)
+  const onEdgeResize = useDragWidth(OVERLAY_MIN_WIDTH, OVERLAY_MAX_WIDTH, -1, setWidth)
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [activeOutline, setActiveOutline] = useState(-1)
   const documentRef = useRef<HTMLDivElement>(null)
@@ -283,45 +332,23 @@ export function PreviewOverlay({ usePreviewTarget, close, setTarget, read, write
     if (railVisible && face === 'browse') setFace('document')
   }, [railVisible, face])
 
-  // The panel stays mounted across targets and opens; the user's width
-  // persists for the whole app session (min/max clamped in the handler).
-  // Rail-edge drag (user feedback): the same best-effort capture pattern as
-  // the panel handle, reporting dx that widens/narrows the rail.
-  const railDrag = useRef<{ active: boolean; origin: number; latest: number; frame: number | null }>({
-    active: false, origin: 0, latest: 0, frame: null,
-  })
-  const onRailResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = railDrag.current
-    if (e.type === 'pointerdown') {
-      e.preventDefault()
-      try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* drag over the strip */ }
-      drag.active = true
-      drag.origin = e.clientX
-      drag.latest = e.clientX
-      return
-    }
-    if (!drag.active) return
-    if (e.type === 'pointermove') {
-      drag.latest = e.clientX
-      drag.frame ??= requestAnimationFrame(() => {
-        drag.frame = null
-        const next = drag.latest - drag.origin
-        drag.origin = drag.latest
-        setRailWidth(current => Math.min(320, Math.max(120, current + next)))
-      })
-      return
-    }
-    try {
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
-    } catch { /* release is advisory */ }
-    if (drag.frame !== null) { cancelAnimationFrame(drag.frame); drag.frame = null }
-    drag.active = false
-  }, [])
+  // The panel stays mounted across targets and opens; the user's widths
+  // (overlay edge and rail) persist for the whole app session.
 
 
   if (target === null) return null
   return (
-    <div className="dsh-md-preview-details" data-width={width} onKeyDown={onPanelKeyDown}>
+    <div
+      className="dsh-md-preview-overlay" data-width={width}
+      style={{ width: `${width}px` }} onKeyDown={onPanelKeyDown}
+    >
+      <div
+        aria-hidden
+        className="dsh-md-preview-edgehandle"
+        onPointerDown={onEdgeResize}
+        onPointerMove={onEdgeResize}
+        onPointerUp={onEdgeResize}
+      />
       <div className="dsh-md-preview-panel">
         <div className="dsh-md-preview-header">
           <span className="dsh-md-preview-icon" aria-hidden>📄</span>

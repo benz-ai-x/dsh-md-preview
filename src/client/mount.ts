@@ -6,6 +6,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-deliverables/client'
+// The layout package's type merge declares the shell.overlay slot key.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
@@ -29,7 +30,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Required browser services for the Remote mount, slots, and locale. */
-export const inject = ['remote', 'slots', 'locale', 'layout']
+export const inject = ['remote', 'slots', 'locale']
 
 function registerUi(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-md-preview: dictionaries')
@@ -60,16 +61,15 @@ function registerUi(ctx: ClientContext): void {
     ctx.remote.mdPreview.list(sessionId, path, signal)
   const setTarget = (target: MdPreviewTarget | null): void => { previewTarget.set(target) }
 
-  // The right-docked panel: an additive shell.overlay entry, mounted for the
-  // whole app lifetime and idle (renders null) while no target is set.
-  // The panel lives in the host's details column now (single, session): it
-  // replaces the shipped tool/approval details surface. The column owns
-  // width and collapse; we render content into it.
-  // The details column is single-slot: shadow the shipped tool/approval
-  // details (priority 0) by registering lower — the lowest priority renders.
-  ctx.slots.inject('details', () => ctx.slots.register({
-    name: 'details',
-    priority: -100,
+  // The right-docked overlay panel: an additive shell.overlay entry, mounted
+  // for the whole app lifetime and idle (renders null) while no target is
+  // set. It stacks in the host's overlay layer above the frame; the panel
+  // owns its width (left-edge drag) and dismissal — the host details column
+  // keeps its shipped tool/approval surface, untouched.
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
+    id: 'md-preview-panel',
+    order: 80,
     locale: NS,
     inject: () => ({
       hooks: { previewTarget },
@@ -78,8 +78,6 @@ function registerUi(ctx: ClientContext): void {
       read,
       write,
       list,
-      detailsWidth: 0,
-      layout: { openDetails: () => { ctx.layout.openDetails() }, closeDetails: () => { ctx.layout.closeDetails() } },
     }),
   }, PreviewOverlay))
 
@@ -106,17 +104,14 @@ function registerUi(ctx: ClientContext): void {
   // The workspace-docs browse capsule: joins the Session Header's right-side
   // utilities, rendered ascending by order — the shipped Session-log download
   // capsule sits at the default 0, so order 100 parks us to its right. Session
-  // scope hands the component its Session directly; the host details column
-  // opens through its own layout control.
+  // scope hands the component its Session directly; the overlay appears on
+  // target set, no host column involved.
   ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
     name: 'conversation.session.header.utilities',
     id: 'md-preview-docs',
     order: 100,
     locale: NS,
-    inject: () => ({
-      setTarget,
-      layout: { openDetails: () => { ctx.layout.openDetails() } },
-    }),
+    inject: () => ({ setTarget }),
   }, WorkspaceDocsAction))
 }
 

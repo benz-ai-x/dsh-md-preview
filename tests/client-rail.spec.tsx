@@ -30,7 +30,6 @@ interface RailHarness {
   container: HTMLElement
   reads: Array<{ path: string }>
   setTarget: (target: { sessionId: string; path: string } | null) => void
-  setDetailsWidth: (px: number) => void
   rerender: () => Promise<void>
 }
 
@@ -40,12 +39,10 @@ interface ListScript {
 
 async function renderRail(script: Map<string, ListScript>, content?: string): Promise<RailHarness> {
   const store = createPreviewStore()
-  let detailsWidth = 500
   const harness: RailHarness = {
     container: document.createElement('div'),
     reads: [],
     setTarget: target => { store.set(target as never) },
-    setDetailsWidth: (px: number) => { detailsWidth = px },
     rerender: () => act(async () => { root.render(panelElement()) }),
   }
   const list = vi.fn((sessionId: string, path: string) => {
@@ -65,7 +62,6 @@ async function renderRail(script: Map<string, ListScript>, content?: string): Pr
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={list as never}
       setTarget={harness.setTarget as never}
-      detailsWidth={detailsWidth}
       t={t as never}
     />
   )
@@ -81,14 +77,29 @@ const flush = async (): Promise<void> => {
   await act(async () => { await Promise.resolve(); await Promise.resolve() })
 }
 
-/** The host details column owns width; tests set it directly. */
+/** The overlay owns its width; tests drag its left-edge handle. */
 const dragHandle = async (harness: RailHarness, _from: number, to: number): Promise<void> => {
-  harness.setDetailsWidth(Math.abs(to) > 400 ? 800 : 320)
+  const handle = harness.container.querySelector('.dsh-md-preview-edgehandle') as HTMLElement
+  expect(handle).toBeTruthy()
+  // Widen: drag the right-anchored edge left; narrow: drag it right.
+  const dx = Math.abs(to) > 400 ? -400 : 400
+  const down = new MouseEvent('pointerdown', { bubbles: true, clientX: 1000 })
+  Object.assign(down, { pointerId: 1 })
+  await act(async () => { handle.dispatchEvent(down) })
+  const move = new MouseEvent('pointermove', { bubbles: true, clientX: 1000 + dx })
+  Object.assign(move, { pointerId: 1 })
+  await act(async () => {
+    handle.dispatchEvent(move)
+    await new Promise(resolve => { setTimeout(resolve, 40) })
+  })
+  const up = new MouseEvent('pointerup', { bubbles: true, clientX: 1000 + dx })
+  Object.assign(up, { pointerId: 1 })
+  await act(async () => { handle.dispatchEvent(up) })
   await harness.rerender()
 }
 
 const panelWidth = (harness: RailHarness): number =>
-  Number((harness.container.querySelector('.dsh-md-preview-details') as HTMLElement).dataset.width ?? 0)
+  Number((harness.container.querySelector('.dsh-md-preview-overlay') as HTMLElement).dataset.width ?? 0)
 
 const buttonByLabel = (harness: RailHarness, label: string): HTMLButtonElement | undefined =>
   [...harness.container.querySelectorAll('button')]
@@ -109,7 +120,7 @@ describe('rail (#11)', () => {
 
   it('shows the tree beside the document once widened past 640px', async () => {
     const harness = await renderRail(TREE)
-    // Default width 500: no tree until the workspace is opened (existing behavior).
+    // Default width 520: no tree until the workspace is opened (existing behavior).
     expect(harness.container.querySelector('[role="tree"]')).toBeNull()
     await dragHandle(harness, 100, -600)
     expect(panelWidth(harness)).toBeGreaterThanOrEqual(640)
