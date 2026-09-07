@@ -20,7 +20,7 @@
 ## 规划表
 | 批 | PR | 分支名 | issue 列表 | 主题 | 复杂度 | 依赖 | 状态 | review轮 | CI轮 |
 |----|----|--------|-----------|------|--------|------|------|---------|------|
-| 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | in-review | 0 | 0 |
+| 1 | 1 | feat/batch-1-r1-reliable-use | #21,#22,#23,#24 | R1 使用可靠：统一守卫+头部入口+保存反馈+轮验收 | L | - | in-review | 1 | 0 |
 | 2 | 2 | feat/batch-2-r2-reading-continuity | #25,#26,#27,#28,#29 | R2 阅读连续：位置恢复+偏好记忆+空间安排+继续阅读+轮验收 | L | PR-1 | planned | 0 | 0 |
 | 3 | 3 | feat/batch-3-r3-find-efficiency | #30,#31,#32,#20 | R3 查找高效：工作区搜索+快捷入口+轮验收+spec 收尾 | L | PR-2 | planned | 0 | 0 |
 
@@ -51,6 +51,15 @@ review轮 / CI轮：当前累计轮次，熔断判定用（review≥3 或 CI≥2
 ## 跳过与熔断记录
 | 对象 | 类型 | 原因 | 时间 |
 |------|------|------|------|
+
+## follow-up 记录（low 级 finding，不阻塞）
+PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_quality fail——仅由 blocking 构成）：
+1. PreviewOverlay.tsx:238 同目标判定用请求路径而非宿主解析路径（方向保守，可选改为 content.file.path 或修正注释措辞）
+2. client-assembly.spec.tsx:229 同目标重开/树行入口仅面板级覆盖，可补装配 bench 用例
+3. （证据）#24 走查评论缺长名称头部修复前对照截图，可补 v0.7.2 同报告对照
+4. WorkspaceDocsAction.tsx:53 胶囊卸载未发布 strip 0 / layerTop 打开时补测一次
+5. 测试 helper（flush/buttonByAria/beforeAll shims）三套件重复可提取共享 test-utils；删冗余转型；NO_STRIP 回退可删
+- blocking #1（已派修复）：tests/client-edit.spec.tsx:618 冲突 reload 分支零交互覆盖，冒充 #23 AC7 两分支验收
 
 ## 待下轮清单
 - （运行期间新增的 issue 记在这里）
