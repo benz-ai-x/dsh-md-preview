@@ -583,6 +583,19 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     leave.request({ kind: 'open', target: { sessionId: target.sessionId, path } })
   }, [leave, target])
 
+  // The continue-reading target (#28): the session's most recent reading
+  // record, offered by the browse area. It is the record's path and nothing
+  // else — no second body, no guessing from conversation text — and opening
+  // it rides the same leave entry as every other open.
+  let continueTarget: { readonly path: string } | null = null
+  if (target !== null) {
+    try { continueTarget = reading?.latest(target.sessionId) ?? null } catch { continueTarget = null }
+  }
+  const continueFromBrowser = useCallback((): void => {
+    if (target === null || continueTarget === null) return
+    leave.request({ kind: 'open', target: { sessionId: target.sessionId, path: continueTarget.path } })
+  }, [leave, target, continueTarget])
+
   // The tree mounts once anything shows it (rail or browse face) and stays
   // mounted so expansion state survives every switch.
   useEffect(() => {
@@ -897,6 +910,8 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                     list={list}
                     onOpenFile={openFromBrowser}
                     currentPath={target.path}
+                    continueTarget={continueTarget}
+                    onContinue={continueFromBrowser}
                     t={t}
                   />
                 </div>

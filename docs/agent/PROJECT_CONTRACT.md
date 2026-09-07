@@ -103,7 +103,15 @@ arrangement across renders and document switches. The rendered body
 centers on a reading measure with one width for normal panels and a
 wider, more spacious one when maximized; long tables and code blocks
 scroll inside their own regions, and the header's necessary actions stay
-reachable at every width. The browse face
+reachable at every width. The browse area opens with a continue-reading
+entry (#28): when the session's reading record names a document, one
+explicit button — keyboard-focusable, bilingual, outside the header —
+offers it by name and path; a click opens that target through the same
+leave-intent entry (unsaved guard included) and lands on the restored
+position, while the 「工作区文档」 capsule keeps its own meaning of
+entering workspace browsing. No record, no entry; an unreadable target
+states the failure with the way back to browsing, and nothing ever
+auto-opens. The browse face
 silently revalidates every expanded directory on re-entry (and from its
 refresh button): fresh listings replace current ones, a failed refresh
 changes nothing. After the platform renderer settles the document, a diagram

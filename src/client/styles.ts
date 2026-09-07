@@ -551,6 +551,38 @@ const CSS = `
   gap: 4px;
   padding: 4px 8px 0;
 }
+/* The continue-reading entry (#28): the browse area's opening seat — one
+ * bordered row above the tree filter, carrying the label and the last-read
+ * document's name (path on hover), reachable by keyboard like every
+ * control. */
+.dsh-md-preview-continue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin: 4px 8px 2px;
+  padding: 5px 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-fill-secondary);
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  text-align: left;
+}
+.dsh-md-preview-continue:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-md-preview-continue svg { flex: none; color: var(--dsw-alias-label-secondary); }
+.dsh-md-preview-continue > span:first-of-type { flex: none; color: var(--dsw-alias-label-secondary); }
+.dsh-md-preview-continuename {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
 .dsh-md-preview-refresh {
   display: inline-flex;
   align-items: center;

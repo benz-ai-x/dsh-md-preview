@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewEntry, MdPreviewListResult } from '../protocol.ts'
+import { basename } from './preview-state.ts'
 
 /** Listing RPC and the file-open handoff, created in the plugin's apply world. */
 export interface WorkspaceBrowserProps {
@@ -26,6 +27,10 @@ export interface WorkspaceBrowserProps {
   onOpenFile(path: string): void
   /** Workspace-relative path of the current preview target, if any. */
   currentPath: string | null
+  /** The session's continue-reading target, or null without a record (#28). */
+  continueTarget?: { readonly path: string } | null
+  /** Open the continue-reading target through the unified leave entry (#28). */
+  onContinue?: () => void
   /** Locale seat. */
   t(key: string): string
 }
@@ -130,7 +135,7 @@ function EntryIcon({ type, name }: { type: MdPreviewEntry['type']; name: string 
  * @param props - session identity, listing RPC, file-open handoff, locale seat.
  * @returns the tree element.
  */
-export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentPath, t }: WorkspaceBrowserProps) {
+export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentPath, continueTarget, onContinue, t }: WorkspaceBrowserProps) {
   // Keyed by workspace-relative directory path; presence means expanded.
   const [dirs, setDirs] = useState<ReadonlyMap<string, DirState>>(new Map([['', { state: 'loading' }]]))
   const controllers = useRef(new Map<string, AbortController>())
@@ -379,6 +384,25 @@ export function WorkspaceBrowser({ sessionId, active, list, onOpenFile, currentP
   const root = dirs.get('')
   return (
     <>
+      {continueTarget != null && (
+        // The continue-reading entry (#28): the browse area's opening seat,
+        // naming the session's last-read document. It carries no body of
+        // its own — a click opens the recorded target through the panel's
+        // unified leave entry, guard and position restore included.
+        <button
+          type="button"
+          className="dsh-md-preview-continue"
+          title={`${t('continue.read')} · ${continueTarget.path}`}
+          aria-label={`${t('continue.read')} ${continueTarget.path}`}
+          onClick={() => { onContinue?.() }}
+        >
+          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+            <path d="M11 2.5H5a1.5 1.5 0 0 0-1.5 1.5v9.4a.6.6 0 0 0 .93.5L8 11.6l3.57 2.3a.6.6 0 0 0 .93-.5V4A1.5 1.5 0 0 0 11 2.5z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+          </svg>
+          <span>{t('continue.read')}</span>
+          <span className="dsh-md-preview-continuename">{basename(continueTarget.path)}</span>
+        </button>
+      )}
       <div className="dsh-md-preview-toolbar">
         <input
           type="text"
