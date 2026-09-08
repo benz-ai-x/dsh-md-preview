@@ -1,0 +1,9 @@
+{
+  "version": "0.10.0",
+  "latest": "0.10.0",
+  "tarball": "https://registry.npmjs.org/@benz-ai-x/dsh-md-preview/-/dsh-md-preview-0.10.0.tgz",
+  "bytes": 1106889,
+  "sha256": "6dbf68874dc74d6a4a88dafd03a2738f783ccc4a8459cca392e2772c103a07de",
+  "registryIntegrity": "sha512-seJilZ91IBAR++IoyR2M2GsXA2Umu9fDei7X6T4ZfDyAe+Z69AzTaYvvRUgHwmbPKfhQQErJNyxGVAEATcFfbQ==",
+  "matchesTestedArchive": true
+}

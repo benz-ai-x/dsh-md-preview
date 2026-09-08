@@ -1,0 +1,18 @@
+{
+  "version": "0.10.0",
+  "releaseVersionPresent": true,
+  "status": 200,
+  "entries": 47,
+  "bytes": 3951332,
+  "lazyFactory": true,
+  "paperclipEntry": true,
+  "closeIcon": true,
+  "noMirroredPanelGlyph": true,
+  "reversibleDock": true,
+  "localizedActions": true,
+  "installedMatchesBuild": true,
+  "installedSha256": "b5e4cdce253869e1358e9f963564995bcc98dd24266d661ccf7e22430139c0ed",
+  "tarballSha256": "6dbf68874dc74d6a4a88dafd03a2738f783ccc4a8459cca392e2772c103a07de",
+  "servedSha256": "d4cda5b32fcd6fd917de373cc8ab0ed75b400ee863109e19a4a267119635048d",
+  "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=5db2fcc82dadb151-2"
+}

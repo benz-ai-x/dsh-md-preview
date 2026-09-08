@@ -1,16 +1,25 @@
-# 交接文档 — dsh-md-preview(2026-09-06)
+# 交接文档 — dsh-md-preview(2026-09-08)
 
 面向接手本仓库的开发者或 AI 会话。目标:读完这一份即可继续开发、验证、发布。
 
 ## 当前状态
 
-**v0.6.0 已发布上线(2026-09-06,registry latest)**:rc.1 基线对齐(0.5.0
-内容,跳过未单独发布)+ 功能四连(大纲导航 / 工作区树刷新 / 编辑器查找 /
-mermaid 图表增强)。测试 **116 项**全绿;发布链全过(verify → packed 冒烟 →
-npm publish → 验货 → web profile `^0.6.0`)。client bundle 3.89 MB
-minified(mermaid 内联,惰性求值)。
-只读预览 → 受守卫编辑(乐观锁+沙箱)→ 工作区浏览 → 大纲/查找/mermaid。
-`pnpm verify` 全链通过是唯一发布前置。
+**v0.10.0 已发布(2026-09-08,registry latest)**：文档侧边栏、回形针入口与 × 关闭，
+并包含 v0.7.2 之后的 UI/UX 对齐、统一未保存守卫、阅读连续与工作区搜索改动。
+发布提交 `9016f87` 与标签已推送，npm 和 GitHub 附件均为经过验证的同一 tarball。
+测试 **290 项**全绿，干净 profile 安装、启动、普通导入及移除通过。
+当前人工验收 `r3-accept` 已安装 npm 精确版本 0.10.0，在 3185（tmux `dsh-r3`）重启。
+完整记录见 [发布验证](verification/releases/v0.10.0/WALKTHROUGH.md)，当前待办以根 TODO 为准。
+发布前必须通过 `pnpm verify` 全链与安装包冒烟。
+实际发布应先完成 `pnpm pack:publishable` 与同一 tarball 的干净 profile 冒烟，再用
+`npm publish <已验证的.tgz> --ignore-scripts --access public --registry=https://registry.npmjs.org/`
+提交该归档，避免在验证和发布之间重新打包。发布后下载 Registry 广告的 tarball
+逐字节比对，并核对 dist-tags 与 GitHub 附件摘要。
+
+本次 npm 登录返回 401，使用权限 0600 的临时 `NPM_CONFIG_USERCONFIG` 完成
+`npm login --auth-type=web`，然后以同一配置发布；登录与发布分别出现浏览器认证。
+tmux 保持真实终端输出，不能重定向 npm 发布的 stdout，否则无法使用浏览器 2FA。
+
 发布实操坑(2026-09-06 实录):verify-built 是 mtime 门,pack.mjs 每次运行
 都会重写 package.json → 重试发布前必须 `tsc -b --force` 重建;~/.npmrc 里
 registry.npmjs.org 的陈旧 token 会以 404 伪装失败,摘掉后

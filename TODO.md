@@ -6,8 +6,10 @@
 
 ## 当前状态
 
-- GitHub 最新发布：[0.7.2](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.7.2)
-  （2026-09-08 查询）；当前源码 package 版本为 `0.10.0`，发布准备中。
+- 最新发布：[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
+  （2026-09-08）；npm `latest` 与当前源码 package 均为 `0.10.0`。
+  归档、GitHub 附件与 npm 下载包摘要一致，见
+  [发布验证](docs/verification/releases/v0.10.0/WALKTHROUGH.md)。
 - [spec #20](https://github.com/benz-ai-x/dsh-md-preview/issues/20) 及
   #21–#32 已关闭，三轮 PR 已合并；交付证据见
   [R3 走查](docs/verification/r3-acceptance/WALKTHROUGH.md)，批次记录见
@@ -15,8 +17,8 @@
 - 本轮 UI/UX 实施跟踪：[Issue #36](https://github.com/benz-ai-x/dsh-md-preview/issues/36)。
   `pnpm verify` 通过：123 项基线检查、286 项测试、类型检查及构建产物检查。
   干净 profile 的 tarball 安装、启动、资源服务及移除检查通过。
-- 已保留并完成原有顶部停靠改动，同步契约；本轮源码以 `v0.9.0` Git 标签归档，
-  npm 发布与 UX-12 浏览器验收另行跟踪。
+- 已保留并完成原有顶部停靠改动，同步契约；此前以 `v0.9.0` Git 标签归档的
+  排版改动已随 v0.10.0 发布到 npm，UX-12 浏览器验收继续跟踪。
   证据与剩余验收见 [本轮记录](docs/verification/uiux-alignment/WALKTHROUGH.md)。
 
 ## UI/UX 对齐 Harness
@@ -70,10 +72,9 @@
 
 - [ ] 恢复浏览器连接后完成 UX-12 的浅/深主题、中/英文、边界宽度、缩放与
       完整阅读链路验收；当前 Chrome 通信失败，已请求打开空白窗口恢复连接。
-- [ ] **发布 v0.10.0**：npm 当前 latest 为 `0.7.2`，保留已有 `v0.9.0` Git 标签。
-      新版本 `pnpm verify` 与干净 profile 的同一 tarball 安装/启动/移除冒烟已通过，
-      见 [发布验证](docs/verification/releases/v0.10.0/WALKTHROUGH.md)。待 npm 浏览器
-      认证、发布验货，以及 Git 提交、标签与 GitHub Release 归档。
+- [x] **发布 v0.10.0**：`pnpm verify` 与干净 profile 安装/启动/移除冒烟通过；
+      npm `latest` 已更新，提交 `9016f87` 与新标签已推送，GitHub Release 已公开。
+      已下载核验同一 tarball，并将 `r3-accept`（3185）更新为 npm 正式版后重启。
 
 ## 验证与评估
 

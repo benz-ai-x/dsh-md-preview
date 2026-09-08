@@ -22,9 +22,23 @@ v0.9.0 Git 标签。发布前 npm latest 为 0.7.2。
 
 ## 发布交接
 
-发布时直接向 npm 提交已验证的 `benz-ai-x-dsh-md-preview-0.10.0.tgz`，并将同一归档
-及 SHA256SUMS 附到 GitHub Release。归档在验证与发布之间不重新生成。
-发布前 npm whoami 返回 401，需要完成 npm 浏览器认证。
+已将经过验证的 `benz-ai-x-dsh-md-preview-0.10.0.tgz` 直接提交 npm，并将同一归档
+及 SHA256SUMS 附到 GitHub Release。归档在验证与发布之间未重新生成。
+
+- 发布前 npm whoami 返回 401；使用临时 npm userconfig 完成浏览器登录及发布二次
+  认证，发布命令退出 0，账号为 `benz.ai.coder`。
+- npm 版本与 `latest` 均为 0.10.0；重新下载 Registry 广告的 tarball，与经过验证的
+  归档逐字节相同，SHA-1 与 SHA-512 integrity 也与 npm 元数据一致，见
+  [registry.json](registry.json)。
+- 发布提交 `9016f87bc1cc8d987add42386b4897a9842d845d` 与注解标签 `v0.10.0` 原子推送，
+  已核对远端 main 与标签解引用。保留此前 v0.9.0 标签。
+- [GitHub Release](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
+  已公开为正式版，两项附件的服务端 SHA-256 均与本地相符，见
+  [github-release.json](github-release.json)。
+- 当前人工验收 `r3-accept` 通过正式 Registry 安装精确版本 0.10.0，安装退出 0；
+  在原 3185 端口重启 tmux `dsh-r3`。启动图包含插件，服务资源 HTTP 200，含 v0.10.0
+  与最终 A/B 图标，安装 client 与发布归档相同，见 [manual-server.json](manual-server.json)。
+  更新前 profile 配置已备份，位置由本机 `/tmp/mdpreview-0100-r3-backup.txt` 记录。
 
 发布说明见 [v0.10.0](../../../releases/v0.10.0.md)。顶栏对齐等建议尚未实施；剩余
 真实浏览器验收继续见 #36、#37，不能由本轮安装包验证代替。
