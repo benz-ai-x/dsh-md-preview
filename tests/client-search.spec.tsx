@@ -180,7 +180,9 @@ describe('workspace search face (#30)', () => {
       expect(resultPaths(harness)).toEqual(['docs/guide.md', 'notes/guide.md'])
       const rows = [...harness.container.querySelectorAll('.dsh-md-preview-searchrow')]
       expect(rows[0]?.textContent).toContain('guide.md')
-      expect(rows[0]?.textContent).toContain('docs/guide.md')
+      expect(rows[0]?.querySelector('.dsh-md-preview-searchpath')?.textContent).toBe('docs')
+      expect(rows[1]?.querySelector('.dsh-md-preview-searchpath')?.textContent).toBe('notes')
+      expect(harness.container.querySelector('[role="option"]')?.getAttribute('title')).toBe('docs/guide.md')
       // The hit itself is marked inside the name.
       expect(harness.container.querySelector('.dsh-md-preview-treename mark')?.textContent).toBe('guide')
       // The tree itself is hidden while results show, not unmounted.

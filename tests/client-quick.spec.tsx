@@ -50,6 +50,7 @@ async function renderQuick(initial: {
   files?: ReadonlyArray<string>
   records?: ReadonlyArray<{ sessionId: string; path: string; at: number }>
   turnOutputs?: { sessionId: string; paths: readonly string[] } | null
+  workspaceRoot?: string
 }): Promise<QuickHarness> {
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
@@ -73,6 +74,7 @@ async function renderQuick(initial: {
   const root: Root = createRoot(harness.container)
   const panelElement = () => (
     <PreviewOverlay
+      useSessions={((selector: (state: unknown) => unknown) => selector({ byId: { 'session-1': { cwd: initial.workspaceRoot } } })) as never}
       usePreviewTarget={usePreviewTarget as never}
       leave={leave}
       close={() => { store.set(null) }}
@@ -126,6 +128,29 @@ const quickRows = (harness: QuickHarness, source: string): HTMLElement[] =>
 afterEach(() => { document.body.replaceChildren() })
 
 describe('quick entries (#31)', () => {
+  it('shortens a known workspace prefix only for display and opens the original absolute identity', async () => {
+    const path = '/work/alpha/nested/report.md'
+    const harness = await renderQuick({
+      workspaceRoot: '/work',
+      files: ['guide.md', path],
+      turnOutputs: { sessionId: 'session-1', paths: [path] },
+    })
+    try {
+      await enterBrowse(harness)
+      const row = quickRows(harness, 'turn')[0]!
+      expect(row.querySelector('.dsh-md-preview-quickpath')?.textContent).toBe('alpha/nested')
+      await act(async () => { row.focus() })
+      expect(harness.container.querySelector('[role="tooltip"]')?.textContent).toBe(path)
+      await act(async () => { row.click() })
+      await flush()
+      expect(harness.reads.at(-1)).toEqual({ sessionId: 'session-1', path })
+      expect(harness.container.querySelector('.dsh-md-preview-crumbs')?.getAttribute('title')).toContain(path)
+      expect(harness.container.querySelector('.dsh-md-preview-crumbs')?.textContent).not.toContain('/work')
+    } finally {
+      await harness.unmount()
+    }
+  })
+
   it('lists the current turn outputs and recent reads with name and path, and opens them fresh', async () => {
     const harness = await renderQuick({
       files: ['guide.md', 'notes.md', 'deep/report.md'],
@@ -142,7 +167,7 @@ describe('quick entries (#31)', () => {
       expect(turnRows.map(row => row.getAttribute('title'))).toEqual(['deep/report.md', 'guide.md'])
       // Name and path both render, so same-name documents stay apart.
       expect(turnRows[0]?.textContent).toContain('report.md')
-      expect(turnRows[0]?.textContent).toContain('deep/report.md')
+      expect(turnRows[0]?.querySelector('.dsh-md-preview-quickpath')?.textContent).toBe('deep')
       const recentRows = quickRows(harness, 'recent')
       // Recency order, own session only; the other session never leaks.
       // (The newest may also appear — the continue-reading entry keeps its

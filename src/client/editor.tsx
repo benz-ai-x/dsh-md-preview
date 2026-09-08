@@ -19,7 +19,8 @@ import {
   keymap,
   lineNumbers,
 } from '@codemirror/view'
-import { LRLanguage, defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { HighlightStyle, LRLanguage, syntaxHighlighting } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 import type { LRParser } from '@lezer/lr'
 import { Emoji, GFM, Subscript, Superscript, parser } from '@lezer/markdown'
 
@@ -32,6 +33,17 @@ import { Emoji, GFM, Subscript, Superscript, parser } from '@lezer/markdown'
 const markdownLanguage = LRLanguage.define({
   parser: parser.configure([GFM, Subscript, Superscript, Emoji]) as unknown as LRParser,
 })
+
+/** Markdown structure follows the platform palette when the theme changes. */
+const markdownHighlightStyle = HighlightStyle.define([
+  { tag: tags.heading, color: 'var(--dsw-alias-label-primary)', fontWeight: '600' },
+  { tag: tags.strong, fontWeight: '600' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: tags.strikethrough, textDecoration: 'line-through' },
+  { tag: [tags.link, tags.url], color: 'var(--shiki-token-link)', textDecoration: 'underline' },
+  { tag: [tags.processingInstruction, tags.meta, tags.punctuation, tags.comment], color: 'var(--dsw-alias-label-secondary)' },
+  { tag: tags.monospace, color: 'var(--shiki-token-string-expression)' },
+])
 
 /**
  * Wrap every selection range in markup markers (#16); an empty selection
@@ -168,7 +180,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
           history(),
           drawSelection(),
           highlightActiveLine(),
-          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+          syntaxHighlighting(markdownHighlightStyle),
           EditorView.lineWrapping,
           search({ top: true }),
           searchPhrases === undefined ? [] : EditorState.phrases.of(searchPhrases),
@@ -198,8 +210,16 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
             reportEditStatus(update.view)
           }),
           EditorView.theme({
-            '&': { height: '100%' },
-            '.cm-scroller': { fontFamily: 'inherit' },
+            '&': { height: '100%', backgroundColor: 'var(--dsw-alias-bg-base)', color: 'var(--dsw-alias-label-primary)' },
+            '.cm-scroller': { fontFamily: 'var(--ds-font-family-code)', fontSize: 'var(--dsh-content-font-size, 14px)', lineHeight: 'calc(24px + var(--dsh-content-font-delta, 0px))', overflow: 'auto' },
+            '.cm-content': { caretColor: 'var(--dsw-alias-label-primary)', padding: '8px 0' },
+            '.cm-gutters': { backgroundColor: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-secondary)', borderRight: '1px solid var(--dsw-alias-border-l2)' },
+            '.cm-lineNumbers .cm-gutterElement': { minWidth: '32px', padding: '0 8px' },
+            '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--dsw-alias-label-primary)' },
+            '.cm-activeLine': { backgroundColor: 'var(--dsw-alias-interactive-bg-hover)' },
+            '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: 'var(--dsw-alias-interactive-bg-active)' },
+            '.cm-searchMatch': { backgroundColor: 'color-mix(in srgb, var(--dsw-alias-state-business-primary) 18%, transparent)', outline: '1px solid var(--dsw-alias-state-business-primary)' },
+            '.cm-searchMatch-selected': { backgroundColor: 'color-mix(in srgb, var(--dsw-alias-state-business-primary) 28%, transparent)' },
           }),
         ],
       }),

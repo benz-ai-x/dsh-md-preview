@@ -93,6 +93,9 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: 0.1.2-rc.1
         version: 0.1.2-rc.1(@deepseek-ai/cordis@4.0.2)
+      '@lezer/highlight':
+        specifier: 1.2.3
+        version: 1.2.3
       '@lezer/lr':
         specifier: ^1.4.10
         version: 1.4.10

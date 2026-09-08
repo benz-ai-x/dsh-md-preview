@@ -17,10 +17,10 @@ produced become clickable in two additive places:
 Either entry opens a right-docked preview panel beside the conversation that
 renders the document (GFM, fenced code with highlighting, TeX) through the
 platform `MarkdownText` primitive. The panel is closable, width-draggable,
-and idle (renders nothing) while no target is set; it starts below the
-session-header strip that the 「工作区文档」 capsule measures at runtime
-(never a preset offset), keeping that entry clickable while the panel is
-open. A 「编辑」 action enters a
+and idle (renders nothing) while no target is set. It docks at the frame's
+top edge, covering the host session header while open; the panel's own
+workspace/back and close actions remain directly reachable. No measured
+header-strip geometry is published. A 「编辑」 action enters a
 CodeMirror 6 editor (line numbers, GFM highlighting, Cmd/Ctrl-S) whose
 「保存」 writes the draft back into the session workspace and returns to the
 rendered view; 「取消编辑」 discards the draft. Saving over a file that
@@ -41,11 +41,15 @@ panel, and only then requests the close; it never confirms a discard.
 Editing targets
 existing files only — no creation. The edit face carries a CodeMirror search
 panel (header button and Mod-F). The header renders one row: the document
-identity shrinks (the last crumb ellipsizes; the tooltip keeps the full
-workspace path and version), the 预览/编辑 control and edit tools group
+identity shrinks (the filename has priority; at 420px and below its parent
+crumb and decorative icon hide). A focusable identity keeps the full raw
+workspace path and version available through the platform tooltip; the
+browse title exposes the version the same way, without a version-only
+footer. The 预览/编辑 control and edit tools group
 after it, and maximize/close hold the last two seats; below 560px the
 low-frequency tools (outline, undo/redo/find, keymap help) fold into a ⋯
-menu while save and close stay directly clickable. The header's outline
+menu while save and close stay directly clickable. The breakpoints use the
+visible width even while maximized or after browser zoom. The header's outline
 popover navigates the
 document's ATX headings — scrolling the rendered heading in the view face,
 jumping the cursor to the source line in the edit face. The outline tracks
@@ -54,11 +58,12 @@ position in the view face and the cursor's source line in the edit face,
 keeping that entry scrolled into view. The header carries a dirty dot while
 the edit draft differs, folds the plugin version into the crumbs tooltip,
 and annotates the find and save shortcuts; the find panel is localized,
-shows a match count, and matches the panel's design language. Wide panels
+shows a match count in the editor status bar, and matches the panel's design language. Wide panels
 (from 640px) carry a collapsible left rail — a 文件/大纲 mini-tab column
 whose files page hosts the workspace tree beside the document (browsing
 never swaps the document away) and whose outline page hosts the heading
-list with the reading-position highlight; narrow panels fall back to the
+list with the reading-position highlight. The navigation starts at 220px
+unless a manual width exists, retaining the 120–320px drag range; narrow panels fall back to the
 browse-face swap and the outline popover, with Mod-Shift-O/E routing by
 width and Esc dismissing popovers. The edit face's status bar walks
 保存中… → 未保存 / 保存失败 · code → 已保存 HH:MM while the save button
@@ -114,7 +119,7 @@ stays out of the way, expandable at any time), while an explicit
 workspace-browse entry expands the navigation; a manual choice — this
 session's or the remembered one — always outranks the automatic
 arrangement across renders and document switches. The browse area carries
-two quick-entry sections above its toolbar (#31): 「当前回合产出」 lists
+two quick-entry sections below its fixed search toolbar (#31): 「当前回合产出」 lists
 the previewable documents the session's newest turn produced — derived
 from the owning chat facts (deliverables turn data fenced by the turn and
 its closing seq, exactly the boundary the chip row applies; an open turn
@@ -127,9 +132,17 @@ same-name documents stay apart. Opening either rides the same
 leave-guarded open path with a fresh read; a moved or deleted document
 lands on the normal failure state with the way back to browsing; empty
 sources hide their section; and the 「继续阅读」 entry keeps its own
-explicit seat and meaning beside them. The rendered body
-centers on a reading measure with one width for normal panels and a
-wider, more spacious one when maximized; long tables and code blocks
+explicit seat and meaning beside them. Quick entries, continue-reading,
+tree and results share the scroll region; searching hides the quick sections
+and continue-reading entry, and clearing restores them with the tree. The
+filename and parent path have independent lines (parent context at most two
+lines); full raw paths remain available on hover and keyboard focus. Only
+the owning session selector's known cwd may shorten a path for display;
+opening, saving and reading-record keys keep their original identities.
+The rendered body centers on a 760px reading measure (940px when maximized),
+with more outer space when maximized. The shared MarkdownText primitive
+owns font size, line height, paragraph and heading margins at every width;
+there are no maximum-mode paragraph overrides. Long tables and code blocks
 scroll inside their own regions, and the header's necessary actions stay
 reachable at every width. The browse area opens with a continue-reading
 entry (#28): when the session's reading record names a document, one
@@ -181,9 +194,8 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   single full reset) behind the effectful adapter
   `src/client/use-preview-session.ts`; the unsaved guard itself is a
   leave-intent seat (`src/client/leave-intent.ts`) shared by every plugin
-  outlet and executed only by the panel, which also renders the measured
-  session-header strip geometry the 「工作区文档」 capsule publishes; that
-  capsule is additionally the plugin's always-mounted session-scoped seat
+  outlet and executed only by the panel. The 「工作区文档」 capsule is the
+  plugin's always-mounted session-scoped seat
   that derives the newest turn's previewable produced documents from the
   binding's chat facts and publishes them (a deduped snapshot store) for
   the root-scoped panel's quick entries. The
@@ -260,8 +272,9 @@ contexts.
   pending leave intent, and the
   conflict prompts are UI-local viewing state; the draft never
   reaches the workspace except through an explicit guarded `write`. The
-  panel's dragged width persists across opens for the app session (clamped
-  320–1280, opening at 500); the target itself resets per open. The reading
+  panel's dragged width persists across opens (360–1200px, further clamped
+  to the live viewport); without a manual width it derives from half the
+  viewport up to 720px. The target itself resets per open. The reading
   record (positions only, keyed by session and workspace path) is likewise
   UI-local viewing state persisted through browser storage with version,
   validity checks, and bounded cleanup. Session data, turn membership,

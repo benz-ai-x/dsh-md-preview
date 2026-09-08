@@ -10,6 +10,7 @@ import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { TurnTailOwnerProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { MdTurnFiles } from './turn-files.ts'
 import { basename } from './preview-state.ts'
+import { DocumentIcon } from './DocumentIcon.tsx'
 
 /** Panel admission for one conversation session. */
 export interface MdChipsInjected {
@@ -40,7 +41,7 @@ export function MdChips({ matched, openFile, openPreview, t }: MdChipsProps) {
           title={t('chip.preview', { name: path })}
           onClick={() => { openPreview(path) }}
         >
-          <span aria-hidden>📄</span>
+          <DocumentIcon />
           <span className="dsh-md-preview-chip-label">{basename(path)}</span>
         </button>
       ))}

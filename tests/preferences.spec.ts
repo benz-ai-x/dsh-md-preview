@@ -146,6 +146,6 @@ describe('width clamping to the live viewport', () => {
     expect(clampRailWidth(200)).toBe(200)
     expect(clampRailWidth(80)).toBe(120)
     expect(clampRailWidth(999)).toBe(320)
-    expect(clampRailWidth(null)).toBe(148)
+    expect(clampRailWidth(null)).toBe(220)
   })
 })

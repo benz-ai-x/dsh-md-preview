@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { ownedDeliverables, previewableOf } from './message-files.ts'
 import { basename } from './preview-state.ts'
+import { DocumentIcon } from './DocumentIcon.tsx'
 
 /** Panel admission for one conversation session. */
 export interface PreviewActionInjected {
@@ -44,7 +45,7 @@ export function PreviewAction({ messageId, useChat, openPreview, t }: PreviewAct
           else setOpen(value => !value)
         }}
       >
-        <span aria-hidden>📄</span>
+        <DocumentIcon />
         {t('action.label')}
       </button>
       {open && files.length > 1 && (

@@ -27,7 +27,7 @@ export const PANEL_DEFAULT_WIDTH = 720
 /** Rail width support range (the rail's drag bounds). */
 export const RAIL_MIN_WIDTH = 120
 export const RAIL_MAX_WIDTH = 320
-export const RAIL_DEFAULT_WIDTH = 148
+export const RAIL_DEFAULT_WIDTH = 220
 
 /** Which rail mini-tab the panel shows. */
 export type RailTab = 'files' | 'outline'

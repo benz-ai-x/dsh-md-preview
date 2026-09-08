@@ -246,7 +246,7 @@ describe('the remembered navigation state (#26)', () => {
       (harness.container.querySelector('button[aria-label="browse.open"]') as HTMLButtonElement).click()
     })
     await flush()
-    await dragRail(harness, 100, 153)
+    await dragRail(harness, 100, 81)
     const browser = harness.container.querySelector('.dsh-md-preview-browser') as HTMLElement
     expect(browser.style.width).toBe('201px')
     await closePanel(harness)

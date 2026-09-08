@@ -44,10 +44,6 @@ function registerUi(ctx: ClientContext): void {
   // closes here; the panel owns the guard and the execution. UI-local
   // viewing state only — it dies with the mount.
   const leave = createLeaveIntentSeat()
-  // The measured host session-header strip (#22): the capsule publishes its
-  // bottom; the panel starts below it so the entry stays clickable while
-  // open. Plain UI-local geometry — zero when nothing publishes.
-  const headerStrip = createSnapshotStore<number>(0)
   // The reading record (#25): per-(session, path) positions over the
   // browser's localStorage when reachable, else in-memory for the session.
   // UI-local viewing state only — positions, never bodies or fingerprints.
@@ -114,7 +110,6 @@ function registerUi(ctx: ClientContext): void {
     inject: () => ({
       hooks: { previewTarget },
       leave,
-      headerStrip,
       close: () => { previewTarget.set(null) },
       setTarget,
       read,
@@ -159,7 +154,7 @@ function registerUi(ctx: ClientContext): void {
     id: 'md-preview-docs',
     order: 100,
     locale: NS,
-    inject: () => ({ hooks: { previewTarget }, leave, headerStrip, publishTurnOutputs }),
+    inject: () => ({ hooks: { previewTarget }, leave, publishTurnOutputs }),
   }, WorkspaceDocsAction))
 }
 

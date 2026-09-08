@@ -7,6 +7,9 @@
 
 const CSS = `
 .dsh-md-preview-overlay {
+  box-sizing: border-box;
+  font: 14px/20px var(--dsw-font-family);
+  color: var(--dsw-alias-label-primary);
   position: absolute;
   top: 0;
   right: 0;
@@ -15,13 +18,16 @@ const CSS = `
   flex-direction: column;
   min-height: 0;
   background: var(--dsw-alias-bg-base);
-  /* #8: 1px edge + a heavier shadow keeps the layer's boundary legible in
-   * dark themes, where the light shadow alone disappears. */
+  /* A shared panel shadow and one edge preserve the theme's layer boundary. */
   border-left: 1px solid var(--dsw-alias-border-l3);
-  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--dsw-elevation-panel);
   /* The host overlay layer is pointer-events: none; the panel re-arms itself. */
   pointer-events: auto;
 }
+/* Keep form controls on the shared font while allowing component metrics below. */
+.dsh-md-preview-overlay :is(button, input) { font-family: inherit; }
+.dsh-md-preview-overlay button:disabled { opacity: 0.4; cursor: default; }
+.dsh-md-preview-overlay [hidden] { display: none !important; }
 .dsh-md-preview-edgehandle {
   position: absolute;
   top: 0;
@@ -68,24 +74,27 @@ const CSS = `
  * wraps and nothing overflows horizontally; the low-frequency tools fold
  * into the ⋯ menu below the compact width instead. */
 .dsh-md-preview-header {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex: none;
   min-width: 0;
-  padding: 6px 8px 6px 12px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
 /* Visible focus for every interactive control this plugin renders (#22):
  * header icons, segmented control, rail tabs, tree rows and filter, bars
  * and popovers, chips, the docs capsule — one accent-token ring, so light
  * and dark both hold. */
-.dsh-md-preview-overlay :is(button, input, [role="treeitem"]):focus-visible,
+.dsh-md-preview-overlay :is(button, input, [role="treeitem"], [role="option"], [tabindex="0"]):focus-visible,
 .dsh-md-preview-docsbtn:focus-visible,
 .dsh-md-preview-doc:focus-visible,
 .dsh-md-preview-chip:focus-visible,
 .dsh-md-preview-list button:focus-visible {
-  outline: 2px solid var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  outline: 2px solid var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
   outline-offset: 1px;
 }
 /* The compact ⋯ menu (#22): same floating-panel language as the outline
@@ -100,16 +109,8 @@ const CSS = `
   padding: 4px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
-  background: var(--dsw-alias-bg-float, var(--dsw-alias-bg-base));
-  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
-}
-/* Starting below the measured host header strip (#22): a rounded top-left
- * corner and a matching top border read the panel as sitting beside the
- * host's own column chrome instead of over it. */
-.dsh-md-preview-overlay[data-below-strip] {
-  border-top: 1px solid var(--dsw-alias-border-l3);
-  border-top-left-radius: 10px;
-  box-shadow: -16px -8px 40px rgba(0, 0, 0, 0.14);
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-alias-bg-base));
+  box-shadow: var(--dsw-elevation-panel);
 }
 .dsh-md-preview-docsbtn {
   display: inline-flex;
@@ -142,55 +143,55 @@ const CSS = `
 }
 
 
-.dsh-md-preview-foot {
-  flex: none;
-  padding: 2px 12px 4px;
-  border-top: 1px solid var(--dsw-alias-border-l2);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
-  user-select: none;
-}
 .dsh-md-preview-dirty {
   flex: none;
   margin-left: 2px;
   font-size: 13px;
   line-height: 1;
-  color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
   user-select: none;
 }
 .dsh-md-preview-editcta {
-  border: 1px solid var(--dsw-alias-accent, var(--dsw-alias-border-l2));
-  background: var(--dsw-alias-fill-secondary);
+  border: 1px solid var(--dsw-alias-state-business-primary, var(--dsw-alias-border-l2));
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 .dsh-md-preview-seg {
   display: flex;
+  align-items: stretch;
   flex: none;
+  height: 30px;
+  margin-inline: 4px;
+  box-sizing: border-box;
   border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 7px;
+  border-radius: 8px;
   overflow: hidden;
 }
 .dsh-md-preview-seg button {
-  padding: 3px 14px;
-  font-size: 12px;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 20px;
   color: var(--dsw-alias-label-secondary);
   background: var(--dsw-alias-bg-base);
   border: none;
   cursor: pointer;
 }
 .dsh-md-preview-seg button + button { border-left: 1px solid var(--dsw-alias-border-l2); }
+.dsh-md-preview-seg button:focus-visible { outline-offset: -3px; }
 .dsh-md-preview-seg button[aria-pressed="true"] {
-  background: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
-  color: #fff;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
   font-weight: 500;
 }
+.dsh-md-preview-identity { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.dsh-md-preview-identity > svg { flex: none; color: var(--dsw-alias-label-secondary); }
+.dsh-md-preview-paneltools { display: flex; align-items: center; gap: 4px; flex: none; margin-left: 4px; }
 .dsh-md-preview-title {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 20px;
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
@@ -204,19 +205,29 @@ const CSS = `
   min-width: 0;
   display: flex;
   align-items: center;
+  gap: 4px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 20px;
   color: var(--dsw-alias-label-secondary);
   white-space: nowrap;
 }
-.dsh-md-preview-crumb { flex: none; }
+.dsh-md-preview-crumb {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 35%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .dsh-md-preview-crumb + .dsh-md-preview-crumb::before {
   content: '/';
   margin: 0 4px;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  color: var(--dsw-alias-label-secondary);
 }
 .dsh-md-preview-crumb:last-child {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--dsw-alias-label-primary);
@@ -224,24 +235,29 @@ const CSS = `
 }
 .dsh-md-preview-icon {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: none;
   border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
 }
-.dsh-md-preview-icon:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-icon > svg { width: 16px; height: 16px; flex: none; }
+.dsh-md-preview-icon:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-body {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: row;
 }
 .dsh-md-preview-state {
+  line-height: 20px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -250,16 +266,18 @@ const CSS = `
   font-size: 13px;
 }
 .dsh-md-preview-error {
-  color: var(--dsw-alias-label-danger, var(--dsw-alias-label-primary));
+  color: var(--dsw-alias-state-error-primary, var(--dsw-alias-label-primary));
   font-size: 13px;
 }
 .dsh-md-preview-retry {
+  min-height: 28px;
+  line-height: 20px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 6px;
   padding: 2px 10px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 .dsh-md-preview-row {
@@ -276,9 +294,9 @@ const CSS = `
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 6px;
   padding: 2px 8px;
-  background: var(--dsw-alias-fill-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 18px;
   cursor: pointer;
 }
@@ -297,10 +315,10 @@ const CSS = `
   padding: 4px 8px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
-.dsh-md-preview-doc:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-doc:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-list {
   position: absolute;
   right: 0;
@@ -313,8 +331,8 @@ const CSS = `
   padding: 4px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
-  background: var(--dsw-alias-bg-float, var(--dsw-alias-bg-base));
-  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-alias-bg-base));
+  box-shadow: var(--dsw-elevation-panel);
 }
 .dsh-md-preview-list button {
   display: block;
@@ -326,11 +344,15 @@ const CSS = `
   padding: 6px 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  min-height: 32px;
+  flex: none;
+  box-sizing: border-box;
   text-align: left;
   cursor: pointer;
 }
-.dsh-md-preview-list button:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-list button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-anchor { position: relative; }
 .dsh-md-preview-outline {
   position: absolute;
@@ -347,9 +369,11 @@ const CSS = `
   padding: 4px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
-  background: var(--dsw-alias-bg-float, var(--dsw-alias-bg-base));
-  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-alias-bg-base));
+  box-shadow: var(--dsw-elevation-panel);
 }
+.dsh-md-preview-header > .dsh-md-preview-outlineanchor { position: static; }
+.dsh-md-preview-header .dsh-md-preview-outline { right: 8px; max-width: calc(100% - 16px); box-sizing: border-box; }
 .dsh-md-preview-outline button {
   display: block;
   overflow: hidden;
@@ -360,13 +384,17 @@ const CSS = `
   padding: 5px 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  min-height: 32px;
+  flex: none;
+  box-sizing: border-box;
   text-align: left;
   cursor: pointer;
 }
-.dsh-md-preview-outline button:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-outline button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-outline-active {
-  background: var(--dsw-alias-fill-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
   font-weight: 500;
 }
 .dsh-md-preview-diagram {
@@ -381,8 +409,8 @@ const CSS = `
 .dsh-md-preview-diagram svg { max-width: 100%; height: auto; }
 .dsh-md-preview-diagram-error {
   padding: 2px 0 6px;
-  font-size: 11px;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
 }
 .dsh-md-preview-editor { flex: 1; min-height: 0; overflow: hidden; }
 .dsh-md-preview-keypop {
@@ -394,12 +422,12 @@ const CSS = `
   padding: 10px 12px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
-  background: var(--dsw-alias-bg-float, var(--dsw-alias-bg-base));
-  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
-  font-size: 12px;
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-alias-bg-base));
+  box-shadow: var(--dsw-elevation-panel);
+  font-size: 13px;
 }
 .dsh-md-preview-keypop dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
-.dsh-md-preview-keypop dt { font-size: 11px; font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--dsw-alias-accent, var(--dsw-alias-label-primary)); white-space: nowrap; }
+.dsh-md-preview-keypop dt { font-size: 12px; font-family: var(--ds-font-family-code); color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary)); white-space: nowrap; }
 .dsh-md-preview-keypop dd { margin: 0; color: var(--dsw-alias-label-secondary); }
 .dsh-md-preview-warnbar {
   flex: none;
@@ -408,29 +436,33 @@ const CSS = `
   gap: 8px;
   padding: 5px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
-  background: var(--dsw-alias-bg-float, var(--dsw-alias-fill-secondary));
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-alias-interactive-bg-hover));
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 13px;
 }
 .dsh-md-preview-warnbar button {
+  min-width: 28px;
+  min-height: 28px;
   margin-left: auto;
   border: none;
   background: none;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   padding: 0 4px;
 }
 .dsh-md-preview-warnbar button:hover { color: var(--dsw-alias-label-primary); }
 .dsh-md-preview-statusbar {
+  flex-wrap: wrap;
+  line-height: 18px;
   flex: none;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 4px 12px;
   padding: 4px 12px;
   border-top: 1px solid var(--dsw-alias-border-l2);
   background: var(--dsw-alias-bg-base);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--dsw-alias-label-secondary);
   user-select: none;
@@ -439,7 +471,7 @@ const CSS = `
 .dsh-md-preview-findcount {
   flex: none;
   margin: 0 2px;
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--dsw-alias-label-secondary);
   user-select: none;
@@ -447,20 +479,23 @@ const CSS = `
 .dsh-md-preview-editor .cm-panel.cm-search {
   background: var(--dsw-alias-bg-base);
   border-bottom: 1px solid var(--dsw-alias-border-l2);
-  padding: 4px 6px;
-  font-size: 12px;
+  padding: 6px 36px 6px 8px;
+  font-size: 13px;
 }
 .dsh-md-preview-editor .cm-panel.cm-search input,
 .dsh-md-preview-editor .cm-panel.cm-search button {
-  font-size: 12px;
+  font-size: 13px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 4px;
   background: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-primary);
   padding: 2px 4px;
 }
-.dsh-md-preview-editor .cm-panel.cm-search button:hover { background: var(--dsw-alias-fill-secondary); }
-.dsh-md-preview-editor .cm-scroller { overflow: auto; }
+.dsh-md-preview-editor .cm-panel.cm-search button:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-md-preview-editor .cm-panel.cm-search button,
+.dsh-md-preview-editor .cm-panel.cm-search input:not([type="checkbox"]) { min-height: 28px; box-sizing: border-box; line-height: 20px; max-width: 100%; }
+.dsh-md-preview-editor .cm-panel.cm-search button[name="close"] { width: 28px; height: 28px; top: 4px; right: 4px; }
+.dsh-md-preview-editor .cm-scroller { overflow: auto; scrollbar-gutter: stable; }
 .dsh-md-preview-bar {
   display: flex;
   align-items: center;
@@ -468,26 +503,35 @@ const CSS = `
   flex-wrap: wrap;
   padding: 8px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2, var(--dsw-alias-border-l1));
-  background: var(--dsw-alias-fill-tertiary, var(--dsw-alias-fill-secondary));
-  font-size: 12px;
+  background: var(--dsw-alias-interactive-bg-active, var(--dsw-alias-interactive-bg-hover));
+  font-size: 13px;
   color: var(--dsw-alias-label-primary);
 }
 .dsh-md-preview-bar button {
+  min-height: 28px;
+  line-height: 20px;
   border: 1px solid var(--dsw-alias-border-l2, var(--dsw-alias-border-l1));
   border-radius: 6px;
   padding: 3px 10px;
-  background: var(--dsw-alias-fill-primary);
+  background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
-.dsh-md-preview-bar button:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-bar button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-bar button:disabled { opacity: 0.5; cursor: default; }
-.dsh-md-preview-browser { flex: 1; min-height: 0; overflow: auto; }
+.dsh-md-preview-browser {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
 .dsh-md-preview-browser[data-open] {
   position: relative;
   flex: none;
-  width: 148px;
+  width: 220px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -498,7 +542,7 @@ const CSS = `
 .dsh-md-preview-railtabs button {
   flex: 1;
   padding: 6px 0 5px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--dsw-alias-label-secondary);
   background: none;
   border: none;
@@ -506,8 +550,8 @@ const CSS = `
   cursor: pointer;
 }
 .dsh-md-preview-railtabs button[aria-selected="true"] {
-  color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
-  border-bottom-color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
+  border-bottom-color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
   font-weight: 500;
 }
 .dsh-md-preview-railhandle {
@@ -520,14 +564,17 @@ const CSS = `
   touch-action: none;
   z-index: 2;
 }
-.dsh-md-preview-railhandle:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-railhandle:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-railfiles, .dsh-md-preview-railoutline {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
+.dsh-md-preview-railoutline { overflow: auto; padding: 8px; scrollbar-gutter: stable; }
+.dsh-md-preview-browsescroll { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px; scrollbar-gutter: stable; }
 .dsh-md-preview-railfiles[hidden], .dsh-md-preview-railoutline[hidden] { display: none; }
 .dsh-md-preview-railoutline button {
   display: block;
@@ -540,86 +587,100 @@ const CSS = `
   padding: 5px 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  min-height: 32px;
+  flex: none;
+  box-sizing: border-box;
   text-align: left;
   cursor: pointer;
 }
-.dsh-md-preview-railoutline button:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-railoutline button.dsh-md-preview-outline-active, .dsh-md-preview-outline button.dsh-md-preview-outline-active { background: var(--dsw-alias-interactive-bg-active); color: var(--dsw-alias-label-primary); font-weight: 500; }
+.dsh-md-preview-railoutline button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-toolbar {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px 0;
+  padding: 12px;
+  background: var(--dsw-alias-bg-base);
 }
-/* The quick-entry sections (#31): one compact labeled stack above the
- * toolbar — a few rows of name + necessary path, the path ellipsizing
- * inside its own span so same-name documents stay apart without widening
- * the rail. Sections hide entirely when their source is empty. */
+/* Quick entries sit in the scroll region below the fixed search toolbar.
+ * Name and parent context have separate lines; full paths remain available
+ * on hover and keyboard focus. Empty sources and active searches hide them. */
 .dsh-md-preview-quick {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   flex: none;
-  margin: 4px 8px 0;
+  margin: 0 0 12px;
 }
 .dsh-md-preview-quicklabel {
-  font-size: 10px;
-  line-height: 16px;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  padding: 0 8px;
   user-select: none;
 }
 .dsh-md-preview-quickrow {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 6px;
   min-width: 0;
+  min-height: 48px;
+  box-sizing: border-box;
   border: none;
-  border-radius: 4px;
-  padding: 3px 6px;
+  border-radius: 8px;
+  padding: 5px 8px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
-  font-family: var(--dsw-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font: 14px/20px var(--dsw-font-family);
   cursor: pointer;
   text-align: left;
 }
-.dsh-md-preview-quickrow:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-entrytext { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.dsh-md-preview-quickrow > svg, .dsh-md-preview-searchrow > svg { flex: none; margin-top: 2px; }
+.dsh-md-preview-quickrow:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-md-preview-quickrow[aria-current] { background: var(--dsw-alias-interactive-bg-active); }
+.dsh-md-preview-quickrow[aria-current] .dsh-md-preview-quickname { font-weight: 500; }
 .dsh-md-preview-quickname {
-  flex: none;
-  max-width: 60%;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 400;
 }
 .dsh-md-preview-quickpath {
-  flex: 1;
+  display: block;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
 }
-/* The continue-reading entry (#28): the browse area's opening seat — one
- * bordered row above the tree filter, carrying the label and the last-read
+.dsh-md-preview-quickpath, .dsh-md-preview-searchpath {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* The continue-reading entry (#28): one bordered row carrying the label and the last-read
  * document's name (path on hover), reachable by keyboard like every
  * control. */
 .dsh-md-preview-continue {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px 6px;
   flex: none;
-  margin: 4px 8px 2px;
-  padding: 5px 8px;
+  min-width: 0;
+  margin: 0 0 12px;
+  padding: 6px 8px;
   border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: var(--dsw-alias-fill-secondary);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
-  font-family: var(--dsw-font-family);
-  font-size: 12px;
-  line-height: 18px;
+  font: 14px/20px var(--dsw-font-family);
   cursor: pointer;
   text-align: left;
 }
@@ -627,7 +688,7 @@ const CSS = `
 .dsh-md-preview-continue svg { flex: none; color: var(--dsw-alias-label-secondary); }
 .dsh-md-preview-continue > span:first-of-type { flex: none; color: var(--dsw-alias-label-secondary); }
 .dsh-md-preview-continuename {
-  flex: 1;
+  flex: 1 1 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -638,16 +699,29 @@ const CSS = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  padding: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
 }
-.dsh-md-preview-refresh:hover { background: var(--dsw-alias-fill-secondary); color: var(--dsw-alias-label-primary); }
-.dsh-md-preview-document { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+.dsh-md-preview-refresh:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.dsh-md-preview-document {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 20px 24px;
+}
 .dsh-md-preview-document[hidden] { display: none; }
 /* The read measure (#27): the rendered body centers on a comfortable
  * reading measure at normal panel widths instead of stretching edge to
@@ -658,45 +732,43 @@ const CSS = `
   max-width: 760px;
   margin: 0 auto;
 }
-/* Maximized widens the measure and breathes more between paragraphs and
- * headings — a different arrangement, not one limit stretched (#27). */
-.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read {
-  max-width: 940px;
-}
-.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read :where(p, ul, ol) {
-  margin-top: 18px;
-  margin-bottom: 18px;
-}
-.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read :where(h1, h2, h3) {
-  margin-top: 36px;
-}
+/* Maximized widens the measure and outer space; MarkdownText continues to
+ * own paragraph and heading rhythm at every panel width. */
+.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-read { max-width: 940px; }
+.dsh-md-preview-overlay[data-maximized] .dsh-md-preview-document { padding: 32px; }
+.dsh-md-preview-searchfield { display: flex; align-items: center; flex: 1; min-width: 0; height: 32px; box-sizing: border-box; gap: 6px; padding: 0 6px; border: 0.5px solid var(--dsw-alias-border-l4); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); }
+.dsh-md-preview-searchglyph { flex: none; color: var(--dsw-alias-label-secondary); }
+.dsh-md-preview-searchfield:focus-within { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
+.dsh-md-preview-searchfield .dsh-md-preview-searchinput:focus-visible { outline: none; }
+.dsh-md-preview-searchinput::placeholder { color: var(--dsw-alias-label-secondary); }
 .dsh-md-preview-searchinput {
   flex: 1;
+  width: 0;
   min-width: 0;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 12px;
-  line-height: 1.4;
+  border: none;
+  outline: none;
+  padding: 0;
+  font-size: 14px;
+  line-height: 22px;
   color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-bg-base);
+  background: transparent;
 }
-/* The clear (✕) seat beside the workspace search box (#30): same quiet
- * 22px hit area language as the refresh button. */
+/* The clear seat shares the refresh button's 28px hit area. */
 .dsh-md-preview-searchclear {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   flex: none;
+  padding: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
 }
-.dsh-md-preview-searchclear:hover { background: var(--dsw-alias-fill-secondary); color: var(--dsw-alias-label-primary); }
+.dsh-md-preview-searchclear:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 /* The workspace search results (#30): one column of option rows under the
  * toolbar, same row rhythm as the tree. The name carries the hit mark; the
  * path rides a quieter second span so same-name documents stay apart. */
@@ -706,73 +778,78 @@ const CSS = `
   padding: 2px 0;
 }
 .dsh-md-preview-searchitem {
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
 }
-.dsh-md-preview-searchitem[aria-selected='true'] { background: var(--dsw-alias-fill-secondary); }
-.dsh-md-preview-searchitem:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-searchitem[aria-selected='true'] { background: var(--dsw-alias-interactive-bg-hover); }
+.dsh-md-preview-searchitem:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-searchrow {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 24px;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: var(--dsh-alias-label-primary);
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
 }
 .dsh-md-preview-searchpath {
-  flex: none;
-  max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  min-width: 0;
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
 }
 .dsh-md-preview-searchlimit {
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 4px;
   padding: 0 4px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--dsw-alias-label-secondary);
 }
 .dsh-md-preview-treename mark {
   background: none;
-  color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  color: inherit;
   font-weight: 600;
+  text-decoration: underline;
 }
 .dsh-md-preview-tree, .dsh-md-preview-treegroup {
   list-style: none;
   margin: 0;
   padding: 2px 0;
 }
-.dsh-md-preview-treegroup { padding-left: 20px; }
+.dsh-md-preview-treegroup { padding-left: 16px; }
+.dsh-md-preview-treebranch > .dsh-md-preview-treerow { height: 34px; }
 .dsh-md-preview-treerow {
   display: flex;
   align-items: center;
-  gap: 5px;
-  height: 24px;
-  padding: 0 8px 0 2px;
-  border-radius: 4px;
-  font-size: 12px;
+  gap: 6px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--dsw-alias-label-primary);
   cursor: default;
 }
 .dsh-md-preview-treeleaf .dsh-md-preview-treerow { cursor: pointer; }
-.dsh-md-preview-treerow:hover { background: var(--dsw-alias-fill-secondary); }
+.dsh-md-preview-treerow:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .dsh-md-preview-treeitem[data-current] > .dsh-md-preview-treerow {
-  background: var(--dsw-alias-fill-tertiary, var(--dsw-alias-fill-secondary));
+  background: var(--dsw-alias-interactive-bg-active, var(--dsw-alias-interactive-bg-hover));
   font-weight: 500;
 }
 .dsh-md-preview-treeitem[aria-selected="true"]:not([data-current]) > .dsh-md-preview-treerow {
-  background: var(--dsw-alias-fill-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 .dsh-md-preview-treeexpander {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
+  flex: none;
   padding: 0;
   border: none;
   background: transparent;
@@ -782,15 +859,14 @@ const CSS = `
 .dsh-md-preview-treeitem[aria-expanded="true"] > .dsh-md-preview-treerow .dsh-md-preview-treeexpander svg {
   transform: rotate(90deg);
 }
-/* Hierarchy (#7): directories read one level above files — primary icon,
- * 500-weight names — so the tree stops being a flat gray list. */
+/* Directory icons convey hierarchy; names keep the navigation's normal weight. */
 .dsh-md-preview-treebranch > .dsh-md-preview-treerow .dsh-md-preview-tree-icon {
   color: var(--dsw-alias-label-primary);
 }
 .dsh-md-preview-treebranch > .dsh-md-preview-treerow .dsh-md-preview-treename {
-  font-weight: 500;
+  font-weight: 400;
 }
-.dsh-md-preview-treespacer { width: 16px; flex: none; }
+.dsh-md-preview-treespacer { width: 24px; flex: none; }
 .dsh-md-preview-tree-icon { flex: none; color: var(--dsw-alias-label-secondary); }
 .dsh-md-preview-treeitem[data-kind="markdown"] .dsh-md-preview-tree-icon { color: var(--dsw-alias-label-primary); }
 .dsh-md-preview-treename {
@@ -802,27 +878,31 @@ const CSS = `
 }
 .dsh-md-preview-treehint {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  height: 22px;
-  padding-left: 23px;
-  font-size: 11px;
-  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
 }
 .dsh-md-preview-treeretry {
+  min-height: 28px;
+  line-height: 20px;
   border: 1px solid var(--dsw-alias-border-l2, var(--dsw-alias-border-l1));
   border-radius: 4px;
   padding: 1px 8px;
   background: transparent;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
 }
 .dsh-md-preview-plaintext {
   margin: 0;
   padding: 12px;
-  font-family: var(--dsw-alias-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 12px;
+  font-family: var(--ds-font-family-code);
+  font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -836,9 +916,9 @@ const CSS = `
   z-index: 3;
   border-radius: 999px;
   padding: 4px 14px;
-  background: var(--dsw-alias-fill-inverted, #2f2f2f);
-  color: var(--dsw-alias-label-inverted, #f5f5f5);
-  font-size: 12px;
+  background: var(--dsw-alias-label-primary, #2f2f2f);
+  color: var(--dsw-alias-label-primary-inverted, #f5f5f5);
+  font-size: 13px;
   pointer-events: none;
   white-space: nowrap;
 }
@@ -848,7 +928,7 @@ const CSS = `
   height: 12px;
   border-radius: 50%;
   border: 2px solid var(--dsw-alias-border-l3, var(--dsw-alias-border-l2));
-  border-top-color: var(--dsw-alias-accent, var(--dsw-alias-label-primary));
+  border-top-color: var(--dsw-alias-state-business-primary, var(--dsw-alias-label-primary));
   animation: dsh-md-preview-spin 0.8s linear infinite;
 }
 @keyframes dsh-md-preview-spin {
@@ -859,7 +939,21 @@ const CSS = `
 .dsh-md-preview-barhint {
   flex-basis: 100%;
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 12px;
+}
+.dsh-md-preview-overlay[data-compact] .dsh-md-preview-document { padding: 16px; }
+.dsh-md-preview-overlay[data-narrow] .dsh-md-preview-header { padding-inline: 8px; }
+.dsh-md-preview-overlay[data-narrow] .dsh-md-preview-seg { margin-inline: 2px; }
+.dsh-md-preview-overlay[data-narrow] .dsh-md-preview-seg button { padding-inline: 6px; }
+.dsh-md-preview-overlay[data-narrow] .dsh-md-preview-identity > svg,
+.dsh-md-preview-overlay[data-narrow] .dsh-md-preview-crumb:not(:last-child) { display: none; }
+.dsh-md-preview-overlay[data-narrow] .dsh-md-preview-crumb + .dsh-md-preview-crumb::before { display: none; }
+.dsh-md-preview-browser[data-narrow] .dsh-md-preview-toolbar { padding: 8px; }
+.dsh-md-preview-browser[data-narrow] .dsh-md-preview-browsescroll { padding-inline: 8px; }
+.dsh-md-preview-browser[data-narrow] .dsh-md-preview-searchglyph { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .dsh-md-preview-savebusy { animation: none; }
+  .dsh-md-preview-edgehandle::after { transition: none; }
 }
 `
 

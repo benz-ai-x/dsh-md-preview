@@ -13,7 +13,6 @@ import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
 import { createPreviewStore } from '../src/client/preview-state.ts'
 import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { WorkspaceDocsAction } from '../src/client/WorkspaceDocsAction.tsx'
 import type { MdPreviewFile } from '../src/protocol.ts'
 
@@ -34,14 +33,12 @@ beforeAll(() => {
 
 interface HeaderHarness {
   container: HTMLElement
-  strip: ReturnType<typeof createSnapshotStore>
   rerender: () => Promise<void>
 }
 
 async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promise<HeaderHarness> {
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
-  const strip = createSnapshotStore(0)
   const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path, content, fingerprint: 'v1' } }
   // Stable seam identities, like the mount world's one-time closures: an
   // inline arrow per render would re-run the read effect on every rerender
@@ -53,7 +50,6 @@ async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promi
   const setTarget = vi.fn()
   const harness: HeaderHarness = {
     container: document.createElement('div'),
-    strip,
     rerender: () => act(async () => { root.render(panelElement()) }),
   }
   const usePreviewTarget = (selector: (state: unknown) => unknown) =>
@@ -67,7 +63,6 @@ async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promi
       write={write as never}
       list={list as never}
       setTarget={setTarget as never}
-      headerStrip={strip}
       t={t as never}
     />
   )
@@ -176,12 +171,14 @@ describe('header information architecture', () => {
   })
 })
 
-describe('panel footer version (user feedback)', () => {
-  it('shows the version in a resident footer at the panel bottom', async () => {
+describe('version discovery', () => {
+  it('keeps the version available on the focusable document identity without a separate footer', async () => {
     const harness = await renderHeaderPanel('# T')
-    const foot = harness.container.querySelector('.dsh-md-preview-foot') as HTMLElement
-    expect(foot).toBeTruthy()
-    expect(foot.textContent).toMatch(/v\d+\.\d+\.\d+/)
+    expect(harness.container.querySelector('.dsh-md-preview-foot')).toBeNull()
+    const identity = harness.container.querySelector('.dsh-md-preview-crumbs') as HTMLElement
+    expect(identity.tabIndex).toBe(0)
+    await act(async () => { identity.focus() })
+    expect(harness.container.querySelector('[role="tooltip"]')?.textContent).toMatch(/v\d+\.\d+\.\d+/)
   })
 })
 
@@ -329,46 +326,41 @@ describe('header layout and entry reachability (#22)', () => {
     await flush()
     expect(view.state.doc.toString()).not.toContain('x#')
   })
+
+  it('keeps a maximized editor compact when resize or browser zoom narrows the viewport', async () => {
+    const harness = await renderHeaderPanel('# T\n\nbody')
+    const click = (label: string) => (harness.container.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement).click()
+    try {
+      await act(async () => { click('panel.edit'); click('panel.maximize') })
+      await act(async () => {
+        Object.defineProperty(window, 'innerWidth', { value: 480, configurable: true })
+        window.dispatchEvent(new Event('resize'))
+      })
+      await flush()
+      expect(harness.container.querySelector('.dsh-md-preview-overlay[data-maximized]')).toBeTruthy()
+      expect(harness.container.querySelector('button[aria-label="panel.more"]')).toBeTruthy()
+      expect(harness.container.querySelector('button[aria-label="panel.find"]')).toBeNull()
+      expect(harness.container.querySelector('button[aria-label="panel.save"]')).toBeTruthy()
+      expect(harness.container.querySelector('button[aria-label="panel.close"]')).toBeTruthy()
+      await act(async () => { click('browse.open') })
+      expect((harness.container.querySelector('.dsh-md-preview-document') as HTMLElement).hidden).toBe(true)
+    } finally {
+      await act(async () => {
+        Object.defineProperty(window, 'innerWidth', { value: 1928, configurable: true })
+        window.dispatchEvent(new Event('resize'))
+      })
+    }
+  })
 })
 
-describe('workspace-docs capsule occlusion (#22 measured strip)', () => {
-  it('publishes the host session-header strip bottom for the panel to clear', async () => {
-    const store = createPreviewStore()
-    const leave = createLeaveIntentSeat()
-    const strip = createSnapshotStore(0)
-    const hostHeader = document.createElement('header')
-    const utilities = document.createElement('div')
-    hostHeader.append(utilities)
-    document.body.append(hostHeader)
-    hostHeader.getBoundingClientRect = () => ({ bottom: 57 } as DOMRect)
-    const root: Root = createRoot(utilities)
-    const usePreviewTarget = (selector: (state: unknown) => unknown) =>
-      selector(useSyncExternalStore(store.subscribe, store.getSnapshot))
-    await act(async () => {
-      root.render(
-        <WorkspaceDocsAction
-          sessionId={'s1' as never}
-          usePreviewTarget={usePreviewTarget as never}
-          leave={leave}
-          headerStrip={strip}
-          t={t as never}
-        />,
-      )
-    })
-    expect(strip.getSnapshot()).toBe(57)
-    await act(async () => { root.unmount() })
-    hostHeader.remove()
-  })
-
-  it('starts the overlay below the measured strip and clears it when none publishes', async () => {
+describe('panel top docking', () => {
+  it('docks the overlay at the top edge regardless of any published strip', async () => {
+    // The panel covers the host session header while open: its own header
+    // carries the same entries (browse semantics and a close exit), so no
+    // inset from the measured strip applies.
     const harness = await renderHeaderPanel('# T')
-    const strip = (harness as unknown as { strip: ReturnType<typeof createSnapshotStore> }).strip
-    await act(async () => { strip.set(57) })
-    await harness.rerender()
     const overlay = harness.container.querySelector('.dsh-md-preview-overlay') as HTMLElement
-    expect(overlay.style.top).toBe('57px')
-    await act(async () => { strip.set(0) })
-    await harness.rerender()
-    expect((harness.container.querySelector('.dsh-md-preview-overlay') as HTMLElement).style.top).toBe('0px')
+    expect(overlay.style.top).toBe('')
+    expect(overlay.hasAttribute('data-below-strip')).toBe(false)
   })
 })

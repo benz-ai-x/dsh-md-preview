@@ -11,10 +11,13 @@
  * to the panel as a preview target through the same guarded open path.
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { IconChevronRightOutline14, IconCloseOutline16, IconRefreshOutline16, IconSearchOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewEntry, MdPreviewListResult, MdPreviewSearchResult } from '../protocol.ts'
 import { basename } from './preview-state.ts'
+import { DocumentIcon } from './DocumentIcon.tsx'
+import { documentParent, workspaceDisplayPath } from './document-path.ts'
 
 /** Listing RPC, the search RPC, and the file-open handoff, created in the plugin's apply world. */
 export interface WorkspaceBrowserProps {
@@ -44,6 +47,8 @@ export interface WorkspaceBrowserProps {
   recentReads?: ReadonlyArray<{ readonly path: string }>
   /** Workspace-relative path of the current preview target, if any. */
   currentPath: string | null
+  /** Owning session's cwd, supplied by the platform selector, for display only. */
+  workspaceRoot?: string | undefined
   /** The session's continue-reading target, or null without a record (#28). */
   continueTarget?: { readonly path: string } | null
   /** Open the continue-reading target through the unified leave entry (#28). */
@@ -103,47 +108,9 @@ function highlightName(name: string, normalized: string): ReactNode {
   </>
 }
 
-/** One SVG glyph per entry kind (aria-hidden; the name is the accessible label). */
-function EntryIcon({ type, name }: { type: MdPreviewEntry['type']; name: string }) {
-  if (type === 'directory') {
-    return (
-      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
-        <path d="M1.5 3h4l1.5 2h7.5v8h-13z" fill="currentColor" opacity="0.55" />
-      </svg>
-    )
-  }
-  const kind = type === OTHER_TYPE ? 'file' : fileKind(name)
-  if (kind === 'image') {
-    return (
-      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
-        <rect x="2.5" y="3.5" width="11" height="9" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.55" />
-        <circle cx="6" cy="6.5" r="1" fill="currentColor" opacity="0.55" />
-        <path d="M3.5 11.5l3-3 2 2 2.5-2.5 1.5 1.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" opacity="0.55" />
-      </svg>
-    )
-  }
-  if (kind === 'text') {
-    return (
-      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
-        <path d="M4 1.5h5L12.5 5v9.5h-8.5z" fill="none" stroke="currentColor" strokeWidth="1.3" opacity="0.55" />
-        <path d="M6 8h4M6 10.5h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.55" />
-      </svg>
-    )
-  }
-  if (kind === 'markdown') {
-    return (
-      <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
-        <path d="M4 1.5h5L12.5 5v9.5h-8.5z" fill="none" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M5.5 11V8.2l1.6 1.6 1.6-1.6V11" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-  return (
-    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden className="dsh-md-preview-tree-icon">
-      <circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.55" />
-      <circle cx="8" cy="8" r="1.6" fill="currentColor" opacity="0.55" />
-    </svg>
-  )
+/** Keep the file-kind vocabulary while sharing the panel's icon family. */
+function EntryIcon({ type, name, expanded = false }: { type: MdPreviewEntry['type']; name: string; expanded?: boolean }) {
+  return <DocumentIcon kind={type === 'directory' ? 'directory' : type === OTHER_TYPE ? 'file' : fileKind(name)} expanded={expanded} className="dsh-md-preview-tree-icon" />
 }
 
 /**
@@ -152,7 +119,7 @@ function EntryIcon({ type, name }: { type: MdPreviewEntry['type']; name: string 
  * @param props - session identity, listing/search RPCs, file-open handoff, locale seat.
  * @returns the browse area's tree/search elements.
  */
-export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, turnOutputs, recentReads, currentPath, continueTarget, onContinue, t }: WorkspaceBrowserProps) {
+export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, turnOutputs, recentReads, currentPath, workspaceRoot, continueTarget, onContinue, t }: WorkspaceBrowserProps) {
   // Keyed by workspace-relative directory path; presence means expanded.
   const [dirs, setDirs] = useState<ReadonlyMap<string, DirState>>(new Map([['', { state: 'loading' }]]))
   const controllers = useRef(new Map<string, AbortController>())
@@ -431,6 +398,7 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
         data-kind={entry.type === 'directory' ? 'directory' : (entry.type === OTHER_TYPE ? 'file' : fileKind(entry.name))}
         className={entry.type === 'directory' ? 'dsh-md-preview-treeitem dsh-md-preview-treebranch' : 'dsh-md-preview-treeitem dsh-md-preview-treeleaf'}
         title={entry.path}
+        aria-label={entry.path}
       >
         <div
           className="dsh-md-preview-treerow"
@@ -447,14 +415,12 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
               tabIndex={-1}
               onClick={event => { event.stopPropagation(); toggle(entry.path) }}
             >
-              <svg viewBox="0 0 16 16" width="10" height="10" aria-hidden>
-                <path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
+              <IconChevronRightOutline14 />
             </button>
           ) : (
             <span className="dsh-md-preview-treespacer" aria-hidden />
           )}
-          <EntryIcon type={entry.type} name={entry.name} />
+          <EntryIcon type={entry.type} name={entry.name} expanded={state !== undefined} />
           <span className="dsh-md-preview-treename">{entry.name}</span>
         </div>
         {entry.type === 'directory' && state !== undefined && (
@@ -482,85 +448,53 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
   const root = dirs.get('')
   // The quick entries' row shape (#31): a recognizable few, name plus
   // necessary path, opening through the same guarded handoff as the tree.
-  const renderQuickRow = (path: string, label: string): React.ReactNode => (
-    <button
-      key={path} type="button"
-      className="dsh-md-preview-quickrow"
-      aria-label={`${label} ${path}`}
-      title={path}
-      onClick={() => { onOpenFile(path) }}
-    >
-      <span className="dsh-md-preview-quickname">{basename(path)}</span>
-      <span className="dsh-md-preview-quickpath">{path}</span>
-    </button>
+  const renderQuickRow = (path: string): React.ReactNode => (
+    <Tooltip key={path} label={path} side="bottom" delayMs={450} maxWidth={420}>
+      <button
+        type="button" className="dsh-md-preview-quickrow"
+        aria-label={path} title={path}
+        aria-current={workspaceDisplayPath(path, workspaceRoot) === currentPath ? 'page' : undefined}
+        onClick={() => { onOpenFile(path) }}
+      >
+        <EntryIcon type="file" name={basename(path)} />
+        <span className="dsh-md-preview-entrytext">
+          <span className="dsh-md-preview-quickname">{basename(path)}</span>
+          <span className="dsh-md-preview-quickpath">{documentParent(workspaceDisplayPath(path, workspaceRoot))}</span>
+        </span>
+      </button>
+    </Tooltip>
   )
   const quickTurn = turnOutputs ?? []
   const quickRecent = (recentReads ?? []).slice(0, QUICK_RECENT_MAX)
   return (
     <>
-      {quickTurn.length > 0 && (
-        // The current turn's produced documents (#31): owning-service facts
-        // of the newest turn only — never another turn's outputs dressed up
-        // as current. Empty means the section simply does not show.
-        <div className="dsh-md-preview-quick" data-source="turn">
-          <span className="dsh-md-preview-quicklabel">{t('quick.turn')}</span>
-          {quickTurn.slice(0, QUICK_TURN_MAX).map(path => renderQuickRow(path, t('quick.open')))}
-        </div>
-      )}
-      {quickRecent.length > 0 && (
-        // Recently read of this session (#31): the reading record's recency
-        // list — the continue-reading entry keeps its own explicit seat and
-        // meaning, so the newest document may legitimately appear here too.
-        <div className="dsh-md-preview-quick" data-source="recent">
-          <span className="dsh-md-preview-quicklabel">{t('quick.recent')}</span>
-          {quickRecent.map(entry => renderQuickRow(entry.path, t('quick.open')))}
-        </div>
-      )}
-      {continueTarget != null && (
-        // The continue-reading entry (#28): the browse area's opening seat,
-        // naming the session's last-read document. It carries no body of
-        // its own — a click opens the recorded target through the panel's
-        // unified leave entry, guard and position restore included.
-        <button
-          type="button"
-          className="dsh-md-preview-continue"
-          title={`${t('continue.read')} · ${continueTarget.path}`}
-          aria-label={`${t('continue.read')} ${continueTarget.path}`}
-          onClick={() => { onContinue?.() }}
-        >
-          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
-            <path d="M11 2.5H5a1.5 1.5 0 0 0-1.5 1.5v9.4a.6.6 0 0 0 .93.5L8 11.6l3.57 2.3a.6.6 0 0 0 .93-.5V4A1.5 1.5 0 0 0 11 2.5z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-          </svg>
-          <span>{t('continue.read')}</span>
-          <span className="dsh-md-preview-continuename">{basename(continueTarget.path)}</span>
-        </button>
-      )}
       <div className="dsh-md-preview-toolbar">
         {/* The workspace search box (#30): unlike the editor's in-document
          * find, this searches document names across the whole session
          * workspace — unexpanded directories included. */}
-        <input
-          type="text"
-          className="dsh-md-preview-searchinput"
-          placeholder={t('browse.search')}
-          aria-label={t('search.label')}
-          title={t('search.label')}
-          value={query}
-          onChange={event => { onQueryInput(event.target.value) }}
-        />
-        {query.length > 0 && (
-          <button
-            type="button"
-            className="dsh-md-preview-searchclear"
-            aria-label={t('search.clear')}
-            title={t('search.clear')}
-            onClick={() => { onQueryInput('') }}
-          >
-            <svg viewBox="0 0 16 16" width="10" height="10" aria-hidden>
-              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
+        <span className="dsh-md-preview-searchfield">
+          <IconSearchOutline16 className="dsh-md-preview-searchglyph" />
+          <input
+            type="text"
+            className="dsh-md-preview-searchinput"
+            placeholder={t('browse.search')}
+            aria-label={t('search.label')}
+            title={t('search.label')}
+            value={query}
+            onChange={event => { onQueryInput(event.target.value) }}
+          />
+          {query.length > 0 && (
+            <button
+              type="button"
+              className="dsh-md-preview-searchclear"
+              aria-label={t('search.clear')}
+              title={t('search.clear')}
+              onClick={() => { onQueryInput('') }}
+            >
+              <IconCloseOutline16 />
+            </button>
+          )}
+        </span>
         <button
           type="button"
           className="dsh-md-preview-refresh"
@@ -568,95 +502,140 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
           title={t('browse.refresh')}
           onClick={refreshAll}
         >
-          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
-            <path d="M13.5 8a5.5 5.5 0 1 1-1.7-4M13.5 1.8v2.7h-2.7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <IconRefreshOutline16 />
         </button>
       </div>
-      {normalizedQuery.length > 0 && (
-        // The search results list (#30): replaces the tree while a query is
-        // live. Every result names its document and its workspace-relative
-        // path — same-name documents stay distinguishable — and opening one
-        // rides the same guarded open path as a tree row.
+      <div className="dsh-md-preview-browsescroll">
+        {quickTurn.length > 0 && (
+          // The current turn's produced documents (#31): owning-service facts
+          // of the newest turn only — never another turn's outputs dressed up
+          // as current. Empty means the section simply does not show.
+          <div className="dsh-md-preview-quick" hidden={normalizedQuery.length > 0} data-source="turn">
+            <span className="dsh-md-preview-quicklabel">{t('quick.turn')}</span>
+            {quickTurn.slice(0, QUICK_TURN_MAX).map(path => renderQuickRow(path))}
+          </div>
+        )}
+        {quickRecent.length > 0 && (
+          // Recently read of this session (#31): the reading record's recency
+          // list — the continue-reading entry keeps its own explicit seat and
+          // meaning, so the newest document may legitimately appear here too.
+          <div className="dsh-md-preview-quick" hidden={normalizedQuery.length > 0} data-source="recent">
+            <span className="dsh-md-preview-quicklabel">{t('quick.recent')}</span>
+            {quickRecent.map(entry => renderQuickRow(entry.path))}
+          </div>
+        )}
+        {continueTarget != null && (
+          // The continue-reading entry (#28): the browse area's opening seat,
+          // naming the session's last-read document. It carries no body of
+          // its own — a click opens the recorded target through the panel's
+          // unified leave entry, guard and position restore included.
+          <button
+            type="button"
+            className="dsh-md-preview-continue" hidden={normalizedQuery.length > 0}
+            title={`${t('continue.read')} · ${continueTarget.path}`}
+            aria-label={`${t('continue.read')} ${continueTarget.path}`}
+            onClick={() => { onContinue?.() }}
+          >
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+              <path d="M11 2.5H5a1.5 1.5 0 0 0-1.5 1.5v9.4a.6.6 0 0 0 .93.5L8 11.6l3.57 2.3a.6.6 0 0 0 .93-.5V4A1.5 1.5 0 0 0 11 2.5z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+            </svg>
+            <span>{t('continue.read')}</span>
+            <span className="dsh-md-preview-continuename">{basename(continueTarget.path)}</span>
+          </button>
+        )}
+        {normalizedQuery.length > 0 && (
+          // The search results list (#30): replaces the tree while a query is
+          // live. Every result names its document and its workspace-relative
+          // path — same-name documents stay distinguishable — and opening one
+          // rides the same guarded open path as a tree row.
+          <ul
+            className="dsh-md-preview-searchresults"
+            role="listbox"
+            aria-label={t('search.results')}
+            onKeyDown={onResultsKeyDown}
+          >
+            {searchState.state === 'searching' && (
+              <li className="dsh-md-preview-treehint" role="presentation">{t('search.searching')}</li>
+            )}
+            {searchState.state === 'failed' && (
+              <li className="dsh-md-preview-treehint" role="presentation">
+                {t('search.failed')} · {searchState.code}
+                <button
+                  type="button"
+                  className="dsh-md-preview-treeretry"
+                  onClick={() => { runSearch(searchState.query) }}
+                >
+                  {t('search.retry')}
+                </button>
+              </li>
+            )}
+            {searchState.state === 'done' && searchState.result.complete && searchState.result.matches.length === 0 && (
+              // Only a complete search may claim no results (#30).
+              <li className="dsh-md-preview-treehint" role="presentation">{t('search.none')}</li>
+            )}
+            {searchState.state === 'done' && searchState.result.matches.map((match, index) => (
+              <li key={match.path} role="presentation">
+                <Tooltip label={match.path} side="bottom" delayMs={450} maxWidth={420}>
+                  <div
+                    role="option"
+                    aria-selected={resultFocus === match.path ? 'true' : undefined}
+                    data-path={match.path}
+                    tabIndex={(resultFocus === null ? index === 0 : resultFocus === match.path) ? 0 : -1}
+                    className="dsh-md-preview-searchitem"
+                    title={match.path}
+                    aria-label={match.path}
+                    aria-current={match.path === currentPath ? 'page' : undefined}
+                    onFocus={() => { setResultFocus(match.path) }}
+                    onClick={() => { onOpenFile(match.path) }}
+                  >
+                    <span className="dsh-md-preview-searchrow">
+                      <EntryIcon type="file" name={match.name} />
+                      <span className="dsh-md-preview-entrytext">
+                        <span className="dsh-md-preview-treename">{highlightName(match.name, normalizedQuery)}</span>
+                        <span className="dsh-md-preview-searchpath">{documentParent(match.path)}</span>
+                      </span>
+                    </span>
+                  </div>
+                </Tooltip>
+              </li>
+            ))}
+            {searchState.state === 'done' && !searchState.result.complete && (
+              // An incomplete answer states why and keeps what it found (#30):
+              // a permission failure, a traversal bound, or the result cap.
+              <li className="dsh-md-preview-treehint" role="presentation">
+                {t('search.incomplete')}
+                {searchState.result.limits.map(limit => (
+                  <span key={limit} className="dsh-md-preview-searchlimit">{t(`search.limit.${limit}`)}</span>
+                ))}
+              </li>
+            )}
+          </ul>
+        )}
         <ul
-          className="dsh-md-preview-searchresults"
-          role="listbox"
-          aria-label={t('search.results')}
-          onKeyDown={onResultsKeyDown}
+          ref={treeRef}
+          role="tree"
+          className="dsh-md-preview-tree"
+          aria-label={t('browse.open')}
+          // The tree hides (never unmounts) while results show, so clearing
+          // the query restores the exact browsing expansion state (#30).
+          hidden={normalizedQuery.length > 0}
+          onKeyDown={onKeyDown}
         >
-          {searchState.state === 'searching' && (
-            <li className="dsh-md-preview-treehint" role="presentation">{t('search.searching')}</li>
-          )}
-          {searchState.state === 'failed' && (
+          {root?.state === 'loading' && <li className="dsh-md-preview-treehint" role="presentation">{t('browse.loading')}</li>}
+          {root?.state === 'failed' && (
             <li className="dsh-md-preview-treehint" role="presentation">
-              {t('search.failed')} · {searchState.code}
-              <button
-                type="button"
-                className="dsh-md-preview-treeretry"
-                onClick={() => { runSearch(searchState.query) }}
-              >
-                {t('search.retry')}
+              {t('browse.error')}
+              <button type="button" className="dsh-md-preview-treeretry" onClick={() => { load('') }}>
+                {t('browse.retry')}
               </button>
             </li>
           )}
-          {searchState.state === 'done' && searchState.result.complete && searchState.result.matches.length === 0 && (
-            // Only a complete search may claim no results (#30).
-            <li className="dsh-md-preview-treehint" role="presentation">{t('search.none')}</li>
+          {root?.state === 'ready' && root.entries.length === 0 && (
+            <li className="dsh-md-preview-treehint" role="presentation">{t('browse.empty')}</li>
           )}
-          {searchState.state === 'done' && searchState.result.matches.map(match => (
-            <li
-              key={match.path}
-              role="option"
-              aria-selected={resultFocus === match.path ? 'true' : undefined}
-              data-path={match.path}
-              tabIndex={resultFocus === null || resultFocus === match.path ? 0 : -1}
-              className="dsh-md-preview-searchitem"
-              title={match.path}
-              onClick={() => { onOpenFile(match.path) }}
-            >
-              <span className="dsh-md-preview-searchrow">
-                <EntryIcon type="file" name={match.name} />
-                <span className="dsh-md-preview-treename">{highlightName(match.name, normalizedQuery)}</span>
-                <span className="dsh-md-preview-searchpath">{match.path}</span>
-              </span>
-            </li>
-          ))}
-          {searchState.state === 'done' && !searchState.result.complete && (
-            // An incomplete answer states why and keeps what it found (#30):
-            // a permission failure, a traversal bound, or the result cap.
-            <li className="dsh-md-preview-treehint" role="presentation">
-              {t('search.incomplete')}
-              {searchState.result.limits.map(limit => (
-                <span key={limit} className="dsh-md-preview-searchlimit">{t(`search.limit.${limit}`)}</span>
-              ))}
-            </li>
-          )}
+          {root?.state === 'ready' && root.entries.length > 0 && renderEntries(root.entries, 1)}
         </ul>
-      )}
-      <ul
-        ref={treeRef}
-        role="tree"
-        className="dsh-md-preview-tree"
-        aria-label={t('browse.open')}
-        // The tree hides (never unmounts) while results show, so clearing
-        // the query restores the exact browsing expansion state (#30).
-        hidden={normalizedQuery.length > 0}
-        onKeyDown={onKeyDown}
-      >
-        {root?.state === 'loading' && <li className="dsh-md-preview-treehint" role="presentation">{t('browse.loading')}</li>}
-        {root?.state === 'failed' && (
-          <li className="dsh-md-preview-treehint" role="presentation">
-            {t('browse.error')}
-            <button type="button" className="dsh-md-preview-treeretry" onClick={() => { load('') }}>
-              {t('browse.retry')}
-            </button>
-          </li>
-        )}
-        {root?.state === 'ready' && root.entries.length === 0 && (
-          <li className="dsh-md-preview-treehint" role="presentation">{t('browse.empty')}</li>
-        )}
-        {root?.state === 'ready' && root.entries.length > 0 && renderEntries(root.entries, 1)}
-      </ul>
+      </div>
     </>
   )
 }

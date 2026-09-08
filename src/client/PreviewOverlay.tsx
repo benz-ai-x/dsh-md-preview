@@ -9,7 +9,7 @@
  * is set.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { MarkdownText, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MarkdownText, Tooltip, IconChevronLeftOutline14, IconCloseOutline16, IconEllipsisOutline16, IconFolderClose16, IconSearchOutline16, IconQuestionOutline14, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -18,7 +18,9 @@ import { openSearchPanel } from '@codemirror/search'
 import { redo, undo } from '@codemirror/commands'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewSearchResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
-import { isEditable } from './preview-state.ts'
+import { basename, isEditable } from './preview-state.ts'
+import { DocumentIcon } from './DocumentIcon.tsx'
+import { documentParent, workspaceDisplayPath } from './document-path.ts'
 import { isDirty } from './preview-session.ts'
 import type { LeaveIntentSeat } from './leave-intent.ts'
 import type { ReadingPosition, ReadingStore } from './reading.ts'
@@ -37,8 +39,6 @@ export interface PreviewOverlayInjected {
     /** Current preview target; null while the panel is closed. */
     previewTarget: SnapshotStore<MdPreviewState>
   }
-  /** Viewport bottom of the host session-header strip (0 = none measured). */
-  headerStrip?: SnapshotStore<number>
   /** The common leave-intent entry every plugin outlet shares (#21). */
   leave: LeaveIntentSeat
   /** Dismiss the panel and drop the target. */
@@ -92,12 +92,6 @@ const RAIL_MIN_WIDTH = 640
 
 /** Panel width below which low-frequency header tools fold into the ⋯ menu (#22). */
 const OVERLAY_COMPACT_WIDTH = 560
-
-/** The no-strip stand-in: a permanent zero, for benches that pass no store. */
-const NO_STRIP = {
-  getSnapshot: (): number => 0,
-  subscribe: (): (() => void) => () => {},
-}
 
 /** The no-quick-entries stand-in for benches that pass no turn-outputs seat. */
 const NO_TURN_OUTPUTS = {
@@ -172,30 +166,21 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
  * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
  * @returns the docked panel, or null while closed.
  */
-export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read, write, list, search, reading, turnOutputs, preferences, t, headerStrip }: PreviewOverlayProps) {
+export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, setTarget, read, write, list, search, reading, turnOutputs, preferences, t }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
-  const stripStore = headerStrip ?? NO_STRIP
+  // The platform owns cwd. This selector only formats identity for display;
+  // no client path resolution or alternative open/save key is introduced.
+  const workspaceRoot = useSessions?.(snapshot => target === null ? undefined : snapshot.byId[target.sessionId]?.cwd)
   const session = usePanelDocumentSession({ read, write, close }, target)
   const { state, canSave, actions } = session
   // The pending leave intent: the panel is the guard's only owner — external
   // entries (chips, the preview action, the docs capsule, tree rows) request
   // into the seat, and this single consumer executes or holds them (#21).
   const pendingLeave = useSyncExternalStore(leave.subscribe, leave.getSnapshot)
-  // The host session-header strip (#22): the capsule sitting in that strip
-  // publishes its measured bottom, and the panel starts below it — the
-  // capsule stays visible and clickable while the panel is open. Nothing is
-  // preset: no strip published (or a hidden header) means top 0.
-  const stripBottom = useSyncExternalStore(stripStore.subscribe, stripStore.getSnapshot)
-  const [layerTop, setLayerTop] = useState(0)
+  // The panel docks from the window's top edge, covering the host session
+  // header while open. Its own header keeps workspace browsing and close
+  // directly reachable at every supported width.
   const overlayRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    // The inset lives in the overlay layer's coordinate space (the layer is
-    // inset 0 of the frame): subtract its own viewport top, measured — never
-    // assumed — once per published strip change.
-    const layer = overlayRef.current?.closest<HTMLElement>('[data-shell-overlay]') ?? null
-    setLayerTop(layer === null ? 0 : Math.max(0, layer.getBoundingClientRect().top))
-  }, [stripBottom])
-  const stripInset = Math.max(0, Math.round(stripBottom - layerTop))
   // The overlay owns its width: a right-anchored layer stacked over the
   // frame, dragged wider/narrower from its left edge. The manual choice
   // persists through the preference record (#26) — restored clamped to the
@@ -249,7 +234,8 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
     try { return preferences?.geometry().railCollapsed ?? null } catch { return null }
   })
   const railCollapsed = manualRailCollapsed ?? target?.face !== 'browse'
-  const widePanel = maximized || appliedWidth >= RAIL_MIN_WIDTH
+  const visibleWidth = maximized ? viewportWidth : appliedWidth
+  const widePanel = visibleWidth >= RAIL_MIN_WIDTH
   const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); the choice is document-related
   // navigation state, so it restores per session (#26).
@@ -258,7 +244,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
   // tools (outline, undo/redo/find, keymap help) fold into a ⋯ menu; save,
   // the face control, maximize, and close stay directly clickable, and the
   // identity shrinks instead of pushing them off the row.
-  const compact = !maximized && appliedWidth < OVERLAY_COMPACT_WIDTH
+  const compact = visibleWidth < OVERLAY_COMPACT_WIDTH
   const [moreOpen, setMoreOpen] = useState(false)
   // The rail's dragged width (user feedback): persists like the panel width.
   const [railWidth, setRailWidth] = useState(() => {
@@ -675,7 +661,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
         else setOutlineOpen(value => !value)
       }}
     >
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
         <path d="M2.5 3.5h11M5 8h8.5M2.5 12.5h11M2.5 8h.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       </svg>
     </button>
@@ -686,7 +672,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
       title={`${t('panel.undo')} · Mod-Z`} disabled={editorStatus === null || !editorStatus.canUndo}
       onClick={() => { const view = editorViewRef.current; if (view !== null) undo(view) }}
     >
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
         <path d="M6 3.5L2.5 7 6 10.5M2.5 7h7a4 4 0 1 1 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
@@ -697,7 +683,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
       title={`${t('panel.redo')} · Mod-Shift-Z`} disabled={editorStatus === null || !editorStatus.canRedo}
       onClick={() => { const view = editorViewRef.current; if (view !== null) redo(view) }}
     >
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
         <path d="M10 3.5L13.5 7 10 10.5M13.5 7h-7a4 4 0 1 0 0 8" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
@@ -710,9 +696,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
         if (view !== null) openSearchPanel(view)
       }}
     >
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-        <path d="M7 12a5 5 0 1 1 4.3-2.5L14 12.2 12.2 14l-2.7-2.7A5 5 0 0 1 7 12zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor" opacity="0.9" />
-      </svg>
+      <IconSearchOutline16 />
     </button>
   )
   const keysTool = (
@@ -720,10 +704,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
       type="button" className="dsh-md-preview-icon" aria-label={t('panel.keys')}
       title={t('panel.keys')} aria-expanded={keysOpen} onClick={() => { setKeysOpen(value => !value) }}
     >
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-        <path d="M5.2 6a2.8 2.8 0 1 1 4 2.6c-.8.4-1.2 1-1.2 1.9v.3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-        <circle cx="8" cy="13" r=".9" fill="currentColor" />
-      </svg>
+      <IconQuestionOutline14 size={16} />
     </button>
   )
   /** The compact ⋯ menu carrying whatever low-frequency tools exist here. */
@@ -734,9 +715,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
         title={t('panel.more')} aria-expanded={moreOpen}
         onClick={() => { setMoreOpen(value => !value) }}
       >
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-          <circle cx="3.5" cy="8" r="1.3" fill="currentColor" /><circle cx="8" cy="8" r="1.3" fill="currentColor" /><circle cx="12.5" cy="8" r="1.3" fill="currentColor" />
-        </svg>
+        <IconEllipsisOutline16 />
       </button>
       {moreOpen && (
         <div className="dsh-md-preview-more" role="menu" onClickCapture={() => { setMoreOpen(false) }}>
@@ -752,9 +731,9 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
       ref={overlayRef}
       className="dsh-md-preview-overlay" data-width={appliedWidth}
       data-maximized={maximized || undefined}
-      data-below-strip={stripInset > 0 || undefined}
+      data-compact={compact || undefined}
+      data-narrow={visibleWidth <= 420 || undefined}
       style={{
-        top: `${stripInset}px`,
         ...(maximized ? {} : { width: `${appliedWidth}px` }),
       }} onKeyDown={onPanelKeyDown}
     >
@@ -774,22 +753,23 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
             // No document yet: the panel carries its own name instead of
             // empty crumbs — the tree face is the identity.
             <>
-              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden className="dsh-md-preview-titleicon">
-                <path d="M1.5 3.5h4l1.5 2h7.5v7h-13z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-              </svg>
-              <span className="dsh-md-preview-title">{t('dock.browse')}</span>
+              <IconFolderClose16 className="dsh-md-preview-titleicon" />
+              <Tooltip label={`${t('panel.title')} · ${process.env.MD_PREVIEW_VERSION}`} side="bottom" delayMs={450}>
+                <span className="dsh-md-preview-title" tabIndex={0} title={`${t('panel.title')} · ${process.env.MD_PREVIEW_VERSION}`}>{t('dock.browse')}</span>
+              </Tooltip>
             </>
           ) : (
             <>
-              <span className="dsh-md-preview-icon" aria-hidden>📄</span>
-              <div className="dsh-md-preview-crumbs" title={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`}>
-                {target.path.split('/').map((segment, index, all) => (
-                  <span
-                    key={`${index}-${segment}`}
-                    className="dsh-md-preview-crumb"
-                    aria-current={index === all.length - 1 ? 'page' : undefined}
-                  >{segment}</span>
-                ))}
+              <div className="dsh-md-preview-identity">
+                <DocumentIcon />
+                <Tooltip label={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`} side="bottom" delayMs={450} maxWidth={420}>
+                  <div className="dsh-md-preview-crumbs" tabIndex={0} title={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`}>
+                    {documentParent(workspaceDisplayPath(target.path, workspaceRoot)) !== '.' && (
+                      <span className="dsh-md-preview-crumb">{documentParent(workspaceDisplayPath(target.path, workspaceRoot))}</span>
+                    )}
+                    <span className="dsh-md-preview-crumb" aria-current="page">{basename(target.path)}</span>
+                  </div>
+                </Tooltip>
               </div>
             </>
           )}
@@ -797,7 +777,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
             <span className="dsh-md-preview-dirty" title={t('panel.unsaved.title')} aria-hidden>●</span>
           )}
           {showOutlineControl && (
-            <span className="dsh-md-preview-anchor">
+            <span className="dsh-md-preview-anchor dsh-md-preview-outlineanchor">
               {!compact && outlineTool}
               {outlineOpen && (
                 <div className="dsh-md-preview-outline" role="menu" ref={outlineRef}>
@@ -817,9 +797,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                 else setFace('browse')
               }}
             >
-              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                <path d="M1.5 3.5h4l1.5 2h7.5v7h-13z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-              </svg>
+              <IconFolderClose16 />
             </button>
           ) : (
             // The back arrow only exists when a document waits behind the
@@ -829,9 +807,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                 type="button" className="dsh-md-preview-icon" aria-label={t('browse.back')}
                 title={t('browse.back')} onClick={() => { setFace('document') }}
               >
-                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-                  <path d="M9.5 3.5L5 8l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <IconChevronLeftOutline14 />
               </button>
             )
           )}
@@ -854,11 +830,6 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
           {face === 'document' && state.face === 'edit' && (
             <>
               {!compact && <>{undoTool}{redoTool}{findTool}</>}
-              {searchStatus !== null && (
-                <span className="dsh-md-preview-findcount" aria-label={t('find.status')}>
-                  {searchStatus.index}/{searchStatus.count}
-                </span>
-              )}
               <button
                 type="button" className="dsh-md-preview-icon" aria-label={t('panel.save')}
                 title={`${t('panel.save')} · Mod-S`} disabled={!canSave} aria-busy={state.saving || undefined}
@@ -866,7 +837,7 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
               >
                 {state.saving
                   ? <span className="dsh-md-preview-savebusy" aria-hidden />
-                  : <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+                  : <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
                       <path d="M2 2h9l3 3v9H2zM5 2v4h6V2M4 14V9h8v5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
                     </svg>}
               </button>
@@ -891,33 +862,34 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
             </>
           )}
           {compact && state.face !== 'edit' && showOutlineControl && renderMoreMenu(outlineTool)}
-          <button
-            type="button" className="dsh-md-preview-icon"
-            aria-label={maximized ? t('panel.restore') : t('panel.maximize')}
-            title={maximized ? t('panel.restore') : t('panel.maximize')}
-            onClick={() => { setMaximized(value => !value) }}
-          >
-            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-              {maximized
-                ? <path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                : <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
-            </svg>
-          </button>
-          <button
-            type="button" className="dsh-md-preview-icon" aria-label={t('panel.close')}
-            title={t('panel.close')}
-            onClick={() => { leave.request({ kind: 'close' }) }}
-          >
-            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
+          <span className="dsh-md-preview-paneltools">
+            <button
+              type="button" className="dsh-md-preview-icon"
+              aria-label={maximized ? t('panel.restore') : t('panel.maximize')}
+              title={maximized ? t('panel.restore') : t('panel.maximize')}
+              onClick={() => { setMaximized(value => !value) }}
+            >
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
+                {maximized
+                  ? <path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  : <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
+              </svg>
+            </button>
+            <button
+              type="button" className="dsh-md-preview-icon" aria-label={t('panel.close')}
+              title={t('panel.close')}
+              onClick={() => { leave.request({ kind: 'close' }) }}
+            >
+              <IconCloseOutline16 />
+            </button>
+          </span>
         </div>
         <div className="dsh-md-preview-body">
           {browserEverOpened && (
             <div
               className="dsh-md-preview-browser"
               data-open={railVisible || undefined}
+              data-narrow={(railVisible && railWidth <= 180) || undefined}
               hidden={!railVisible && face !== 'browse'}
               style={railVisible ? { width: `${railWidth}px` } : undefined}
             >
@@ -952,7 +924,8 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
                     onOpenFile={openFromBrowser}
                     turnOutputs={quickTurnOutputs}
                     recentReads={quickRecent}
-                    currentPath={target.path}
+                    currentPath={workspaceDisplayPath(target.path, workspaceRoot)}
+                    workspaceRoot={workspaceRoot}
                     continueTarget={continueTarget}
                     onContinue={continueFromBrowser}
                     t={t}
@@ -1023,6 +996,11 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
               <div className="dsh-md-preview-statusbar">
                 <span>{`Ln ${editorStatus.line}, Col ${editorStatus.col}`}</span>
                 <span>{`${editorStatus.chars} ${t('status.chars')}`}</span>
+                {searchStatus !== null && (
+                  <span className="dsh-md-preview-findcount" aria-label={t('find.status')}>
+                    {t('find.status')} · {searchStatus.index}/{searchStatus.count}
+                  </span>
+                )}
                 <span>
                   {state.saving ? t('status.saving')
                     : state.saveError !== null ? `${t('status.saveFailed')} · ${state.saveError.code}`
@@ -1091,7 +1069,6 @@ export function PreviewOverlay({ usePreviewTarget, leave, close, setTarget, read
           }
           </div>
         </div>
-        <div className="dsh-md-preview-foot" aria-hidden>{process.env.MD_PREVIEW_VERSION}</div>
       </div>
     </div>
   )

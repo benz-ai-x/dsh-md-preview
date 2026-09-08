@@ -325,12 +325,12 @@ describe('find count', () => {
       view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: 'foo' })) })
     })
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
-    expect(harness.container.querySelector('.dsh-md-preview-findcount')?.textContent).toBe('1/2')
+    expect(harness.container.querySelector('.dsh-md-preview-statusbar .dsh-md-preview-findcount')?.textContent).toBe('find.status · 1/2')
     await act(async () => {
       view.dispatch({ selection: { anchor: view.state.doc.line(2).from + 1 } })
     })
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
-    expect(harness.container.querySelector('.dsh-md-preview-findcount')?.textContent).toBe('2/2')
+    expect(harness.container.querySelector('.dsh-md-preview-statusbar .dsh-md-preview-findcount')?.textContent).toBe('find.status · 2/2')
   })
 
   it('clears the count when the panel closes', async () => {

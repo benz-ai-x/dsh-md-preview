@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "entries": 47,
+  "pluginId": "@benz-ai-x/dsh-md-preview",
+  "bundleBytes": 3948103,
+  "lazyFactory": true,
+  "version": true,
+  "newScrollRegion": true,
+  "newIdentity": true,
+  "servedSha256": "5325139f322472393158f6aafeff4498e3a85a3d0c386f4f3fa899d789d34ba0"
+}
