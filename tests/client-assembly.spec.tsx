@@ -10,12 +10,15 @@
  */
 
 import { act } from 'react-dom/test-utils'
+import { useSyncExternalStore } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Context } from '@deepseek-ai/cordis'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { buildRenderApp } from '#harness/renderer/app'
 import { createSlotRenderer } from '#harness/renderer/scoped-slots'
+import { AppFrame } from '#harness/layout/frame'
+import { createLayoutStore } from '#harness/layout/store'
 import { EditorView } from '@codemirror/view'
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { mountMdPreview } from '../src/client/mount.ts'
@@ -87,7 +90,7 @@ interface AssemblyBench {
  * the plugin's consumed slots, then the real mountMdPreview. Remote read/
  * write/list record their calls over one mutable file table.
  */
-async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>): Promise<AssemblyBench> {
+async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>, nativeFrame = false): Promise<AssemblyBench> {
   const ctx = new Context()
   const bench: AssemblyBench = {
     container: document.createElement('div'),
@@ -180,13 +183,31 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>):
 
   // The bench-owned root frame: the overlay outlet plus the chat stand-in
   // inside the session area, exactly the shapes the shipped shell renders.
-  const RootFrame = (kit: Record<string, unknown>): React.ReactNode => (
+  const nativeLayout = nativeFrame ? createLayoutStore().create() : null
+  const RootFrame = (kit: Record<string, unknown>): React.ReactNode => nativeLayout === null ? (
     <div>
       <div data-testid="overlay">{(kit.renderSlot as (key: string) => React.ReactNode)('shell.overlay', {})}</div>
       {(kit.SessionProvider as React.FC<{ children?: React.ReactNode }>)(
         { children: (kit.renderSlot as (key: string) => React.ReactNode)('bench.chat-view', {}) },
       )}
     </div>
+  ) : (
+    <AppFrame
+      useStore={(selector: (state: unknown) => unknown) => selector(useSyncExternalStore(nativeLayout.subscribe, nativeLayout.getSnapshot))}
+      actions={nativeLayout.actions}
+      useSessions={(selector: (state: unknown) => unknown) => selector({ current: SESSION, byId: { [SESSION]: { blank: false } } })}
+      SessionProvider={kit.SessionProvider}
+      t={(key: string) => key}
+      renderSlot={(key: string, owner: { width?: number }) => {
+        if (key === 'shell.overlay') return (kit.renderSlot as Function)(key, {})
+        if (key === 'conversation') {
+          const Provider = kit.SessionProvider as React.FC<{ children?: React.ReactNode }>
+          return <Provider>{(kit.renderSlot as Function)('bench.chat-view', {})}</Provider>
+        }
+        if (key === 'sidebar') return <button data-native-sidebar data-width={owner.width} onClick={() => { nativeLayout.actions.toggleSidebar() }}>Native sidebar</button>
+        return <input data-native-details defaultValue="Native tool detail" onFocus={() => { nativeLayout.actions.openDetails() }} />
+      }}
+    />
   )
   const disposeRoot = ctx.slots.register({
     name: 'root',
@@ -250,7 +271,7 @@ const buttonByAria = (bench: AssemblyBench, label: string): HTMLButtonElement | 
     || button.getAttribute('title') === label
     || button.textContent?.trim() === label)
 
-afterEach(() => { document.body.replaceChildren() })
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); document.body.replaceChildren() })
 
 describe('client assembly against the real slot machinery (#21)', () => {
   const PRODUCED = [
@@ -263,7 +284,7 @@ describe('client assembly against the real slot machinery (#21)', () => {
     try {
       expect(buttonByText(bench, 'guide.md')).toBeDefined()
       expect(buttonByAria(bench, 'Preview documents')).toBeDefined()
-      expect(buttonByAria(bench, 'Workspace docs')).toBeDefined()
+      expect(buttonByAria(bench, 'Open workspace documents')).toBeDefined()
       await act(async () => { buttonByText(bench, 'guide.md')!.click() })
       await flush()
       // The panel opened in the overlay outlet and read the document.
@@ -315,8 +336,8 @@ describe('client assembly against the real slot machinery (#21)', () => {
       const view = EditorView.findFromDOM(host)!
       await act(async () => { view.dispatch({ changes: { from: 0, insert: 'x' } }) })
       await flush()
-      // The capsule's collapse requests through the leave entry too.
-      await act(async () => { buttonByAria(bench, 'Workspace docs')!.click() })
+      // The header's collapse requests through the leave entry too.
+      await act(async () => { buttonByAria(bench, 'Close document panel')!.click() })
       await flush()
       expect(bench.container.textContent).toContain('You have unsaved changes')
       expect(bench.container.querySelector('.dsh-md-preview-panel')).toBeTruthy()
@@ -324,9 +345,9 @@ describe('client assembly against the real slot machinery (#21)', () => {
       await flush()
       // The collapse executed: no target, the capsule is not pressed.
       expect(bench.container.querySelector('.dsh-md-preview-panel')).toBeNull()
-      expect(buttonByAria(bench, 'Workspace docs')!.getAttribute('aria-pressed')).toBe('false')
+      expect(buttonByAria(bench, 'Open workspace documents')!.getAttribute('aria-expanded')).toBe('false')
       // Closed, the same entry enters the workspace browsing face.
-      await act(async () => { buttonByAria(bench, 'Workspace docs')!.click() })
+      await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
       await flush()
       expect(bench.container.querySelector('.dsh-md-preview-panel')).toBeTruthy()
       expect(bench.container.querySelector('[role="tree"]')).toBeTruthy()
@@ -368,7 +389,7 @@ describe('client assembly against the real slot machinery (#21)', () => {
   it('wires the workspace search from the Remote boundary to the browse area (#30)', async () => {
     const bench = await assemble(PRODUCED)
     try {
-      await act(async () => { buttonByAria(bench, 'Workspace docs')!.click() })
+      await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
       await flush()
       const input = bench.container.querySelector('.dsh-md-preview-searchinput') as HTMLInputElement
       expect(input).toBeTruthy()
@@ -402,7 +423,7 @@ describe('client assembly against the real slot machinery (#21)', () => {
     ])
     try {
       // Open the panel on the browse face from the capsule.
-      await act(async () => { buttonByAria(bench, 'Workspace docs')!.click() })
+      await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
       await flush()
       // The newest turn's previewable outputs show as quick rows (run.ts is
       // not previewable and never appears); name and path both render.
@@ -432,8 +453,103 @@ describe('client assembly against the real slot machinery (#21)', () => {
     await flush()
     expect(buttonByText(bench, 'guide.md')).toBeUndefined()
     expect(buttonByAria(bench, 'Preview documents')).toBeUndefined()
-    expect(buttonByAria(bench, 'Workspace docs')).toBeUndefined()
+    expect(buttonByAria(bench, 'Open workspace documents')).toBeUndefined()
     expect(bench.container.querySelector('.dsh-md-preview-panel')).toBeNull()
     await bench.unmount()
+  })
+
+  it('docks beside the native frame, guards collapse, restores focus and cleans up with its fiber', async () => {
+    let available = 1928
+    const observers = new Set<() => void>()
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private callback: () => void) { observers.add(callback) }
+      observe() {}
+      unobserve() {}
+      disconnect() { observers.delete(this.callback) }
+    })
+    const originalRect = HTMLElement.prototype.getBoundingClientRect
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.parentElement === document.body && !this.classList.contains('dsh-md-preview-overlay')) {
+        return { width: available, left: 0, top: 0, height: 900 } as DOMRect
+      }
+      if (this.style.gridTemplateColumns !== '') {
+        const reserved = Number(/- ([\d.]+)px/.exec(this.style.maxWidth)?.[1] ?? 0)
+        return { width: available - reserved, left: 0, top: 0, height: 900 } as DOMRect
+      }
+      return originalRect.call(this)
+    })
+    const resize = async () => {
+      await act(async () => {
+        for (const callback of observers) callback()
+        await new Promise(resolve => { setTimeout(resolve, 40) })
+      })
+    }
+    const bench = await assemble(PRODUCED, true)
+    const frame = bench.container.querySelector('[data-shell-overlay]')!.parentElement as HTMLElement
+    const entry = bench.container.querySelector<HTMLButtonElement>('[data-md-preview-toggle]')!
+    const nativeDetails = bench.container.querySelector('[data-native-details]')!
+    const nativeSidebar = bench.container.querySelector<HTMLButtonElement>('[data-native-sidebar]')!
+    const panel = () => document.querySelector<HTMLElement>('#dsh-md-preview-panel')
+    const panelButton = (label: string) => panel()!.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!
+    try {
+      await act(async () => { buttonByText(bench, 'guide.md')!.click() })
+      await resize()
+      expect(frame.style.maxWidth).toBe('calc(100% - 720px)')
+      // Portal escapes only the clipping frame, staying under the host root
+      // so native onboarding/settings can make the whole app inert together.
+      expect(panel()?.parentElement).toBe(bench.container)
+      expect(panel()?.style.left).toBe('1208px')
+      expect(panel()?.dataset.docked).toBe('true')
+      expect(entry.getAttribute('aria-expanded')).toBe('true')
+      // Native navigation still responds independently and keeps its preference.
+      await act(async () => { nativeSidebar.click() })
+      expect(nativeSidebar.dataset.width).toBe('56')
+      await act(async () => { (nativeDetails as HTMLInputElement).focus() })
+      await resize()
+      expect(frame.style.gridTemplateColumns).toBe('56px minmax(0, 1fr) 360px')
+      expect(bench.container.querySelector('[data-native-details]')).toBe(nativeDetails)
+
+      await act(async () => { panelButton('Edit').click() })
+      const editor = EditorView.findFromDOM(panel()!.querySelector('.cm-editor') as HTMLElement)!
+      await act(async () => { editor.dispatch({ changes: { from: 0, insert: 'unsaved ' } }) })
+      await act(async () => { panelButton('Close document panel').click() })
+      expect(panel()?.textContent).toContain('You have unsaved changes')
+      expect(frame.style.maxWidth).toBe('calc(100% - 720px)')
+      await act(async () => { panelButton('Keep editing').click() })
+      expect(editor.state.doc.toString()).toContain('unsaved ')
+      expect(editor.hasFocus).toBe(true)
+      await act(async () => { entry.click() })
+      await act(async () => { panelButton('Discard changes').click() })
+      await resize()
+      expect(panel()).toBeNull()
+      expect(frame.style.maxWidth).toBe('')
+      expect(document.activeElement).toBe(entry)
+      expect(bench.writes).toEqual([])
+
+      await act(async () => { entry.click() })
+      await resize()
+      expect(panel()?.querySelector('[role="tree"]')).toBeTruthy()
+      await act(async () => { panelButton('Maximize').click() })
+      expect(frame.style.maxWidth).toBe('')
+      expect(panel()?.style.width).toBe('1928px')
+      await act(async () => { panelButton('Restore').click() })
+      available = 1200
+      await resize()
+      expect(panel()?.style.width).toBe('504px')
+      expect(frame.style.maxWidth).toBe('calc(100% - 504px)')
+      expect(nativeSidebar.dataset.width).toBe('56')
+      available = 800
+      await resize()
+      expect(frame.style.maxWidth).toBe('')
+      expect(panel()?.dataset.docked).toBeUndefined()
+      available = 1928
+      await resize()
+      expect(panel()?.style.width).toBe('720px')
+      await act(async () => { await bench.disposeMount() })
+      expect(panel()).toBeNull()
+      expect(frame.style.maxWidth).toBe('')
+      expect(bench.container.querySelector('[data-native-details]')).toBe(nativeDetails)
+    } finally { await bench.unmount() }
+    expect(observers.size).toBe(0)
   })
 })

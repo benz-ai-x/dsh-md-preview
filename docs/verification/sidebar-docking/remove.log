@@ -1,0 +1,9 @@
+✓ Lockfile passes supply-chain policies (verified 1m ago)
+
+dependencies:
+- @benz-ai-x/dsh-md-preview file:/Users/pc2026/Dev-Space/dsh-md-preview/benz-ai-x-dsh-md-preview-0.9.0.tgz
+
+Already up to date
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Progress: resolved 0, reused 32, downloaded 0, added 0, done
+Done in 253ms using pnpm v11.25.0

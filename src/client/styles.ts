@@ -27,6 +27,7 @@ const CSS = `
 /* Keep form controls on the shared font while allowing component metrics below. */
 .dsh-md-preview-overlay :is(button, input) { font-family: inherit; }
 .dsh-md-preview-overlay button:disabled { opacity: 0.4; cursor: default; }
+.dsh-md-preview-overlay[data-docked] { box-shadow: none; }
 .dsh-md-preview-overlay [hidden] { display: none !important; }
 .dsh-md-preview-edgehandle {
   position: absolute;
@@ -80,10 +81,11 @@ const CSS = `
   gap: 4px;
   flex: none;
   min-width: 0;
-  min-height: 44px;
+  min-height: 72px;
   box-sizing: border-box;
   padding: 6px 12px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-specific-sidebar-fill);
 }
 /* Visible focus for every interactive control this plugin renders (#22):
  * header icons, segmented control, rail tabs, tree rows and filter, bars
@@ -116,14 +118,14 @@ const CSS = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 111px;
-  height: 32px;
-  padding: 6px 12px;
-  gap: 4px;
-  border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: 18px;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
   background: transparent;
-  color: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-label-secondary);
   font-family: var(--dsw-font-family);
   font-size: 13px;
   font-weight: 400;
@@ -134,15 +136,13 @@ const CSS = `
 .dsh-md-preview-docsbtn:hover {
   background: var(--dsw-alias-interactive-bg-hover);
 }
-.dsh-md-preview-docsbtn[aria-pressed='true'] {
+.dsh-md-preview-docsbtn[aria-expanded='true'] {
   background: var(--dsw-alias-interactive-bg-active);
 }
 .dsh-md-preview-docsbtn span,
 .dsh-md-preview-docsbtn svg {
   flex: none;
 }
-
-
 .dsh-md-preview-dirty {
   flex: none;
   margin-left: 2px;
@@ -527,6 +527,7 @@ const CSS = `
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  background: var(--dsw-specific-sidebar-fill);
 }
 .dsh-md-preview-browser[data-open] {
   position: relative;

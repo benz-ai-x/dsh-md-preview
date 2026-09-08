@@ -97,11 +97,10 @@ function registerUi(ctx: ClientContext): void {
     ctx.remote.mdPreview.search(sessionId, query, signal)
   const setTarget = (target: MdPreviewTarget | null): void => { previewTarget.set(target) }
 
-  // The right-docked overlay panel: an additive shell.overlay entry, mounted
-  // for the whole app lifetime and idle (renders null) while no target is
-  // set. It stacks in the host's overlay layer above the frame; the panel
-  // owns its width (left-edge drag) and dismissal — the host details column
-  // keeps its shipped tool/approval surface, untouched.
+  // The document sidebar: an additive shell.overlay entry. Its layout
+  // anchor lives with the contribution; while open the reversible adapter
+  // reserves frame space or uses an overlay on narrow screens (ADR-0004).
+  // The host details contribution keeps its shipped tool/approval surface.
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',
     id: 'md-preview-panel',
@@ -142,11 +141,10 @@ function registerUi(ctx: ClientContext): void {
     inject: (sessionId: SessionId) => ({ openPreview: openPreview(sessionId) }),
   }, PreviewAction))
 
-  // The workspace-docs browse capsule: joins the Session Header's right-side
+  // The document sidebar toggle: joins the Session Header's right-side
   // utilities, rendered ascending by order — the shipped Session-log download
   // capsule sits at the default 0, so order 100 parks us to its right. Session
-  // scope hands the component its Session directly; the overlay appears on
-  // target set, no host column involved. As the plugin's always-mounted
+  // scope hands the component its Session directly. As the always-mounted
   // session-scoped seat it also publishes the current-turn outputs (#31)
   // derived from the session binding's chat facts.
   ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({

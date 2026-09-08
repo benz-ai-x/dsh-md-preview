@@ -24,6 +24,8 @@ const clientSourceAliases = {
   // package index, so they resolve from the harness source directly.
   '#harness/renderer/app': resolve(harnessRoot, 'packages/client/ui-renderer/src/client/app.tsx'),
   '#harness/renderer/scoped-slots': resolve(harnessRoot, 'packages/client/ui-renderer/src/client/scoped-slots.tsx'),
+  '#harness/layout/frame': resolve(harnessRoot, 'packages/client/ui-layout/src/client/AppFrame.tsx'),
+  '#harness/layout/store': resolve(harnessRoot, 'packages/client/ui-layout/src/client/stores.ts'),
   // The registry artifact of ui-primitives imports built `.module.css`
   // files (a monorepo-pipeline product the host bundle understands, not
   // node/vitest); tests resolve the source, like the two aliases above.

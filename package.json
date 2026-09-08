@@ -1,6 +1,6 @@
 {
   "name": "@benz-ai-x/dsh-md-preview",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "DSH markdown preview: clicking a markdown document in the conversation opens a rendered preview panel docked to the right of the chat.",
   "license": "MIT",
   "repository": {
@@ -125,6 +125,7 @@
     "@lezer/markdown": "^1.7.2",
     "@types/node": "22.20.0",
     "@types/react": "~18.3.1",
+    "@types/react-dom": "18.3.7",
     "jsdom": "29.1.1",
     "mermaid": "^11.17.2",
     "react": "^18.2.0",

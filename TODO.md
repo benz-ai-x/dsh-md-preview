@@ -7,7 +7,7 @@
 ## 当前状态
 
 - GitHub 最新发布：[0.7.2](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.7.2)
-  （2026-09-08 查询）；当前源码 package 版本为 `0.9.0`。
+  （2026-09-08 查询）；当前源码 package 版本为 `0.10.0`，发布准备中。
 - [spec #20](https://github.com/benz-ai-x/dsh-md-preview/issues/20) 及
   #21–#32 已关闭，三轮 PR 已合并；交付证据见
   [R3 走查](docs/verification/r3-acceptance/WALKTHROUGH.md)，批次记录见
@@ -52,10 +52,28 @@
 
 ## 下一步
 
+- [x] **文档侧边栏 · 代码与回归** 按用户截图增加会话头部入口与面板关闭按钮；
+      宽屏为对话预留空间，窄屏覆盖展开，保留未保存守卫与宽度记忆。
+      [Issue #37](https://github.com/benz-ai-x/dsh-md-preview/issues/37)；接入决策见
+      [ADR-0004](docs/adr/0004-dock-preview-beside-the-harness-frame.md)。290 项测试与
+      干净 profile 安装/移除冒烟通过，见 [验证记录](docs/verification/sidebar-docking/WALKTHROUGH.md)。
+- [x] **截图反馈 · F-01/F-02** A 换原生回形针、B 换 ×；提示改为打开工作区文档/关闭
+      文档面板，保留未保存守卫。后续建议与验收见
+      [人工截图反馈 TODO](docs/research/sidebar-screenshot-feedback.md)。`pnpm verify` 通过
+      290 项测试；已重新安装并重启 3185，服务资源与安装包校验通过。
+- [ ] **截图反馈 · F-03/F-04** 对齐两侧顶栏操作行，强化导航、面孔切换、面板操作分组。
+- [ ] **截图反馈 · F-05/F-06** 同条件校准正文宽度与排版，独立核查文档开头测试残留。
+- [ ] **截图反馈 · F-07/F-08** 评估分隔拖柄反馈、默认宽度恢复、大纲与长表格体验。
+- [ ] **文档侧边栏 · 页面验收** 用户已提供 A/B 图标反馈，修正后继续验证真实布局、
+      左右栏开合、工具详情共存、拖宽、主题及缩放；自动化截图通道仍不可用。
+      人工验收沿用 `r3-accept`（3185，tmux `dsh-r3`）。
+
 - [ ] 恢复浏览器连接后完成 UX-12 的浅/深主题、中/英文、边界宽度、缩放与
       完整阅读链路验收；当前 Chrome 通信失败，已请求打开空白窗口恢复连接。
-- [ ] 发布下一版：源码已到 `0.9.0`，发布前核查 npm 已有版本并确定版本号，
-      通过 `pnpm verify` 与干净 profile 的 tarball 安装、启动、移除冒烟。
+- [ ] **发布 v0.10.0**：npm 当前 latest 为 `0.7.2`，保留已有 `v0.9.0` Git 标签。
+      新版本 `pnpm verify` 与干净 profile 的同一 tarball 安装/启动/移除冒烟已通过，
+      见 [发布验证](docs/verification/releases/v0.10.0/WALKTHROUGH.md)。待 npm 浏览器
+      认证、发布验货，以及 Git 提交、标签与 GitHub Release 归档。
 
 ## 验证与评估
 

@@ -17,10 +17,18 @@ produced become clickable in two additive places:
 Either entry opens a right-docked preview panel beside the conversation that
 renders the document (GFM, fenced code with highlighting, TeX) through the
 platform `MarkdownText` primitive. The panel is closable, width-draggable,
-and idle (renders nothing) while no target is set. It docks at the frame's
-top edge, covering the host session header while open; the panel's own
-workspace/back and close actions remain directly reachable. No measured
-header-strip geometry is published. A 「编辑」 action enters a
+and collapsed while no target is set. It docks at the frame's top edge as
+a document sidebar. A platform paperclip icon in the Session Header toggles
+workspace browsing; the panel header's X closes it. Both expose localized
+labels and tooltips; only the entry exposes expanded state. At frame widths
+of at least 1056px, opening reserves space beside the Harness frame, leaving
+at least 696px for its native collapsed navigation and conversation; the
+frame's own resize observer handles its column concessions. Narrow screens
+and maximize use an overlay, with no reserved space. Closing or disposing
+restores the previous frame style, and keyboard focus returns to the header
+entry on close. The pinned DOM adapter is isolated and reversible (ADR-0004);
+no native slot occupant, layout store, or header-strip geometry is replaced.
+A 「编辑」 action enters a
 CodeMirror 6 editor (line numbers, GFM highlighting, Cmd/Ctrl-S) whose
 「保存」 writes the draft back into the session workspace and returns to the
 rendered view; 「取消编辑」 discards the draft. Saving over a file that
@@ -124,7 +132,7 @@ the previewable documents the session's newest turn produced — derived
 from the owning chat facts (deliverables turn data fenced by the turn and
 its closing seq, exactly the boundary the chip row applies; an open turn
 shows its produced-so-far live) and published session-scoped by the
-「工作区文档」 capsule, never parsing conversation prose and never
+document-sidebar header toggle, never parsing conversation prose and never
 dressing an earlier turn's outputs up as current — and 「最近阅读」 lists
 this session's recently read documents from the reading record, recency
 first, a few recognizable rows (capped) with name and necessary path so
@@ -149,7 +157,7 @@ entry (#28): when the session's reading record names a document, one
 explicit button — keyboard-focusable, bilingual, outside the header —
 offers it by name and path; a click opens that target through the same
 leave-intent entry (unsaved guard included) and lands on the restored
-position, while the 「工作区文档」 capsule keeps its own meaning of
+position, while the document-sidebar header toggle keeps its own meaning of
 entering workspace browsing. No record, no entry; an unreadable target
 states the failure with the way back to browsing, and nothing ever
 auto-opens. The browse face
@@ -178,10 +186,11 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   in the DSH lazy-CJS factory protocol (minified); mounts the hand-maintained
   Remote contribution (`src/typert/remote-client.ts` →
   `lib/typert/remote-client.js`, also exported as `./remote`), then registers
-  three Slot contributions: `shell.overlay` (list, id `md-preview`, the
-  docked panel), `conversation.chat.turnTail` (chain, order -100, claims
+  four Slot contributions: `shell.overlay` (list, id `md-preview-panel`, the
+  docked panel), `conversation.chat.turnTail` (chain, priority -100, claims
   markdown-bearing turns), and `conversation.chat.assistant-actions`
-  (list, id `md-preview`). CodeMirror 6 (curated extension set — line
+  (list, id `md-preview`), and `conversation.session.header.utilities`
+  (list, id `md-preview-docs`, the sidebar toggle). CodeMirror 6 (curated extension set — line
   numbers, history, the search panel, and the GFM grammar assembled directly
   from `@lezer/markdown` to avoid `lang-markdown`'s static html/css/js
   chain) is a build-time devDependency inlined into the client bundle, as is
@@ -194,7 +203,7 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   single full reset) behind the effectful adapter
   `src/client/use-preview-session.ts`; the unsaved guard itself is a
   leave-intent seat (`src/client/leave-intent.ts`) shared by every plugin
-  outlet and executed only by the panel. The 「工作区文档」 capsule is the
+  outlet and executed only by the panel. The document-sidebar header toggle is the
   plugin's always-mounted session-scoped seat
   that derives the newest turn's previewable produced documents from the
   binding's chat facts and publishes them (a deduped snapshot store) for
@@ -295,6 +304,9 @@ contexts.
   locale dictionary) then unmounts the Remote namespace; a failed UI
   registration rolls back the Remote mount. Collapsing a declaring owner
   (e.g. ui-chat's turn-tail node) removes only that slot's contribution.
+  The layout adapter restores its frame style, disconnects its observers,
+  removes its listeners and cancels queued measurements. Its portal stays
+  inside the host mount container, including the native modal/inert boundary.
 
 ## Configuration
 
@@ -334,9 +346,9 @@ compose, boot, serve the client bundle, remove.
 
 - Inline-code prose mentions of markdown files still open on the desktop
   (the `chatFileMentions` service stays owned by ui-deliverables).
-- The overlay panel floats above the details column rather than replacing
-  the three-column grid (deliberate: replacing the `details` single slot
-  would remove tool-call details).
+- The sidebar's space reservation depends on the pinned frame DOM rather
+  than a public layout-extension API (ADR-0004). Narrow screens and maximize
+  use an overlay. The native `details` slot keeps its tool-call details.
 - User-uploaded document attachments are not previewable (they have no
   transcript surface today).
 - The editor face highlights markdown structure only: fenced code blocks

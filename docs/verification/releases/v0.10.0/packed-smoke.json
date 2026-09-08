@@ -1,0 +1,61 @@
+{
+  "version": "0.10.0",
+  "baseline": "0.1.2-rc.1",
+  "profile": "/tmp/mdpreview-0100-smoke-LnoULs/profiles/web",
+  "archiveSha256": "6dbf68874dc74d6a4a88dafd03a2738f783ccc4a8459cca392e2772c103a07de",
+  "shutdown": [
+    {
+      "code": 0,
+      "signal": null
+    },
+    {
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "archive": {
+    "fileCount": 38,
+    "cleanManifest": true,
+    "exportsPresent": true,
+    "noSourceMaps": true,
+    "lazyFactory": true,
+    "clientSha256": "b5e4cdce253869e1358e9f963564995bcc98dd24266d661ccf7e22430139c0ed"
+  },
+  "installedMatchesArchive": true,
+  "lockSha256": "767c0e2c5865f228aced041f4a141d9b1a523f5af5337ad26c5fe6ef0acd0485",
+  "port": 57042,
+  "boot": {
+    "status": 200,
+    "entries": 47,
+    "bytes": 3951333,
+    "servedSha256": "a90a82e31294f74128f981236824255a80f467dda4c14d0e0eab1434889d9288",
+    "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=154587857af63823-45",
+    "releaseMarkers": true
+  },
+  "imports": {
+    "host": [
+      "Config",
+      "DEFAULT_ALLOWED_EXTENSIONS",
+      "DEFAULT_MAX_BYTES",
+      "DEFAULT_PREVIEW_EXTENSIONS",
+      "DEFAULT_SEARCH_CONCURRENCY",
+      "DEFAULT_SEARCH_MAX_DIRECTORIES",
+      "DEFAULT_SEARCH_MAX_RESULTS",
+      "MD_PREVIEW_FAILURE_CODES",
+      "MdPreviewService",
+      "apply",
+      "inject",
+      "isAllowedExtension",
+      "name"
+    ],
+    "remote": [
+      "TYPERT_REMOTE",
+      "default"
+    ]
+  },
+  "removal": {
+    "entries": 46,
+    "priorBundleStatus": 404,
+    "absent": true
+  }
+}

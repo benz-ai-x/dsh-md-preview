@@ -1,14 +1,13 @@
 /**
- * The workspace-docs browse capsule: a Session Header utility sitting next to
+ * The document-sidebar toggle: a Session Header utility sitting next to
  * the shipped Session-log download capsule. One entry with one meaning
  * (#21): closed enters workspace browsing (the tree face), open requests the
  * collapse — both through the common leave-intent entry, so a dirty draft is
- * asked about before the panel folds. The panel owns top docking and its
- * own workspace/close entries while the host header is covered.
+ * asked about before the panel folds. The panel owns docking and carries
+ * an X close control while the paperclip header entry stays mounted.
  */
 
 import { useEffect, type ReactElement } from 'react'
-import { IconFolderClose16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -17,6 +16,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewState } from './preview-state.ts'
 import type { LeaveIntentSeat } from './leave-intent.ts'
 import { latestTurnPreviewable, type TurnOutputsSnapshot } from './turn-files.ts'
+import { PanelToggle } from './PanelToggle.tsx'
 
 /** The composed props of the header utility: slot kit + inject face + locale. */
 export type WorkspaceDocsActionProps =
@@ -35,7 +35,7 @@ export type WorkspaceDocsActionProps =
   }
 
 /**
- * Render the browse capsule toggle for the showing Session.
+ * Render the document sidebar toggle for the showing Session.
  * @param props - the composed action props.
  * @returns the header utility button.
  */
@@ -50,22 +50,19 @@ export function WorkspaceDocsAction({ sessionId, usePreviewTarget, leave, publis
   useEffect(() => {
     publishTurnOutputs?.(sessionId, turnOutputs ?? [])
   }, [sessionId, turnOutputs, publishTurnOutputs])
-  // A true switch, pressed state included: open parks the tree on the
-  // overlay; already open dismisses it. The carrier is the Session the
+  // A disclosure with an expanded state: open parks the tree in the
+  // panel; already open dismisses it. The carrier is the Session the
   // header shows.
   const toggle = (): void => {
     if (open) leave.request({ kind: 'close' })
     else leave.request({ kind: 'open', target: { sessionId, path: '', face: 'browse' } })
   }
   return (
-    <button
-      type="button" className="dsh-md-preview-docsbtn"
-      aria-label={t('dock.browse')} title={t('dock.browse')}
-      aria-pressed={open}
+    <PanelToggle
+      entry
+      open={open}
+      label={open ? t('panel.close') : t('dock.expand')}
       onClick={toggle}
-    >
-      <span>{t('dock.browse')}</span>
-      <IconFolderClose16 />
-    </button>
+    />
   )
 }

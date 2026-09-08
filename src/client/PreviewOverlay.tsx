@@ -1,15 +1,15 @@
 /**
  * The right-docked preview panel, contributed into the additive
- * `shell.overlay` list as a layer stacked over the frame. Rendering,
+ * `shell.overlay` list, with a reversible frame-space adapter. Rendering,
  * geometry, and locale only: the preview session — read lifecycle, edit
  * face, guarded save, prompts — lives in the PreviewSession machine behind
  * usePanelDocumentSession, and every leave (close, face switch, opening
  * another document) arrives through the leave-intent seat, which this panel
- * guards and executes. The panel renders null while no preview target
- * is set.
+ * guards and executes. With no target only the hidden layout anchor remains.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { MarkdownText, Tooltip, IconChevronLeftOutline14, IconCloseOutline16, IconEllipsisOutline16, IconFolderClose16, IconSearchOutline16, IconQuestionOutline14, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
+import { MarkdownText, Tooltip, IconChevronLeftOutline14, IconEllipsisOutline16, IconFolderClose16, IconSearchOutline16, IconQuestionOutline14, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -32,6 +32,8 @@ import { enhanceDiagrams, fenceLanguages, findDiagramBlocks } from './diagrams.t
 import { MarkdownEditor, type EditorStatus, type SearchStatus } from './editor.tsx'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { usePanelDocumentSession } from './use-preview-session.ts'
+import { PanelToggle, PREVIEW_PANEL_ID } from './PanelToggle.tsx'
+import { usePanelDock } from './use-panel-dock.ts'
 
 /** Read/write/list RPCs and panel dismissal, created in the plugin's apply world. */
 export interface PreviewOverlayInjected {
@@ -164,7 +166,7 @@ function markdownLabels(t: PreviewOverlayProps['t']): MarkdownLabels {
 /**
  * Render the preview panel for the current target.
  * @param props - target hook, leave seat, read/write RPCs, dismissal, and the locale seat.
- * @returns the docked panel, or null while closed.
+ * @returns the docked panel and its hidden shell anchor.
  */
 export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, setTarget, read, write, list, search, reading, turnOutputs, preferences, t }: PreviewOverlayProps) {
   const target = usePreviewTarget(state => state)
@@ -177,12 +179,11 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
   // entries (chips, the preview action, the docs capsule, tree rows) request
   // into the seat, and this single consumer executes or holds them (#21).
   const pendingLeave = useSyncExternalStore(leave.subscribe, leave.getSnapshot)
-  // The panel docks from the window's top edge, covering the host session
-  // header while open. Its own header keeps workspace browsing and close
-  // directly reachable at every supported width.
+  // The panel follows the frame's top edge, reserving space on wide screens
+  // and covering it on narrow screens or when maximized (ADR-0004).
   const overlayRef = useRef<HTMLDivElement>(null)
-  // The overlay owns its width: a right-anchored layer stacked over the
-  // frame, dragged wider/narrower from its left edge. The manual choice
+  // The panel owns its width preference, dragged from its left edge. Space
+  // concessions alter only the applied width. The manual choice
   // persists through the preference record (#26) — restored clamped to the
   // live viewport, derived from it when nothing was ever chosen (never a
   // bogus zero-to-min fall), and untouched by maximize round-trips. The
@@ -208,6 +209,14 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
   // Maximize (the B ask): a full-frame preset over the remembered width —
   // restore returns to it exactly; the edge handle hides while taken.
   const [maximized, setMaximized] = useState(false)
+  const dock = usePanelDock(target !== null, appliedWidth, maximized)
+  const wasOpen = useRef(false)
+  useLayoutEffect(() => {
+    if (target === null && wasOpen.current) {
+      document.querySelector<HTMLButtonElement>('button[data-md-preview-toggle]')?.focus()
+    }
+    wasOpen.current = target !== null
+  }, [target])
   // The browser face: entered from the header, kept mounted once entered so
   // its expansion state survives face switches (UI-local viewing state).
   const [face, setFace] = useState<'document' | 'browse'>('document')
@@ -234,7 +243,7 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
     try { return preferences?.geometry().railCollapsed ?? null } catch { return null }
   })
   const railCollapsed = manualRailCollapsed ?? target?.face !== 'browse'
-  const visibleWidth = maximized ? viewportWidth : appliedWidth
+  const visibleWidth = dock.bounds?.width ?? (maximized ? viewportWidth : appliedWidth)
   const widePanel = visibleWidth >= RAIL_MIN_WIDTH
   const railVisible = widePanel && !railCollapsed
   // Which rail mini-tab is showing (#12); the choice is document-related
@@ -385,7 +394,7 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
       lastOpenKey.current = ''
       return
     }
-    const key = `${target.sessionId} ${target.path}`
+    const key = `${target.sessionId}\0${target.path}`
     if (lastOpenKey.current === key) return
     // A different document takes the stage: the previous open's position
     // is already captured in the ref — flush it, then start the new open.
@@ -634,8 +643,16 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
   const opened = target !== null
   useEffect(() => {
     if (!opened) return
+    const focusAtOpen = document.activeElement
     const frame = requestAnimationFrame(() => {
-      document.querySelector<HTMLInputElement>('.dsh-md-preview-searchinput')?.focus()
+      const panel = overlayRef.current
+      if (panel === null) return
+      const active = document.activeElement
+      // A reader may have focused a row before the deferred mount settles.
+      // Never take that focus back, or focus another panel's search field.
+      if (active !== null && panel.contains(active)) return
+      if (active !== focusAtOpen && active !== document.body) return
+      panel.querySelector<HTMLInputElement>('.dsh-md-preview-searchinput')?.focus()
     })
     return () => { cancelAnimationFrame(frame) }
   }, [opened])
@@ -725,16 +742,20 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
     </span>
   )
 
-  if (target === null) return null
-  return (
+  const panel = target === null ? null : (
     <div
       ref={overlayRef}
-      className="dsh-md-preview-overlay" data-width={appliedWidth}
+      id={PREVIEW_PANEL_ID}
+      role="complementary" aria-label={t('dock.browse')}
+      className="dsh-md-preview-overlay" data-width={visibleWidth}
+      data-docked={(dock.bounds !== null && dock.bounds.reserved > 0) || undefined}
       data-maximized={maximized || undefined}
       data-compact={compact || undefined}
       data-narrow={visibleWidth <= 420 || undefined}
       style={{
-        ...(maximized ? {} : { width: `${appliedWidth}px` }),
+        ...(dock.bounds === null
+          ? (maximized ? {} : { width: `${appliedWidth}px` })
+          : { position: 'fixed', left: dock.bounds.left, top: dock.bounds.top, width: dock.bounds.width, height: dock.bounds.height, right: 'auto', bottom: 'auto', zIndex: 20 }),
       }} onKeyDown={onPanelKeyDown}
     >
       {!maximized && (
@@ -875,13 +896,10 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
                   : <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
               </svg>
             </button>
-            <button
-              type="button" className="dsh-md-preview-icon" aria-label={t('panel.close')}
-              title={t('panel.close')}
+            <PanelToggle
+              open label={t('panel.close')}
               onClick={() => { leave.request({ kind: 'close' }) }}
-            >
-              <IconCloseOutline16 />
-            </button>
+            />
           </span>
         </div>
         <div className="dsh-md-preview-body">
@@ -1072,4 +1090,5 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
       </div>
     </div>
   )
+  return <><span ref={dock.anchor} hidden aria-hidden />{dock.container === null ? panel : createPortal(panel, dock.container)}</>
 }

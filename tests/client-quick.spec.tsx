@@ -139,7 +139,12 @@ describe('quick entries (#31)', () => {
       await enterBrowse(harness)
       const row = quickRows(harness, 'turn')[0]!
       expect(row.querySelector('.dsh-md-preview-quickpath')?.textContent).toBe('alpha/nested')
-      await act(async () => { row.focus() })
+      await act(async () => {
+        row.focus()
+        // The deferred open-focus pass must not steal a reader's row focus.
+        await new Promise<void>(resolve => { requestAnimationFrame(() => { resolve() }) })
+      })
+      expect(document.activeElement).toBe(row)
       expect(harness.container.querySelector('[role="tooltip"]')?.textContent).toBe(path)
       await act(async () => { row.click() })
       await flush()

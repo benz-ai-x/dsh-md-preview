@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "entries": 47,
+  "bytes": 3951328,
+  "lazyFactory": true,
+  "paperclipEntry": true,
+  "closeIcon": true,
+  "noMirroredPanelGlyph": true,
+  "reversibleDock": true,
+  "localizedActions": true,
+  "installedMatchesBuild": true,
+  "installedSha256": "b7fe23d8d2d75685de51ef226200de905fc58d5efdda0c06cc4b75e33d8e9c8e",
+  "tarballSha256": "98d9c31adcbcd53388b150cf58dc04bce3681bf35a2ac976ed7625d23cf3d265",
+  "servedSha256": "d7186aba9e653b7da4684654d7f032d8481a74187e24b387c85cf54d2762d775",
+  "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=e7be5c2fabfb3fe0-2"
+}

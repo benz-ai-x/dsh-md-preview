@@ -206,17 +206,20 @@ describe('header browse capsule (session utilities)', () => {
     const store = createPreviewStore()
     const leave = createLeaveIntentSeat()
     const container = await renderCapsule(store, leave)
-    const button = container.querySelector('button[aria-label="dock.browse"]') as HTMLButtonElement
+    const button = container.querySelector('button[aria-label="dock.expand"]') as HTMLButtonElement
     expect(button.classList.contains('dsh-md-preview-docsbtn')).toBe(true)
     // Closed: not pressed; the click requests the tree-faced open.
-    expect(button.getAttribute('aria-pressed')).toBe('false')
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+    expect(button.textContent).toBe('')
     await act(async () => { button.click() })
     expect(leave.getSnapshot()).toEqual({ kind: 'open', target: { sessionId: 's1', path: '', face: 'browse' } })
     // Open (any target): pressed; the click requests the collapse instead.
     await act(async () => { leave.clear() })
     store.set({ sessionId: 's1', path: 'guide.md' } as never)
     await act(async () => { await Promise.resolve() })
-    expect(button.getAttribute('aria-pressed')).toBe('true')
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    expect(button.getAttribute('aria-label')).toBe('panel.close')
+    expect(button.getAttribute('aria-controls')).toBe('dsh-md-preview-panel')
     await act(async () => { button.click() })
     expect(leave.getSnapshot()).toEqual({ kind: 'close' })
   })

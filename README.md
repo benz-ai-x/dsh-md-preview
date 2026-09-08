@@ -12,7 +12,7 @@
 - Markdown chips in the produced-files row of a turn open a right-docked preview panel rendering GFM, syntax-highlighted code, and TeX.
 - A per-message "Preview documents" action lists that turn's markdown documents.
 - Non-markdown deliverables keep the shipped open-on-desktop behavior.
-- The panel is a self-owned overlay above the frame (the host details column is untouched): it opens at 720 px (viewport-clamped), drags 360–1200 px from its left edge, maximizes to the full frame (⤢ button or edge double-click), and Esc dismisses it (a dirty draft is asked about first). The「工作区文档 / Workspace docs」capsule right of Session-log download in the header is a true toggle with a pressed state — one click parks the tree, another dismisses.
+- The document sidebar reserves its own space beside the conversation on wide screens; below 1056 px and when maximized it opens as an overlay. The paperclip right of Session-log download toggles workspace browsing; the X in the panel header closes it, with an unsaved-draft guard. Its width defaults to half the viewport up to 720 px, supports a remembered 360–1200 px drag preference, and clamps to the available space. Native navigation and tool details retain their own controls. Esc closes the panel and returns focus to the header entry.
 - The panel renders nothing while no preview target is set.
 - **Harness typography and themes** — navigation uses 14px/20px text with 12px/18px parent paths, consistent icons and larger controls. Search stays at the top while entries scroll; the initial rail is 220px and manual widths are preserved. The panel docks from the top of the frame and keeps its own workspace/back and close controls reachable. Full paths and the version are available by focusing the document identity. The editor follows the platform's light/dark palette and code font; rendered Markdown keeps the platform's paragraph rhythm at every width.
 - **Editing** — the panel's Edit action enters a CodeMirror editor (line numbers, GFM highlighting, Cmd/Ctrl-S save); Save writes back to the workspace, flashes a "Saved" toast, and returns to the rendered view; Cancel discards the draft. Only existing files edit. Non-conflict save failures show the failure code with a Retry action.
@@ -90,7 +90,7 @@ The panel shows `md-preview/<reason>` on failure. All codes:
 ## Known limits
 
 - Inline prose mentions of `.md` files still open on the desktop (owned by ui-deliverables, not this plugin).
-- The panel is a self-owned overlay layer above the frame: it opens at 720px (viewport-clamped), drags 360–1200px from its left edge, maximizes to the full frame (button or edge double-click), and Esc dismisses it — the host details column keeps its shipped tool/approval surface.
+- The panel is contributed through `shell.overlay`; its reversible layout adapter reserves space beside the native frame on wide screens without replacing the host details column. Narrow screens and maximize use an overlay. The adapter depends on the pinned frame DOM and must be checked when upgrading Harness; see [ADR-0004](docs/adr/0004-dock-preview-beside-the-harness-frame.md).
 - Uploaded document attachments are not previewable (no transcript surface today).
 - The outline lists ATX headings only (setext forms render but stay out of the popover).
 - Mermaid renders with its default theme; documents mixing indented code blocks with fenced ones skip the diagram pass entirely (order-parity safety check).

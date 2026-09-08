@@ -6,7 +6,7 @@ export const NS = 'md-preview'
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'panel.title': 'Markdown 预览',
-  'panel.close': '关闭预览',
+  'panel.close': '关闭文档面板',
   'panel.maximize': '全屏显示',
   'panel.restore': '还原',
   'panel.pickFile': '在左侧选择一个文件开始阅读',
@@ -98,6 +98,7 @@ export const zh = {
   'chip.open': '打开 {name}',
   'action.label': '预览文档',
   'dock.browse': '工作区文档',
+  'dock.expand': '打开工作区文档',
   'action.open': '预览 {name}',
   'copy': '复制',
   'copied': '已复制',
@@ -107,7 +108,7 @@ export const zh = {
 /** English dictionary (same key set). */
 export const en: Record<MdPreviewKey, string> = {
   'panel.title': 'Markdown preview',
-  'panel.close': 'Close preview',
+  'panel.close': 'Close document panel',
   'panel.maximize': 'Maximize',
   'panel.restore': 'Restore',
   'panel.pickFile': 'Pick a file on the left to start reading',
@@ -199,6 +200,7 @@ export const en: Record<MdPreviewKey, string> = {
   'chip.open': 'Open {name}',
   'action.label': 'Preview documents',
   'dock.browse': 'Workspace docs',
+  'dock.expand': 'Open workspace documents',
   'action.open': 'Preview {name}',
   'copy': 'Copy',
   'copied': 'Copied',

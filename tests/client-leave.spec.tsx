@@ -286,15 +286,15 @@ describe('workspace-docs capsule semantics (#21)', () => {
         />,
       )
     })
-    const button = container.querySelector('button[aria-label="dock.browse"]') as HTMLButtonElement
-    expect(button.getAttribute('aria-pressed')).toBe('false')
+    const button = container.querySelector('button[aria-label="dock.expand"]') as HTMLButtonElement
+    expect(button.getAttribute('aria-expanded')).toBe('false')
     await act(async () => { button.click() })
     expect(leave.getSnapshot()).toEqual({ kind: 'open', target: { sessionId: 's1', path: '', face: 'browse' } })
     // Panel open (any target): the same entry requests the collapse.
     await act(async () => { leave.clear() })
     store.set({ sessionId: 's1', path: 'guide.md' } as never)
     await act(async () => { await Promise.resolve() })
-    expect(button.getAttribute('aria-pressed')).toBe('true')
+    expect(button.getAttribute('aria-expanded')).toBe('true')
     await act(async () => { button.click() })
     expect(leave.getSnapshot()).toEqual({ kind: 'close' })
     await act(async () => { root.unmount() })
