@@ -18,8 +18,9 @@ Either entry opens a right-docked preview panel beside the conversation that
 renders the document (GFM, fenced code with highlighting, TeX) through the
 platform `MarkdownText` primitive. The panel is closable, width-draggable,
 and collapsed while no target is set. It docks at the frame's top edge as
-a document sidebar. A platform paperclip icon in the Session Header toggles
-workspace browsing; the panel header's X closes it. Both expose localized
+a document sidebar. A platform paperclip icon in the Session Header opens
+workspace browsing when closed and requests panel close when open; the
+panel header's X also closes it. Both expose localized
 labels and tooltips; only the entry exposes expanded state. At frame widths
 of at least 1056px, opening reserves space beside the Harness frame, leaving
 at least 696px for its native collapsed navigation and conversation; the
@@ -31,7 +32,9 @@ no native slot occupant, layout store, or header-strip geometry is replaced.
 A 「编辑」 action enters a
 CodeMirror 6 editor (line numbers, GFM highlighting, Cmd/Ctrl-S) whose
 「保存」 writes the draft back into the session workspace and returns to the
-rendered view; 「取消编辑」 discards the draft. Saving over a file that
+rendered view. Switching back to 「预览」 requests the shared leave guard;
+「放弃修改」 in that guard discards the draft. There is no separate
+cancel-edit button. Saving over a file that
 changed since the read raises a conflict bar (重新加载 / 强制覆盖) with a
 consequence line spelling out what each choice does. Every way out of the
 current preview session — the panel close button, Esc, the 「工作区文档」
@@ -322,11 +325,19 @@ twin during load; defaults live in the schema.
 Published to npm as `@benz-ai-x/dsh-md-preview` (public; minified client
 bundle). Activation layer: `cordis.patch.yml` inserting Loader row
 `md-preview`. Source-linked development closure runs against the pinned
-Harness checkout (`DSH_HARNESS_ROOT`, `link:` dev dependencies);
-`scripts/pack.mjs` packs and publishes with a registry-clean manifest (the
-`link:` devDependencies never ship). Every release requires the
-packed-artifact profile smoke: install the tarball into a clean profile,
-compose, boot, serve the client bundle, remove.
+Harness checkout (`DSH_HARNESS_ROOT`, enabled by `pnpm context:link`).
+`pnpm pack:publishable` invokes `scripts/pack.mjs` to build and pack with a
+registry-clean manifest (devDependencies and machine-local links never
+ship). Every release requires the packed-artifact profile smoke: install
+the tarball into a clean profile, compose, boot, import Host and Remote
+through their public package names, serve the client bundle, and remove.
+Publish that same verified tarball with `npm publish <archive.tgz>
+--ignore-scripts --access public --registry=https://registry.npmjs.org/`,
+then compare the Registry download and GitHub assets with its recorded
+digests. The `publish:registry` helper rebuilds and packs from the working
+tree, so it is not the submission step for an already-verified archive.
+The operational sequence and current release evidence are linked from
+[the maintainer handover](../HANDOVER.md).
 
 ## External-world acceptance assertions
 

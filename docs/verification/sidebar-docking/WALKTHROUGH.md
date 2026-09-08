@@ -1,5 +1,9 @@
 # 文档侧边栏实施与验证
 
+> 后续发布：停靠与 A/B 图标修正已随 [v0.10.0](../releases/v0.10.0/WALKTHROUGH.md)
+> 发布到 npm，`r3-accept`（3185）已升级为该正式版。下文是发布前各次实施的历史证据，
+> 版本、归档摘要及“本轮未发布”描述均对应当时构建；当前待办见 [TODO](../../../TODO.md)。
+
 日期：2026-09-08。跟踪：[Issue #37](https://github.com/benz-ai-x/dsh-md-preview/issues/37)。
 
 ## 首次侧边栏实施

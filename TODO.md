@@ -10,13 +10,21 @@
   （2026-09-08）；npm `latest` 与当前源码 package 均为 `0.10.0`。
   归档、GitHub 附件与 npm 下载包摘要一致，见
   [发布验证](docs/verification/releases/v0.10.0/WALKTHROUGH.md)。
+- 本轮文档同步已完成：中英文 README、契约、词汇表、交接与历史记录均对齐
+  v0.10.0；[AGENTS.md](AGENTS.md) 统一维护接手、开发、验证和交付规则，
+  [CLAUDE.md](CLAUDE.md) 保留引用与读取说明。本轮 **14 份 Markdown** 统一纳入
+  文档同步提交；具体交接见 [HANDOFF.md](HANDOFF.md)。
+- 文档验证：123 项 strict 基线检查通过，Markdown 解析、仓库内链接、命令与配置
+  示例及 `git diff --check` 通过。本轮仅修改文档，未重跑运行时测试、重启服务或新增发布；
+  下述 290 项测试属于 v0.10.0 发布证据，UX-12 与 F-03–F-08 继续保持待办。
 - [spec #20](https://github.com/benz-ai-x/dsh-md-preview/issues/20) 及
   #21–#32 已关闭，三轮 PR 已合并；交付证据见
   [R3 走查](docs/verification/r3-acceptance/WALKTHROUGH.md)，批次记录见
   [PIPELINE_STATE.md](PIPELINE_STATE.md)。
-- 本轮 UI/UX 实施跟踪：[Issue #36](https://github.com/benz-ai-x/dsh-md-preview/issues/36)。
-  `pnpm verify` 通过：123 项基线检查、286 项测试、类型检查及构建产物检查。
-  干净 profile 的 tarball 安装、启动、资源服务及移除检查通过。
+- v0.10.0 发布验证：`pnpm verify` 通过，含 123 项基线检查、26 个测试文件共
+  290 项测试、类型检查及构建产物检查；同一 tarball 的干净 profile 安装、启动、
+  普通包名导入、资源服务及移除检查通过。UI/UX 实施继续由
+  [Issue #36](https://github.com/benz-ai-x/dsh-md-preview/issues/36) 跟踪剩余视觉验收。
 - 已保留并完成原有顶部停靠改动，同步契约；此前以 `v0.9.0` Git 标签归档的
   排版改动已随 v0.10.0 发布到 npm，UX-12 浏览器验收继续跟踪。
   证据与剩余验收见 [本轮记录](docs/verification/uiux-alignment/WALKTHROUGH.md)。
@@ -24,8 +32,9 @@
 ## UI/UX 对齐 Harness
 
 详细问题、基线数值、修改位置、依赖与验收标准见
-[UI/UX 对齐分析](docs/research/harness-uiux-alignment.md)。本次用户原图未能读取，
-清单依据固定 Harness 源码、当前产品源码及明确标注的历史截图。
+[UI/UX 对齐分析](docs/research/harness-uiux-alignment.md)。初次排版分析未取得用户
+原图，依据固定 Harness 源码、当时产品源码及历史截图；后续侧边栏与 A/B 修正
+依据用户提供的真实截图，见 [截图反馈](docs/research/sidebar-screenshot-feedback.md)。
 以下勾选表示**代码已实施并通过自动化回归**；真实页面的布局、颜色及缩放验收
 集中在 UX-12，仍未闭环，不能据此宣称视觉验收全部通过。
 
@@ -66,12 +75,10 @@
 - [ ] **截图反馈 · F-03/F-04** 对齐两侧顶栏操作行，强化导航、面孔切换、面板操作分组。
 - [ ] **截图反馈 · F-05/F-06** 同条件校准正文宽度与排版，独立核查文档开头测试残留。
 - [ ] **截图反馈 · F-07/F-08** 评估分隔拖柄反馈、默认宽度恢复、大纲与长表格体验。
-- [ ] **文档侧边栏 · 页面验收** 用户已提供 A/B 图标反馈，修正后继续验证真实布局、
-      左右栏开合、工具详情共存、拖宽、主题及缩放；自动化截图通道仍不可用。
-      人工验收沿用 `r3-accept`（3185，tmux `dsh-r3`）。
-
-- [ ] 恢复浏览器连接后完成 UX-12 的浅/深主题、中/英文、边界宽度、缩放与
-      完整阅读链路验收；当前 Chrome 通信失败，已请求打开空白窗口恢复连接。
+- [ ] **文档侧边栏 · 页面验收（并入 UX-12）** 复验修正后的 A/B，记录真实布局、
+      左右栏开合、工具详情共存、拖宽、浅/深主题、中/英文、边界宽度、缩放与完整阅读链路。
+      2026-09-08 最近一次自动化浏览器连接超时，视觉证据仍待补齐。
+      人工验收沿用 `r3-accept`（3185，tmux `dsh-r3`，npm 精确版本 0.10.0）。
 - [x] **发布 v0.10.0**：`pnpm verify` 与干净 profile 安装/启动/移除冒烟通过；
       npm `latest` 已更新，提交 `9016f87` 与新标签已推送，GitHub Release 已公开。
       已下载核验同一 tarball，并将 `r3-accept`（3185）更新为 npm 正式版后重启。

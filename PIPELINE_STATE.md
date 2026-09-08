@@ -1,4 +1,9 @@
-# PIPELINE STATE（issue-batch 生成，续跑入口）
+# PIPELINE STATE（已完成批次的历史记录）
+
+> 状态更新：2026-09-08，#20–#32 与三个 PR 均已完成；批次改动已随
+> [v0.10.0](docs/verification/releases/v0.10.0/WALKTHROUGH.md) 发布。
+> 下文保留各阶段的原始快照、评审与通知记录，其中的“下一步”和运行环境不是当前指令。
+> 当前待办见 [TODO.md](TODO.md)，本机与发布流程见 [交接文档](docs/HANDOVER.md)。
 
 ## 元信息
 - 启动时间：2026-09-07T16:38:44+08:00
@@ -92,7 +97,7 @@ PR-1 / review 轮 1（axes: spec pass / standards pass；specialty: assertion_qu
 - 上次中断位置：批次终局完成（2026-09-08）。PR-3 已 merged（PR #35，rebase，main=5aaf5c4，合并后回归 276/276 绿；review 1 轮 pass：无 blocking/high、双专项 pass、8 low 入 follow-up；分支已删；agents 已释放）
 - 终局：启动快照 13 issues（#20-#32）全部被合并 PR 关闭（#33→#21-24、#34→#25-29、#35→#30-32+#20）；3/3 PR merged，0 skipped、0 blocked、0 熔断；待下轮清单空（运行期间无新增 issue）
 - 本文件为已完成批次的追溯记录：下轮 issue-batch 启动时 Preflight 0 会检测到本文件进续跑模式，对账确认终局后可删除本文件重新开始
-- 批次后项目待办（不在 issue-batch 范围）：发布 npm 版本（构建已到 0.9.0，按 TODO.md 既有流程：核查 npm 已有版本 + 干净 profile tarball 冒烟）；follow-up 共 16 条 low 记录于上方
+- 批次后发布已于 2026-09-08 随 v0.10.0 完成；当前项目待办见 TODO.md。上方保留 16 条 low follow-up，后续处理前需对照当前源码复核。
 - 下一步：收到开发回传 → ③（verify 实测 + 建 PR，Closes #30-#32 + #20）→ ④ 隔离评审（新 agent，双专项）→ ⑤ 闸门 → ⑥ 合并 → ⑦ 记录 → 终局总结（含全部非 merged 明细与 follow-up 清单）
 - PR-2 已 merged（PR #34，main=429a4c2 后推进，回归 252/252 绿）；PR-1 已 merged（PR #33）；两批 agent 均已释放
 - PR-2 ②③ 完成：五票 8/8、7/7、8/8、7/7、8/8 AC 全勾（#29 走查证据 docs/verification/r2-acceptance/，16 截图；走查发现缩窗宽度不重钳缺陷已修复+回归锁定；恢复操作成本 R1 3 次 → R2 1 次）；pnpm verify exit 0（252/252，调度实测复核）；main 无漂移；PR #34 已建（Closes #25-#29）

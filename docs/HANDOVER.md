@@ -1,98 +1,149 @@
-# 交接文档 — dsh-md-preview(2026-09-08)
+# 交接文档 — dsh-md-preview
 
-面向接手本仓库的开发者或 AI 会话。目标:读完这一份即可继续开发、验证、发布。
+更新：2026-09-08。面向接手开发、验证和发布的维护者。当前待办以
+[TODO](../TODO.md) 为准；本文件记录持久流程与有日期的环境事实。
 
-## 当前状态
+## 当前发布与验收
 
-**v0.10.0 已发布(2026-09-08,registry latest)**：文档侧边栏、回形针入口与 × 关闭，
-并包含 v0.7.2 之后的 UI/UX 对齐、统一未保存守卫、阅读连续与工作区搜索改动。
-发布提交 `9016f87` 与标签已推送，npm 和 GitHub 附件均为经过验证的同一 tarball。
-测试 **290 项**全绿，干净 profile 安装、启动、普通导入及移除通过。
-当前人工验收 `r3-accept` 已安装 npm 精确版本 0.10.0，在 3185（tmux `dsh-r3`）重启。
-完整记录见 [发布验证](verification/releases/v0.10.0/WALKTHROUGH.md)，当前待办以根 TODO 为准。
-发布前必须通过 `pnpm verify` 全链与安装包冒烟。
-实际发布应先完成 `pnpm pack:publishable` 与同一 tarball 的干净 profile 冒烟，再用
-`npm publish <已验证的.tgz> --ignore-scripts --access public --registry=https://registry.npmjs.org/`
-提交该归档，避免在验证和发布之间重新打包。发布后下载 Registry 广告的 tarball
-逐字节比对，并核对 dist-tags 与 GitHub 附件摘要。
+**[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
+已于 2026-09-08 发布，npm `latest` 为 0.10.0。** 发布提交 `9016f87`，包含文档
+侧边栏、回形针入口、× 关闭、UI/UX 对齐、统一未保存守卫、阅读连续和工作区搜索。
+此前 `v0.9.0` 仅作 Git 源码归档；这些改动已包含在本次 npm 发布中。
 
-本次 npm 登录返回 401，使用权限 0600 的临时 `NPM_CONFIG_USERCONFIG` 完成
-`npm login --auth-type=web`，然后以同一配置发布；登录与发布分别出现浏览器认证。
-tmux 保持真实终端输出，不能重定向 npm 发布的 stdout，否则无法使用浏览器 2FA。
+发布时 `pnpm verify` 退出 0：123 项基线检查、26 个测试文件共 **290 项测试**、
+类型检查、构建及 6 项产物检查通过。同一 tarball 完成干净 profile 安装、配置组合、
+启动、普通包名导入、资源服务与移除验证；npm 下载包与 GitHub 附件摘要一致。
+证据见 [发布验证](verification/releases/v0.10.0/WALKTHROUGH.md)。
 
-发布实操坑(2026-09-06 实录):verify-built 是 mtime 门,pack.mjs 每次运行
-都会重写 package.json → 重试发布前必须 `tsc -b --force` 重建;~/.npmrc 里
-registry.npmjs.org 的陈旧 token 会以 404 伪装失败,摘掉后
-`npm login --auth-type=web` 重授权;tmux 里跑 publish **不要重定向
-stdout**(否则 npm 判非交互直抛 EOTP),保持真 pty 再 send-keys Enter。
+人工验收实例 `r3-accept` 已安装 npm 精确版本 0.10.0，入口为
+`http://127.0.0.1:3185/`，tmux 会话 `dsh-r3`。主题、缩放和完整页面流程仍待补验；
+A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化和安装包验证不替代视觉验收。
 
-## 文档地图(哪个问题查哪份)
+## 文档地图
 
-| 文档 | 管什么 |
-|---|---|
-| `CLAUDE.md` | 仓库约束(命名空间插件/Schema 成对/可逆注册/不跨 feature 导入/bundle 协议) |
-| `docs/agent/PROJECT_CONTRACT.md` | 行为契约:权威、失败码、状态归属、验收断言 |
-| `CONTEXT.md` | 领域词汇表(含 _Avoid_ 弃用词);新概念必须入册 |
-| `docs/adr/0001-0003` | 三条已决:FsVersion 乐观锁、写入沙箱以会话工作区为根、peers 只放 host 运行时 external |
-| `TODO.md` | 当前状态、未完成事项与发布记录入口(历史细节查 Git) |
-| `docs/agents/issue-tracker.md` | issue 走 GitHub Issues(`gh`) |
-| `docs/research/workspace-browser-ux.md` | 浏览脸 UX 的证据基线(改树交互前先读) |
-| GitHub | spec #1(待人工验收关闭)、票 #2-#6(已关)、PR #7(已合) |
+| 问题 | 入口 |
+| --- | --- |
+| 安装、功能、配置与快捷键 | [README](../README.md)、[中文 README](../README.zh.md) |
+| 仓库约束与开发前置 | [AGENTS.md](../AGENTS.md)；`CLAUDE.md` 引用它 |
+| 行为、权威、失败码、状态归属与交付 | [PROJECT_CONTRACT.md](agent/PROJECT_CONTRACT.md) |
+| 领域术语 | [CONTEXT.md](../CONTEXT.md) |
+| 已决设计 | [ADR 目录](adr/)，0001–0004：FsVersion、写入沙箱、运行时 peer、面板停靠 |
+| 当前状态与待办 | [TODO.md](../TODO.md) |
+| Issue 约定 | [issue-tracker.md](agents/issue-tracker.md) |
+| 浏览交互的证据基线 | [工作区浏览 UX](research/workspace-browser-ux.md) |
+| 当前 UI/UX 分析与截图反馈 | [排版对齐](research/harness-uiux-alignment.md)、[侧边栏反馈](research/sidebar-screenshot-feedback.md) |
+| 已完成批次的历史记录 | [PIPELINE_STATE.md](../PIPELINE_STATE.md)；spec #20 与 #21–#32 已关闭 |
 
 ## 架构速览
 
-- **Host**(`src/index.ts` → `lib/index.js`):`MdPreviewService` 三方法 `read/write/list`,权威链两段:`resolveContainedTarget`(会话→cwd→resolve→限域;list 的目录目标合法)+ `resolveWorkspaceTarget`(加扩展名与常规文件判定;read 传**可预览并集**,write 只传可编辑集)。运行时 peer 仅 `@deepseek-ai/dsh-typert-protocol`(ADR-0003)。
-- **Client**(`lib/client.js`,lazy-CJS 工厂协议,~426 kB minified):`PreviewSession` 纯 reducer(`src/client/preview-session.ts`,`READ_STARTED`=新目标唯一全量重置)+ 效果适配器 `use-preview-session.ts`;面板组件只剩渲染+几何;`WorkspaceBrowser.tsx` 是懒树(树状态=UI 局部 viewing state);CodeMirror 6 构建期内联(`@lezer/markdown` 直组 GFM,勿引入 `@codemirror/lang-markdown` —— 会拖入 html/css/js 链使 bundle 翻倍)。
-- **测试层次**(seam 即测试面):host 表驱动(`tests/host-harness.ts` 共享 fake,注意 fake 的 FsTarget 是 `{targetKey, displayPath}`)+ 面板 jsdom(client-edit/client-browse 两个 harness)+ reducer 直测 + contribution 不变量。
+- **Host**：`src/index.ts` 注册 `src/remote.ts` 中的 `MdPreviewService`，四个 RPC 为
+  `read/write/list/search`。权威链从会话 cwd 开始，经 resolve 与 containment 检查；
+  read 使用可预览扩展名并集，write 使用可编辑集合，search 只遍历名称。运行时 peer
+  仅 `@deepseek-ai/dsh-typert-protocol`（ADR-0003）。
+- **Client**：`lib/client.js` 使用仓库自有 lazy-CJS factory 协议；`mount.ts` 挂载
+  Remote 并注册四个 Slot：overlay、turnTail、assistant-actions、session header utilities。
+  CodeMirror 与 Mermaid 构建期内联；v0.10.0 client 约 3.95 MB（minified），发布归档
+  约 1.11 MB。Mermaid 按需求值。不要沿用引入 Mermaid 前的 426 KB 数字。
+- **状态与布局**：`preview-session.ts` 是读、编辑、保存的纯状态机，
+  `use-preview-session.ts` 承接副作用；`leave-intent.ts` 统一离开请求与未保存守卫。
+  面板、树、大纲、阅读记录与宽度偏好只持有 UI 局部 viewing state。停靠适配隔离在
+  `panel-dock.ts` / `use-panel-dock.ts`，兼容与释放边界见 ADR-0004。
+- **测试面**：Host 权威与取消、状态机、编辑/浏览交互、真实 SlotRegistry 与
+  AppFrame 装配、停靠及贡献释放、打包产物。Host fake 的 `FsTarget` 必须是
+  `{ targetKey, displayPath }`。jsdom 组合测试模拟几何，不提供真实浏览器排版证据。
 
-## 发布流程(0.4.0 验证过的完整链)
+## 开发前置
 
-1. `pnpm verify`(真实退出码,勿经 `| grep` 管道吞掉)
-2. `npm version <patch|minor>` → **再跑一次 verify**(bump 后 lib 陈旧,pack 门会拦 —— 这是设计)
-3. `node scripts/pack.mjs` 自检后,净化 manifest:`node -e "delete devDependencies..."`(脚本内建有 verify-built 自防御门)
-4. tmux 真终端跑 npm publish(用户 `!` 会话不是 TTY,EOTP 网页流程会直接退):
-   `tmux new-session -d -s mdpreview-publish "http_proxy=http://127.0.0.1:8888 https_proxy=... npm publish --access public --registry https://registry.npmjs.org/ ..."`
-   → `tmux send-keys Enter` 开浏览器 → **用户点 Authorize**(约 5 分钟窗口)→ Monitor 盯 `__PUBLISH_EXIT`
-5. 验货:下载 registry tarball,确认内嵌 `v<版本>` 与新代码字符串
-6. 升级 profile:`dsh plugin --profile web add @benz-ai-x/dsh-md-preview@^x.y.z --registry=https://registry.npmjs.org`(pnpm 11 对新发布版本有 minimumReleaseAge 门槛,显式 add 会自动豁免)
-7. 重启 web 实例(tmux `dsh-web` 会话),curl boot graph + `/plugins` bundle 验证内嵌版本
-8. `git tag -a vx.y.z` + `gh release create`;父 issue 附发布说明
+1. 阅读 AGENTS、契约、词汇表及相关 ADR，确认当前 TODO 和 Issue 范围。
+2. 修改前运行 `pnpm context:check:strict`；固定 Harness 基线与源码解析方式见
+   `dsh-reference.lock.json`。默认使用已发布依赖；需要源码链接时才运行
+   `pnpm context:link`。该命令会重写开发依赖并更新锁文件，Harness 检出移动后也用它
+   重建链接；可通过 `DSH_HARNESS_ROOT` 指定检出位置。
+3. 按改动选择验证，交付代码与发布前运行 `pnpm verify`。文档修改检查命令、配置、
+   相对链接和历史状态，不为纯文档变更重启用户服务。
 
-## 本机环境事实(换机器/新会话必读)
+## 发布流程
 
-- `dsh` 不在 PATH:`node ~/Dev-Space/deepseek-harness/apps/cli/lib/bin.js`(基线 0.1.2-rc.1,锁定见 `dsh-reference.lock.json`;Harness 检出移动后跑 `pnpm context:sync`)
-- npm:`~/.npmrc` 指向 npmmirror(只读),发布/查询必须 `--registry https://registry.npmjs.org/` + 代理 `127.0.0.1:8888`;账号 `benz.ai.coder` 开 2FA 但用户拿不出 TOTP,唯一可行授权 = 浏览器 web auth(tmux 模式)
-- hoisted profile 里 `pnpm peers check` 报 typert-protocol missing 属预期噪音(DSH boot 模块治愈层满足 peer)
-- 通知:飞书 bot(BloomAI CLI)直发用户 `ou_e4e49d75c1cc297851cb63814663ce76`(梁鹏程);`lark-cli im +messages-send --user-id ... --as bot`
-- web 实例 3080:用户自己起(`cd deepseek-harness && node --import tsx/esm apps/cli/src/bin.ts web`)或 tmux `dsh-web`;改前先释放端口
+版本发布沿用以下流程，先验证具体归档，再发布同一个文件。
 
-## 已闭环的事故(勿再踩)
+1. 检查分支和工作区、固定基线、待发布改动及 npm 已有版本，选择未发布版本。
+   Registry 查询显式指定 `--registry=https://registry.npmjs.org/`。保留已有标签；
+   更新版本可用 `npm version <新版本> --no-git-tag-version --ignore-scripts`，
+   然后运行完整 `pnpm verify` 并检查真实退出码。
+2. 更新发布说明、TODO 和验证记录，运行 `pnpm pack:publishable`。脚本先构建并执行
+   freshness 检查，再临时净化 manifest、打包并检查归档；原 manifest 按字节恢复。
+   检查公开 exports、版本、lazy-CJS 协议、无 devDependencies/link:/workspace:/source map，
+   记录归档及 client 摘要。
+3. 将该归档安装到独立的临时 `DSH_HOME` 与干净 shipped web profile，核对安装文件，
+   执行 `--dump-config`、实际启动、普通包名 Host/Remote 导入及客户端资源 HTTP 200。
+   普通导入在正常 boot 提供平台 peer 后检查；不能用测试别名绕过解析。
+   移除后再次检查配置、启动图和原资源 HTTP 404，停止两个测试进程。
+   移除命令不支持 `--offline`；不要把安装参数原样传给 `remove`。
+4. 提交发布源码与说明，创建指向该提交的注解标签并推送；GitHub Release 可先建草稿，
+   附上已验证归档与 `SHA256SUMS`。版本提升、代码变化或重新打包都会产生新候选，
+   需要重新核验对应归档，不能沿用旧摘要和冒烟记录。
+5. 确认 npm 身份后，在真实 TTY 中发布**已验证的文件**：
+   `npm publish <已验证的.tgz> --ignore-scripts --access public --registry=https://registry.npmjs.org/`。
+   本机浏览器认证注意事项见下一节。`pnpm publish:registry` 会重新构建并从工作区打包，
+   因此不用于提交已经完成归档验证的候选。
+6. 下载 Registry 元数据指向的 tarball，与本地归档逐字节及摘要比对；核对版本、
+   `dist-tags`、SHA-1 / integrity。核对 GitHub 标签、两项附件摘要后公开 Release。
+7. 更新指定验收 profile 到 npm 精确版本，保留其会话与配置；确认该实例的端口与
+   启动方式后重启，核对实际服务资源。不要从旧快照推断要重启哪个实例。
+8. 将发布结果、运行验证和归档校验值写入验证记录，更新 TODO 与相关 Issue；
+   清理本次创建的临时认证配置、测试服务和终端会话。未完成的视觉验收继续保持待办。
 
-- **0.2.4 坏包**:jsdom 未捕获异常 → vitest 退出 1 但断言全过 → 外层管道吞退出码 → 旧 lib 静默发布。修复:发布路径自带 verify-built 门 + 指针捕获 best-effort。教训:**任何 verify 输出过滤必须确认真实退出码**。
-- FsTarget 契约:真实形状 `{targetKey, displayPath}`,测试 fake 与实现都不得假设 `.path`。
-- web-app 的 webserver 行被 patch 覆盖时必须重述全部 config 字段(patch 替换整行,不深合并)。
+`pack.mjs` 恢复 manifest 内容时会改变 mtime，因此打包后单独运行 `built:check`
+可能提示本地构建陈旧。需要重新检查本地输出时运行 `pnpm build`；这不会改变已生成的
+归档。发布重试直接使用原已验证归档，不必为 mtime 重新打包。
 
-## 未完成 / 留观
+## 本机环境事实（2026-09-08）
 
-- [x] v0.4.0 浏览器人工走查 → spec #1 已于 2026-09-02 验收关闭
-- [x] `npm deprecate @benz-ai-x/dsh-md-preview@0.2.4`(2026-09-06 完成,
-      "stale client bundle; use >=0.2.5",走 tmux 真 pty + 浏览器授权)
-- [x] 0.6.0 浏览器端到端:编辑→保存→冲突条三段自动化实测通过;强制覆盖/
-      重新加载两点击因并发手动导航未点成(待补验，见 TODO「验证与评估」)
-- [ ] 独立双轴审查(自查版已做并修复 5 项;子代理版因 API 配额限流未跑,可择机补)
-- [ ] 架构留观候选:classifyProduced 收拢(三处重复循环)、线契约 zod 单源(见架构报告,docs/research 或 issue 历史)
-- [ ] HMR 热替换走查(TODO 长期项;需 dev-link profile + watch:client 的专用 rig)
-- [x] 用户环境:session-graph 依赖缺失已修复(2026-09-06):源项目补 peer 声明
-      (commit `11a9702`)+ web profile 改 `^0.1.6` registry 引用,无补丁启动
-      零错误。教训:`link:` 安装按真实路径解析,够不到 profile 治愈层——
-      link: rig 的插件必须自带可解析依赖
+- `dsh` 不在本机 PATH；CLI 入口为
+  `node /Users/pc2026/Dev-Space/deepseek-harness/apps/cli/lib/bin.js`。
+  基线为 `0.1.2-rc.1`，commit 以仓库 lock 为准。
+- 当前人工验收使用 `DSH_HOME=/Users/pc2026/.dsh`、profile `r3-accept`、端口 3185、
+  tmux `dsh-r3`。启动参数为 `--profile r3-accept --port 3185 --no-open`。
+  其他端口与旧 `web` 实例需要独立确认；它们不是本次重启目标。
+- npm 默认 registry 指向 npmmirror；发布与验货显式使用 npm 官方 Registry。
+  本机发布链路使用代理 `http://127.0.0.1:8888`，账号 `benz.ai.coder` 开启 2FA。
+  这些是本机记录，换环境时重新确认。
+- v0.10.0 发布前 `npm whoami` 返回 401。实际解决方式：使用权限 0600 的临时
+  `NPM_CONFIG_USERCONFIG`，执行 `npm login --auth-type=web`，登录与发布使用同一配置。
+  登录和发布分别出现浏览器授权；完成后移除临时配置。不要把 token 或认证 URL 写入仓库。
+- npm 浏览器 2FA 使用 tmux 中的真实 TTY；发布 stdout 保持终端输出。
+  重定向可能使 npm 判为非交互并返回 EOTP。认证未完成时不能把等待或超时当作授权。
+- `--dump-config` 只检查组合结果，不运行插件服务；干净 profile 的平台 peer 由正常
+  boot 层满足。曾见 hoisted profile 的独立 peer 检查与实际 boot 结果不同，需以后者
+  加普通包名导入验证闭环，不能仅据 peer 告警判定可用或不可用。
+- v0.10.0 更新前的 profile 备份路径由本机
+  `/tmp/mdpreview-0100-r3-backup.txt` 记录；这些临时路径可能随清理失效。
+
+## 已闭环事故
+
+- **0.2.4 陈旧包**：测试有未捕获异常，vitest 退出 1；外层过滤管道吞掉退出码，旧
+  client 被发布。现有发布路径增加产物检查；任何输出过滤都必须保留真实退出码。
+  该版本已于 2026-09-06 deprecate，提示使用 >=0.2.5。
+- **FsTarget 形状**：真实值是 `{ targetKey, displayPath }`，实现与 fake 都不能假设 `.path`。
+- **配置覆盖**：profile patch 按 id 覆盖已有行时，`config` 整体替换而非深合并。
+  包括 webserver 配置在内，需要保留的自定义字段必须重述，其他字段回到 schema 默认值。
+- **pnpm 11 构建白名单**：验收 profile 已有的可信 koffi/esbuild 授权迁移到
+  `pnpm-workspace.yaml` 的 `allowBuilds` 后安装成功。Git 源码安装本插件需要执行
+  `prepare`；Registry 归档已含构建输出，安装形态不能混为一谈。
+- **源码链接依赖解析**：2026-09-06 session-graph 的依赖缺失由源项目补 peer 声明
+  并将 web profile 改为 Registry 引用解决。`link:` 依赖按真实路径解析，源码 rig
+  必须有自身可解析的依赖，不能假设能借用 profile 的 boot 修复层。
 
 ## 命令速查
 
 ```sh
-pnpm verify                          # 全链验证(发布前置)
-pnpm pack:publishable                # 净化 tarball + 自防御门
-pnpm publish:registry -- --otp ...   # 同净化流程发布(带 OTP 时)
-pnpm context:sync                    # Harness 检出移动后重写链接
-node ~/Dev-Space/deepseek-harness/apps/cli/lib/bin.js --profile web --dump-config
+pnpm context:check:strict             # 修改前检查固定基线
+pnpm context:link                     # 显式切换/重建源码链接，会修改依赖与锁文件
+pnpm verify                          # 类型、测试、构建与产物全链
+pnpm watch:client                    # 客户端开发监听
+pnpm pack:publishable                # 构建并生成净化归档，随后验证同一归档
+node /Users/pc2026/Dev-Space/deepseek-harness/apps/cli/lib/bin.js --profile r3-accept --dump-config
 ```
+
+HMR、Mermaid 暗色与内联文档提及等长期项统一见 [TODO](../TODO.md)；
+历史评审 follow-up 保留在 [批次记录](../PIPELINE_STATE.md)，实施前需对照当前源码复核。

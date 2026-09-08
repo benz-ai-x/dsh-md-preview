@@ -2,143 +2,172 @@
 
 # @benz-ai-x/dsh-md-preview
 
-DSH Web GUI 插件:点击对话中出现的 Markdown 文档,在对话右侧打开渲染后的预览面板;支持受守卫编辑与工作区目录树浏览。
+在 DeepSeek Harness 对话旁阅读、编辑工作区文档。打开助手产出的 Markdown、浏览会话工作区，或从上次阅读的位置继续。
 
 [![npm](https://img.shields.io/npm/v/@benz-ai-x/dsh-md-preview)](https://www.npmjs.com/package/@benz-ai-x/dsh-md-preview)
 [![GitHub](https://img.shields.io/badge/repo-benz--ai--x%2Fdsh--md--preview-24292e?logo=github)](https://github.com/benz-ai-x/dsh-md-preview)
 
-## 效果
+当前发布：**[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)**，发布于 2026-09-08。要求固定的 Harness **0.1.2-rc.1** 基线及 web profile。
 
-- 回合产出文件 chip 行中的 `.md` / `.markdown` 文档:点击打开右侧预览面板,渲染 GFM、代码高亮和 TeX。
-- 每条助手消息的操作区新增「预览文档」按钮,列出该回合产出的 Markdown 文档。
-- 非 Markdown 产出文件保持原有行为(交给系统打开)。
-- **文档侧边栏**：宽屏展开时让对话区自动缩窄，低于 1056px 或全屏时覆盖展开。头部「Session 日志」右侧使用原生回形针图标，一键开合工作区浏览，面板右上 × 关闭；未保存修改仍先询问。宽度默认取半屏、最多 720px，记忆 360–1200px 的手动拖宽偏好，并按可用空间钳制。原生导航与工具详情保留各自操作；Esc 关闭后焦点返回入口。布局适配依赖锁定基线，见 [ADR-0004](docs/adr/0004-dock-preview-beside-the-harness-frame.md)。
-- 没有预览目标时面板不渲染。
-- **字体与主题对齐 Harness**:导航主文字 14px/20px、父目录路径 12px/18px,统一图标与控件尺寸。搜索固定在浏览区顶部,条目独立滚动;导航初始宽 220px,保留手动宽度偏好。面板从框架顶部停靠,自身保留工作区/返回与关闭入口;聚焦文档身份可查看完整路径和版本。编辑器使用平台浅/深主题与代码字体,正文在各种宽度下均保持平台 Markdown 段落节奏。
-- **编辑**:面板「编辑」进入 CodeMirror 编辑器(行号、GFM 高亮、Cmd/Ctrl-S 保存),「保存」写回工作区、显示「✓ 已保存」提示并回到渲染视图,「取消编辑」丢弃草稿;只编辑已存在的文件。保存失败(非冲突)会显示错误码并提供【重试】。
-- **冲突保护**:保存时若文件已被其它方(agent、其它会话、外部编辑器)修改,提示「文件已变化」,由你选择【重新加载】或【强制覆盖】;带未保存修改关闭面板会先询问。
-- **工作区浏览**:面板头部「工作区」进入目录树(懒展开、加载/空/失败三态);单击 `.md` 富渲染、`.txt` 等纯文本等宽展示、其它类型明确提示不支持;当前文档在树中高亮并自动定位;支持方向键/Enter 键盘遍历;头部路径面包屑。已展开目录在每次重进浏览脸时**静默重验**(树工具栏也有刷新按钮)——agent 会在会话中途持续产出文件,刷新失败绝不清空现有列表。
-- **大纲导航**:头部「大纲」弹层列出文档的 ATX 标题(代码围栏内的 `#` 不算);点击后查看脸滚动到渲染标题、编辑脸跳转光标到源行。
-- **侧栏 rail(≥640px)**:文件树与大纲常驻面板左侧(「文件|大纲」记忆选择),文档不再被浏览替换;<640px 回退换脸/弹层;Mod-Shift-O/E 直达、Esc 收弹层。
-- **分段控件与编辑反馈**:「预览|编辑」常驻切换(脏草稿切回走守卫);状态栏实时 Ln/Col/字数与常驻「已保存」时间;撤销/重做按钮;Mod-B/I/K 排版键(? 查看键位);含内联 HTML 的文档进编辑时一次性预警。
-- **工作区搜索**:浏览区搜索框按名称搜索**整个**会话工作区的文档——未展开目录也覆盖——由宿主可取消遍历完成,绝不读取正文。名称不区分大小写子串匹配;每条结果同时显示名称与工作区相对路径(同名文档可分辨);打开结果仍走完整读取与守卫。状态诚实可辨:搜索中…;「没有结果」只在完整搜索且零命中时出现;「结果不完整」会说明原因(目录读取失败/遍历或数量上限)并保留已得结果;失败给出错误码与重试。输入新词即取消旧搜索,清空后精确恢复原浏览展开状态。(与编辑器内查找是两回事。)
-- **快捷入口**:树上方两小节——「当前回合产出」列出最新回合产出的可预览文档(owning service 回合事实、按关闭序号截断、回合进行中实时更新),「最近阅读」按近期使用列出本会话读过的文档。两节均显示名称加路径,打开走同一守卫路径并重新读取;来源为空时该节隐藏;「继续阅读」入口保持自己的独立席位与语义。
-- **阅读位置跟踪**:大纲弹层高亮当前阅读位置所在的节——查看脸按滚动位置、编辑脸按光标源行推导,并保持该条目在弹层视野内。头部在草稿未保存时显示脏点,版本号折入路径提示,查找/保存按钮标注快捷键;查找面板已本地化并显示匹配计数(n/m)。
-- **编辑器查找**:编辑脸带 CodeMirror 搜索面板(头部按钮与 Mod/Ctrl-F)。
-- **Mermaid 图表**:` ```mermaid ` 围栏块在文档渲染定型后增强为图表;块横幅保留(复制仍取源码),任何失败回退纯代码块。mermaid 内联进 client bundle 但**惰性求值**(首个图表才付解析成本;bundle 约 3.9 MB minified / 1.1 MB gzip)。
-
-## 安装
-
-要求 DSH 基线 `0.1.2-rc.1`(即 peerDependencies 所列版本)和 web profile。
+## 安装或升级
 
 ```sh
-dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview
-dsh --profile <name> --dump-config   # 应出现 id: md-preview 的行
-dsh --profile <name>                 # 打开 Web GUI;回合产出 .md 后点击 chip 预览
-dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
+dsh plugin --profile web add @benz-ai-x/dsh-md-preview@0.10.0 --save-exact
+dsh --profile web --dump-config
 ```
 
-### 三种安装形态(依 [DSH 打包与安装规范](https://github.com/deepseek-ai/deepseek-harness/blob/main/docs/user/develop/basic/publish.zh.md))
+有效配置中应出现 `md-preview` 行。使用 `dsh --profile web` 启动；如果该 profile 已在运行，重启同一个实例并刷新页面。使用其他 web profile 时，将 `web` 替换成它的名称。
 
-| 形态 | 命令 | 状态 |
+移除插件：
+
+```sh
+dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
+```
+
+## 主要能力
+
+- **预览与编辑**：渲染 Markdown、GFM 表格、代码高亮、TeX 和 Mermaid；使用 CodeMirror 编辑已有 Markdown 文档并保存回工作区。
+- **对话旁阅读**：宽屏时文档侧边栏预留独立空间，记忆手动宽度；窄屏或最大化时覆盖展开。原生导航与工具详情保留各自操作。
+- **查找文档**：浏览工作区树，按文档名称搜索未展开的目录，使用当前回合产出、最近阅读和继续阅读入口。
+- **阅读连续**：重新打开先读取最新内容，再恢复已记录的阅读位置；浏览器存储可用时，记忆面板宽度、导航宽度与导航选择。
+- **保护编辑**：关闭、打开其他文档或切回预览均检查未保存草稿。文件被其他方修改时提供重新加载或强制覆盖；失败后可重试。
+- **跟随 Harness 样式**：使用共享排版、主题颜色、原生图标和可见键盘焦点；正文与标题由平台 Markdown 渲染器排版。
+
+## 打开、导航与关闭
+
+| 入口或控件 | 行为 |
+| --- | --- |
+| 「Session 日志」旁的回形针 | 面板关闭时打开工作区浏览；面板打开时关闭当前面板 |
+| 回合下方的 Markdown chip | 打开该产出文档 |
+| 消息操作区的「预览文档」 | 列出该消息所属回合产出的 Markdown 文档 |
+| 面板内的文件夹图标 | 宽面板开合工作区导航；窄面板进入浏览脸 |
+| 大纲 | 跳转标题并高亮当前阅读位置 |
+| 预览 / 编辑 | 在可编辑文档的查看脸与编辑脸之间切换 |
+| 全屏显示 / 还原 | 最大化到应用内容区域，再回到记忆的宽度 |
+| × | 经过未保存守卫关闭面板，焦点返回回形针入口 |
+
+回形针打开的是**工作区文档**，目前不支持用户上传的附件。非 Markdown 产出文件 chip 保持 Harness 交给桌面应用打开的行为；工作区浏览默认还支持将 `.txt` 显示为纯文本。
+
+应用可用宽度至少为 1056px 时，文档侧边栏独立停靠；更窄或最大化时覆盖展开。初始宽度取半个视口、最多 720px，记忆 360–1200px 的手动拖宽偏好，并按可用空间收缩。拖动左边缘调整宽度，双击边缘切换最大化。面板宽度至少 640px 时，可在正文旁展开「文件 / 大纲」导航；更窄时使用浏览脸或大纲弹层。直接打开文档默认优先正文，已有手动导航偏好时优先采用偏好。
+
+编辑时点击保存按钮或按 Cmd/Ctrl-S。若要放弃草稿，先请求切回预览、打开其他文档或关闭，再在提示中选择**放弃修改**；选择**继续编辑**会保留草稿。当前没有独立的“取消编辑”按钮。保存只写回已有文件，确认成功后返回预览。
+
+工作区搜索按文档**名称**进行不区分大小写的匹配，不读取正文；遍历不完整时明确说明原因，清空查询恢复树的展开状态。「最近阅读」来自已记录的阅读位置，因此只打开而没有滚动的文档可能不会出现在其中。
+
+## 快捷键
+
+`Mod` 在 macOS 上指 Cmd，在 Windows/Linux 上指 Ctrl。面板快捷键需焦点位于面板内；编辑器快捷键需焦点位于编辑器内。
+
+| 快捷键 | 行为 |
+| --- | --- |
+| Mod-S | 保存 |
+| Mod-F | 编辑器内查找 |
+| Mod-Z / Mod-Shift-Z | 撤销 / 重做 |
+| Mod-B / Mod-I / Mod-K | 将选区包裹为粗体、斜体或链接 |
+| Mod-Shift-O / Mod-Shift-E | 打开大纲 / 工作区导航 |
+| Mod-/ | 查看编辑器快捷键帮助 |
+| Esc | 优先关闭已打开的弹层或编辑器查找框，再请求关闭面板；不会静默放弃草稿 |
+| 方向键 / Enter | 在工作区树中导航与打开条目 |
+
+## 配置
+
+安装后，在该 profile 的 `cordis.patch.yml` 中覆盖已有行：
+
+```yaml
+- id: md-preview
+  config:
+    maxBytes: 1048576
+    allowedExtensions: ['.md', '.markdown']
+    previewExtensions: ['.md', '.markdown', '.txt']
+    searchMaxResults: 200
+    searchMaxDirectories: 2000
+    searchConcurrency: 8
+```
+
+后面的 patch 会替换该行的**整个 config**，需要保留的自定义值应一并写出；省略的字段采用 schema 默认值。
+
+| 字段 | 默认值 | 含义 |
 | --- | --- | --- |
-| npm(推荐) | `dsh plugin --profile <name> add @benz-ai-x/dsh-md-preview` | ✅ 预构建产物,即装即用 |
-| tarball | `dsh plugin --profile <name> add ./benz-ai-x-dsh-md-preview-<ver>.tgz`(tarball 由源码 `pnpm pack:publishable` 产出) | ✅ 预构建产物,无需任何构建授权 |
-| Git 直装 | `dsh plugin --profile <name> add github:benz-ai-x/dsh-md-preview#<sha>` | ✅ 由包自带的自包含 `prepare` 从源码构建(纯转译,此形态不带类型声明)——见下文 |
+| `maxBytes` | `1048576` | 单文件读取、写入的字节上限 |
+| `allowedExtensions` | `[".md", ".markdown"]` | 允许编辑的扩展名 |
+| `previewExtensions` | `[".md", ".markdown", ".txt"]` | 可预览扩展名；不在可编辑集合内的成员为只读 |
+| `searchMaxResults` | `200` | 一次工作区搜索最多返回的匹配数 |
+| `searchMaxDirectories` | `2000` | 一次工作区搜索最多遍历的目录数 |
+| `searchConcurrency` | `8` | 每批遍历并行读取的目录数 |
 
-git 安装拉取的是源码,pnpm 在得到显式允许前拒绝运行 git 依赖的 `prepare`。首次 `add` 失败后,把 pnpm 打印的确切包键复制进该 profile 的 `pnpm-workspace.yaml`:
+路径以会话工作区为边界；保存需要读取时取得的指纹或明确的强制覆盖选择。配置默认值以 schema 为准，可编辑扩展名也会纳入可预览并集。
+
+## 失败码
+
+| 失败码 | 含义 |
+| --- | --- |
+| `md-preview/bad-request` | 输入非法，例如保存时既没有指纹也没有指定强制覆盖 |
+| `md-preview/unknown-session` | 会话不存在 |
+| `md-preview/no-workspace` | 会话没有工作目录 |
+| `md-preview/unsupported-extension` | 不支持该文档扩展名 |
+| `md-preview/forbidden` | 工作区范围或文件系统访问检查未通过 |
+| `md-preview/not-found` | 目标不存在 |
+| `md-preview/too-large` | 读取或写入超过 `maxBytes` |
+| `md-preview/conflict` | 文件自本次保存所依据的读取之后已变化 |
+| `md-preview/unavailable` | 文件系统或传输操作失败 |
+
+## 安装形态
+
+| 形态 | 命令 | 交付内容 |
+| --- | --- | --- |
+| npm | `dsh plugin --profile web add @benz-ai-x/dsh-md-preview@0.10.0 --save-exact` | 预构建 JavaScript 与类型声明 |
+| Release 归档 | `dsh plugin --profile web add ./benz-ai-x-dsh-md-preview-0.10.0.tgz` | 已完成发布验证的同一归档，可在 GitHub Release 获取归档和 SHA256SUMS |
+| Git 源码 | `dsh plugin --profile web add github:benz-ai-x/dsh-md-preview#<commit>` | 自包含的 `prepare` 构建 JavaScript；此形态不生成类型声明 |
+
+Git 安装时，pnpm 可能要求显式允许构建。将报错中给出的确切包键写入该 profile 的 `pnpm-workspace.yaml`，再执行 `add`：
 
 ```yaml
 allowBuilds:
   '@benz-ai-x/dsh-md-preview': true
 ```
 
-然后重新执行 `add`。授权构建 = 允许该包的代码在安装时于你的机器上执行 —— 只对可信源码授权,并用 `#<sha>` 锁定 commit,让后续推送无法悄悄改变实际运行的内容。
+允许构建会在本机执行包内源码，应使用可信来源并固定 commit。npm 与 Release 归档已包含构建结果。
 
-## 配置
+## 开发与验证
 
-```yaml
-- id: md-preview
-  name: '@benz-ai-x/dsh-md-preview'
-  config:
-    maxBytes: 1048576        # 单文件读取上限(字节)
-    allowedExtensions: ['.md', '.markdown']
-```
-
-| 字段 | 类型 | 默认 | 说明 |
-| --- | --- | --- | --- |
-| `maxBytes` | number | `1048576` | 单文件读/写上限,超出返回 `too-large` |
-| `allowedExtensions` | string[] | `[".md", ".markdown"]` | 可编辑的扩展名白名单 |
-| `previewExtensions` | string[] | `[".md", ".markdown", ".txt"]` | 可预览的扩展名(可编辑集的超集;纯文本成员只读展示) |
-
-## 失败码
-
-读取失败时面板显示 `md-preview/<reason>`。所有失败码:
-
-| 码 | 含义 |
-| --- | --- |
-| `md-preview/bad-request` | path 为空或非法;或保存时既无指纹也未强制 |
-| `md-preview/unknown-session` | 会话不存在 |
-| `md-preview/no-workspace` | 会话没有工作目录 |
-| `md-preview/unsupported-extension` | 扩展名不在白名单 |
-| `md-preview/forbidden` | 路径超出会话工作区 |
-| `md-preview/not-found` | 文件不存在(编辑只针对已存在文件) |
-| `md-preview/too-large` | 文件(读取)或内容(写入)超过 `maxBytes` |
-| `md-preview/conflict` | 保存时文件已变化(指纹不匹配且未强制) |
-| `md-preview/unavailable` | 读/写过程发生 IO 错误 |
-
-## 已知限制
-
-- 正文中内联提到的 `.md` 文件名仍走系统打开(归 ui-deliverables 所有,不归本插件)。
-- 文档侧边栏通过锁定基线的可释放布局适配预留空间，窄屏覆盖展开；升级 Harness
-  需重新验证布局适配，原生工具详情贡献保留。
-- 用户上传的文档附件不可预览(目前没有对应的会话面)。
-- 大纲只收 ATX 标题(setext 下划线式标题会渲染但不进弹层)。
-- Mermaid 用默认主题;混用缩进代码块与围栏块的文档整体跳过图表增强(顺序对齐安全检查)。
-
-## 开发(source-linked)
+Node 需满足 `^22.19.0 || >=24.0.0`，仓库声明 pnpm 11.17.0。固定 Harness 检出优先从 `DSH_HARNESS_ROOT` 解析，默认位置为 `../deepseek-harness`。
 
 ```sh
 pnpm install
-pnpm verify                 # context:check:strict + typecheck + test + build + built:check
-pnpm context:link           # 需要源码联调时:重写 link: 指向 Harness 检出并刷新 lockfile(默认 registry)
-pnpm watch:client           # 客户端 bundle 热构建
+pnpm context:check:strict
+pnpm verify
+pnpm watch:client
 ```
 
-### 结构
+开发依赖默认使用已发布版本。`pnpm context:link` 会显式切换到固定源码检出并刷新 lockfile；源码链接移动后也使用这个现有命令重新同步。
 
-| 部分 | 位置 | 说明 |
+| 部分 | 源码 | 职责 |
 | --- | --- | --- |
-| Host Remote | `src/remote.ts` | `mdPreview/read(sessionId, path, signal)`;工作区限域、扩展名白名单、字节上限 |
-| Remote contribution | `src/typert/remote-client.ts` | 手工维护的浏览器端描述符(生成器产物的等价物) |
-| 浏览器入口 | `src/client/index.ts` | 挂载 Remote + 注册三个 Slot 贡献 |
-| 预览面板 | `src/client/PreviewOverlay.tsx` | `shell.overlay`(list,增量);仅渲染 + 几何 |
-| 会话机器 | `src/client/preview-session.ts` | 纯 reducer:读取/编辑/保存/提示的完整状态代数 |
-| 编辑器 | `src/client/editor.tsx` | CodeMirror 6(精选扩展集含搜索面板,构建期内联) |
-| 工作区树 | `src/client/WorkspaceBrowser.tsx` | 懒树:高亮/自动定位/键盘遍历 + 静默重验 |
-| 大纲 | `src/client/outline.ts` | ATX 标题扫描 + 渲染标题定位 |
-| 图表增强 | `src/client/diagrams.ts` | 渲染后 mermaid 增强,失败回退代码块 |
-| chip 行接管 | `src/client/MdChips.tsx` | `conversation.chat.turnTail`(chain,仅认领含 Markdown 的回合) |
-| 消息操作 | `src/client/PreviewAction.tsx` | `conversation.chat.assistant-actions`(list,增量) |
+| Host 服务 | `src/remote.ts` | `mdPreview.read/write/list/search`、工作区权威与取消 |
+| Remote 描述符 | `src/typert/remote-client.ts` | 浏览器可用的 codec 与四个 RPC 方法 |
+| Client 注册 | `src/client/mount.ts` | 挂载 Remote 与四个 Slot 贡献 |
+| 预览面板 | `src/client/PreviewOverlay.tsx` | 渲染、导航与 UI 局部几何状态 |
+| 停靠适配 | `src/client/panel-dock.ts`、`use-panel-dock.ts` | 为文档区预留空间，并可逆地恢复固定 Harness 框架 |
+| 头部入口 | `src/client/WorkspaceDocsAction.tsx`、`PanelToggle.tsx` | 回形针入口、× 关闭与当前回合产出派生 |
+| 预览会话 | `src/client/preview-session.ts`、`use-preview-session.ts` | 读取、编辑、保存生命周期与受守卫的切换 |
+| 阅读与偏好 | `src/client/reading.ts`、`preferences.ts` | 阅读位置恢复与有界的浏览器偏好 |
+| 工作区浏览 | `src/client/WorkspaceBrowser.tsx` | 树、搜索结果、快捷入口与导航 |
+| 编辑 / 图表 | `src/client/editor.tsx`、`diagrams.ts` | CodeMirror 编辑与惰性 Mermaid 增强 |
 
-### 真实 profile 验证(本地检出)
+v0.10.0 发布通过 **290 项测试**、严格基线检查、类型检查和构建检查。同一安装包通过干净 profile 的安装、普通包名导入、配置组合、启动、客户端资源服务与移除验证，见[发布验证](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/verification/releases/v0.10.0/WALKTHROUGH.md)。
 
-```sh
-pnpm build
-dsh plugin --profile <name> add ./dsh-md-preview
-dsh --profile <name> --dump-config
-dsh --profile <name>        # 打开 Web GUI,写一个 README.md 产出并点击 chip
-dsh plugin --profile <name> remove @benz-ai-x/dsh-md-preview
-```
+发布时先运行 `pnpm pack:publishable`，使用该归档完成干净 profile 冒烟，再执行 `npm publish <archive.tgz> --ignore-scripts --access public --registry=https://registry.npmjs.org/`，发布**经过验证的同一个 `.tgz`**。完整步骤、浏览器 2FA 和实例验货见[维护交接](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/HANDOVER.md)。
 
-### 打包与发布
+## 已知限制与文档入口
 
-```sh
-pnpm pack:publishable       # 打出净化 manifest 的 tarball 并复检(无 devDeps、无 link:/workspace:)
-pnpm publish:registry       # 以同一净化流程发布到 npm
-```
+- 停靠适配依赖固定 Harness 的框架结构，升级基线时需要重新验证，见 [ADR-0004](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/adr/0004-dock-preview-beside-the-harness-frame.md)。
+- 用户上传的文档附件不可预览；正文内联提及的 `.md` 文件保持 Harness 交给桌面应用打开的行为。
+- 只编辑已有且受支持的文档，不创建文件；代码围栏与内联 HTML 在编辑器内按纯文本编辑。
+- 大纲收集 ATX 标题，setext 标题会渲染但不进入大纲。
+- Mermaid 使用默认主题；混用缩进代码块与围栏块的文档跳过增强，渲染失败保留原代码块。
+- 浏览器主题、缩放验收及后续顶栏优化继续在 [TODO](https://github.com/benz-ai-x/dsh-md-preview/blob/main/TODO.md) 跟踪。
 
-source-linked 验证证明与固定 Harness 检出(见 `dsh-reference.lock.json`)的兼容性;发布形态以 packed tarball 在干净 profile 中的安装/启动/移除冒烟为准。
+开发前阅读[项目契约](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/agent/PROJECT_CONTRACT.md)与[领域词汇表](https://github.com/benz-ai-x/dsh-md-preview/blob/main/CONTEXT.md)。发布说明见 [GitHub Releases](https://github.com/benz-ai-x/dsh-md-preview/releases)。
 
 ## 许可证
 
