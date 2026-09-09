@@ -1,0 +1,248 @@
+# PIPELINE STATE — issue-batch 续跑入口；唯一状态面
+元信息:
+  启动时间: '2026-09-09T01:27:03.204Z'
+  Preflight: 开发检查通过；独立开发 worktree 干净；固定基线 strict 123/123 exit 0。飞书仅登录检查，未获明确发送授权。
+  默认分支: main
+  启动快照:
+    - 39
+    - 40
+    - 41
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 47
+    - 48
+    - 49
+  测试命令: DSH_HARNESS_ROOT=/Users/pc2026/Dev-Space/deepseek-harness-md-preview-baseline pnpm verify
+  lint命令: 无独立 lint；pnpm verify 含 typecheck、测试、构建及产物检查
+  合并方式: rebase
+  commit风格: 动词开头的描述性提交，每 issue 至少一个独立 commit
+  CI: 无
+  模式: 默认
+  并行度: 3
+  标签体系: ready-for-agent 存在：是
+  通知群chat_id: null
+  发送命令式: null
+  加急升级: null
+  运行参数覆盖: 无 issue-batch.yml；按用户批准的 6 PR / 4 层预演执行
+  双向级别: L1
+  用户open_id: null
+规划表:
+  - PR: 1
+    批: 1
+    层: 1
+    分支: feat/batch-1-readonly-text
+    worktree: /Users/pc2026/Dev-Space/dsh-md-preview-batch-1-readonly-text
+    issues:
+      - 39
+    主题: 只读文本入口、最近阅读与手动刷新
+    复杂度: L
+    依赖: []
+    状态: developing
+    review轮: 0
+    CI轮: 0
+  - PR: 2
+    批: 1
+    层: 2
+    分支: feat/batch-2-text-highlighting-and-chunks
+    worktree: /Users/pc2026/Dev-Space/dsh-md-preview-batch-2-text-highlighting-and-chunks
+    issues:
+      - 40
+      - 41
+    主题: 源码高亮折叠与大文本续读
+    复杂度: L
+    依赖:
+      - 1
+    状态: planned
+    review轮: 0
+    CI轮: 0
+  - PR: 3
+    批: 1
+    层: 3
+    分支: feat/batch-3-image-resources
+    worktree: /Users/pc2026/Dev-Space/dsh-md-preview-batch-3-image-resources
+    issues:
+      - 45
+    主题: 图片预览与共用资源读取
+    复杂度: L
+    依赖:
+      - 1
+      - 2
+    状态: planned
+    review轮: 0
+    CI轮: 0
+  - PR: 4
+    批: 1
+    层: 4
+    分支: feat/batch-4-structured-text
+    worktree: /Users/pc2026/Dev-Space/dsh-md-preview-batch-4-structured-text
+    issues:
+      - 42
+      - 43
+      - 44
+    主题: JSON、XML、JSONL 格式化预览
+    复杂度: L
+    依赖:
+      - 2
+      - 3
+    状态: planned
+    review轮: 0
+    CI轮: 0
+  - PR: 5
+    批: 1
+    层: 4
+    分支: feat/batch-5-media-and-pdf
+    worktree: /Users/pc2026/Dev-Space/dsh-md-preview-batch-5-media-and-pdf
+    issues:
+      - 46
+      - 47
+    主题: 音视频播放与 PDF 只读阅读
+    复杂度: L
+    依赖:
+      - 3
+    状态: planned
+    review轮: 0
+    CI轮: 0
+  - PR: 6
+    批: 1
+    层: 4
+    分支: feat/batch-6-html-browser
+    worktree: /Users/pc2026/Dev-Space/dsh-md-preview-batch-6-html-browser
+    issues:
+      - 48
+      - 49
+    主题: 内嵌 HTML、关联资源与导航
+    复杂度: L
+    依赖:
+      - 3
+    状态: planned
+    review轮: 0
+    CI轮: 0
+判定表:
+  - issue: 39
+    规模: L
+    模块: 文本准入、统一入口、刷新
+    依赖:
+      依赖: []
+      被依赖:
+        - 40
+        - 41
+        - 45
+    类型: 集成行为型
+  - issue: 40
+    规模: M
+    模块: 源码查看组件
+    依赖:
+      依赖:
+        - 39
+      被依赖:
+        - 42
+        - 43
+    类型: 集成行为型
+  - issue: 41
+    规模: L
+    模块: 分段读取与版本一致性
+    依赖:
+      依赖:
+        - 39
+      被依赖:
+        - 42
+        - 43
+    类型: 集成行为型
+  - issue: 42
+    规模: M
+    模块: JSON 格式化
+    依赖:
+      依赖:
+        - 40
+        - 41
+      被依赖:
+        - 44
+    类型: 集成行为型
+  - issue: 43
+    规模: M
+    模块: XML 格式化
+    依赖:
+      依赖:
+        - 40
+        - 41
+      被依赖: []
+    类型: 集成行为型
+  - issue: 44
+    规模: M
+    模块: JSONL 记录
+    依赖:
+      依赖:
+        - 42
+      被依赖: []
+    类型: 集成行为型
+  - issue: 45
+    规模: L
+    模块: 图片与受控资源
+    依赖:
+      依赖:
+        - 39
+      被依赖:
+        - 46
+        - 47
+        - 48
+    类型: 集成行为型
+  - issue: 46
+    规模: M
+    模块: 音视频播放
+    依赖:
+      依赖:
+        - 45
+      被依赖: []
+    类型: 集成行为型
+  - issue: 47
+    规模: L
+    模块: PDF 阅读
+    依赖:
+      依赖:
+        - 45
+      被依赖: []
+    类型: 集成行为型
+  - issue: 48
+    规模: L
+    模块: HTML 隔离及关联资源
+    依赖:
+      依赖:
+        - 45
+      被依赖:
+        - 49
+    类型: 集成行为型
+  - issue: 49
+    规模: M
+    模块: HTML 导航
+    依赖:
+      依赖:
+        - 48
+      被依赖: []
+    类型: 集成行为型
+跳过与熔断: []
+待下轮清单: []
+未决决策: []
+决策记录:
+  - 消息ID: null
+    对象: 批次规划
+    决策: 执行 6 PR / 4 层分组；保留已有改动并恢复固定基线
+    依据回复: 按照你的建议做
+    时间: '2026-09-09T01:27:03.204Z'
+恢复注记:
+  上次中断位置: 'PR-1 已建立独立开发 worktree，正在完成 #39。'
+  下一步: '按 TDD 完成 #39，完整 verify 后创建 PR 并交独立评审；涉及公共协议/授权需人工合并后再开下游。'
+  执行环境: >-
+    所有验证显式设置 DSH_HARNESS_ROOT=/Users/pc2026/Dev-Space/deepseek-harness-md-preview-baseline；该新 worktree 固定
+    a66e4702047846cdaa10c66c9d3df3951f5ea70d，pnpm build:lib exit 0，源码干净。默认环境变量仍指向 alpha.2，不要直接使用。
+  保留改动: >-
+    原工作区 /Users/pc2026/Dev-Space/dsh-md-preview 保留既有文档与技能安装改动；六份已批准设计文档按字节复制到本开发 worktree。单 PR
+    也隔离开发，避免整理时改动用户技能安装。
+  调度约束: PR-2 → PR-3、PR-3 → PR-4 是为公共协议稳定增加的调度约束，并未写成 GitHub Issue 依赖。
+  评审专项: 全部 PR 检查集成断言质量；分段、解析、资源和导航同时检查正确性、取消与边界。
+  验收边界: >-
+    母 Spec #38 及 ready-for-human #50–#53 不进入功能批次；#50 等待 PR-4，#51 等待 PR-5，#52 等待 PR-6，#53 等待 PR-4/5/6；Office
+    排除。
+  通知边界: 本次用户授权执行建议中的开发、验证、PR 流程，未明确授权对外发消息；依更高优先级规则仅在当前会话汇报，不建群、不发送消息。

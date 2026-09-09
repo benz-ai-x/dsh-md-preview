@@ -3,6 +3,13 @@
 Pinned DSH baseline: `dsh-reference.lock.json` (commit
 `a66e4702047846cdaa10c66c9d3df3951f5ea70d`, version `0.1.2-rc.1`).
 
+This contract describes the existing implementation. Accepted designs for
+[networked HTML preview](../adr/0005-networked-html-preview-isolated-from-harness.md)
+and [text admission independent of language recognition](../adr/0006-text-preview-independent-of-language-recognition.md)
+are not implemented yet; their scope is captured in
+[Spec #38](https://github.com/benz-ai-x/dsh-md-preview/issues/38) and tracked in the
+[implementation TODO](../../TODO.md#多格式预览设计与实施).
+
 ## User-visible outcome
 
 In the DSH web GUI's conversation view, markdown documents that a turn

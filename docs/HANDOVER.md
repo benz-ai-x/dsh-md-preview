@@ -1,6 +1,6 @@
 # 交接文档 — dsh-md-preview
 
-更新：2026-09-08。面向接手开发、验证和发布的维护者。当前待办以
+更新：2026-09-09。面向接手开发、验证和发布的维护者。当前待办以
 [TODO](../TODO.md) 为准；本文件记录持久流程与有日期的环境事实。
 
 ## 当前发布与验收
@@ -27,7 +27,7 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
 | 仓库约束与开发前置 | [AGENTS.md](../AGENTS.md)；`CLAUDE.md` 引用它 |
 | 行为、权威、失败码、状态归属与交付 | [PROJECT_CONTRACT.md](agent/PROJECT_CONTRACT.md) |
 | 领域术语 | [CONTEXT.md](../CONTEXT.md) |
-| 已决设计 | [ADR 目录](adr/)，0001–0004：FsVersion、写入沙箱、运行时 peer、面板停靠 |
+| 已决设计 | [ADR 目录](adr/)，0001–0004：既有实现边界；[0005](adr/0005-networked-html-preview-isolated-from-harness.md)、[0006](adr/0006-text-preview-independent-of-language-recognition.md)：HTML 联网隔离与文本准入的待实现设计 |
 | 当前状态与待办 | [TODO.md](../TODO.md) |
 | Issue 约定 | [issue-tracker.md](agents/issue-tracker.md) |
 | 浏览交互的证据基线 | [工作区浏览 UX](research/workspace-browser-ux.md) |
@@ -97,9 +97,46 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
 可能提示本地构建陈旧。需要重新检查本地输出时运行 `pnpm build`；这不会改变已生成的
 归档。发布重试直接使用原已验证归档，不必为 mtime 重新打包。
 
+## 本机环境事实（2026-09-09）
+
+- **本次批次基线已恢复**：新建独立检出
+  `/Users/pc2026/Dev-Space/deepseek-harness-md-preview-baseline`，固定为 lock 的
+  `0.1.2-rc.1` / `a66e4702047846cdaa10c66c9d3df3951f5ea70d`。按冻结锁文件安装依赖并
+  完成 `pnpm build:lib`（退出 0），源码保持干净；显式设置
+  `DSH_HARNESS_ROOT` 为该目录后，插件 strict 退出 0，123 项检查通过。
+  原 `deepseek-harness` 检出及默认环境变量仍指向 alpha.2；本批次的验证命令须显式
+  使用新目录。插件仍使用 Registry 依赖，未修改 lock 或运行 `context:link`。
+- **开发工作区**：PR-1 使用独立 worktree
+  `/Users/pc2026/Dev-Space/dsh-md-preview-batch-1-readonly-text`；原插件工作区的既有
+  改动保留。已确认的六份规格文档复制到开发分支，技能安装改动不进入功能 PR。
+  本次没有切换、升级或重启用户验收 profile。
+
 ## 本机环境事实（2026-09-08）
 
-- `dsh` 不在本机 PATH；CLI 入口为
+- **目录恢复后的复核**：插件仓库现回到
+  `/Users/pc2026/Dev-Space/dsh-md-preview`，`DSH-Space` 下的插件路径已不可用，
+  在当前工作目录启动命令正常。默认 Harness 检出仍为 `0.1.3-alpha.2`，
+  `pnpm context:check:strict` 退出 1，共 35 项失败（版本、commit、文档摘要及
+  32 项构建入口）。同级 `deepseek-harness-baseline-0.1.2-rc.1` 的 Git worktree
+  元数据入口仍无法解析，`git rev-parse HEAD` 退出 128。插件依赖仍为 Registry
+  版本，本次未修改 lock、依赖或 worktree 元数据。以下移动记录保留当时状态。
+- **目录移动后的复核**：插件仓库现位于
+  `/Users/pc2026/DSH-Space/dsh-md-preview`，原 `Dev-Space` 路径已不存在，已有改动保留。
+  `DSH_HARNESS_ROOT` 仍指向旧路径，因此本次 `pnpm context:check:strict` 退出 1，
+  报告 1 项失败：找不到固定基线源码。同级 `deepseek-harness` 仍为下述
+  `0.1.3-alpha.2` 检出且缺少 32 项构建入口；同级
+  `deepseek-harness-baseline-0.1.2-rc.1` 的 32 项入口存在，但其 `.git` 仍引用
+  旧目录，`git rev-parse HEAD` 失败，尚未恢复固定基线检查。插件仍使用 Registry
+  依赖，本次未修改依赖、lock 或 Git worktree 元数据。下文旧 CLI 路径仅为历史记录。
+- **目录移动前的访谈复核**：`DSH_HARNESS_ROOT` 指向
+  `/Users/pc2026/Dev-Space/deepseek-harness`，其检出已为 `0.1.3-alpha.2`、commit
+  `c389f96bf3a9b6807cb71ed6bdad5849be0df6d8`，与插件 lock 的 `0.1.2-rc.1` 不一致。
+  该检出的受检包缺少 main/types 构建入口；`pnpm context:check:strict` 实际退出 1，
+  共 35 项失败（版本、commit、文档摘要及 32 项构建入口）。插件开发依赖仍为
+  Registry 固定版本。本次保留失败结果，未修改 lock 或依赖；恢复固定源码与构建
+  状态后需重验，先前发布验证不能替代当前基线检查。
+- 以下 CLI 与实例信息是 **v0.10.0 发布时记录**，后续操作前重新核对。
+  `dsh` 不在本机 PATH；CLI 入口为
   `node /Users/pc2026/Dev-Space/deepseek-harness/apps/cli/lib/bin.js`。
   基线为 `0.1.2-rc.1`，commit 以仓库 lock 为准。
 - 当前人工验收使用 `DSH_HOME=/Users/pc2026/.dsh`、profile `r3-accept`、端口 3185、
