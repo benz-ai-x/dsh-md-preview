@@ -15,17 +15,17 @@
   GUI 测试 4730 通过 / 1 跳过；浏览器回放 346 通过 / 15 跳过；文档与 lint 通过，
   受影响 controller/store 定向覆盖率 100%。lock 和开发链接已指向该补丁，尚未上游发布。
 - #56/#59：核心迁移和旧接线清理已实施，双语 README、契约、ADR-0007同步。
-  最终完整verify退出0：138项strict、16文件185测试、类型检查、构建及6项产物检查。
-- #60：`0.11.0-alpha.1` 同归档安装、配置、正常boot/public imports、资源HTTP200、移除后404、
+  最终完整verify退出0：138项strict、16文件190测试、类型检查、构建及6项产物检查。
+- #60：`0.11.0-alpha.2` 同归档安装、配置、正常boot/public imports、资源HTTP200、移除后404、
   两次服务退出0已验证。摘要与完整日志见
   [本轮TDD](docs/verification/official-sidebar-markdown/TDD.md)。
   真实浏览器尚未验收：Chrome扩展连接连续超时，已请求打开对应配置的窗口后重试。
   独立web验收profile在 `/tmp/dsh-markdown-core-dev-20260909/accept-home`，服务端口3196，
-  日志 `/tmp/dsh-markdown-core-dev-20260909/60-visual-server.log`；原用户实例未操作。
+  日志 `/tmp/dsh-markdown-core-dev-20260909/60-alpha2-visual-server.log`；原用户实例未操作。
 - 后置搜索、阅读、#39和多格式保持原计划；不自动发布或将#60视为完成。
 
 当前shell继承旧 `DSH_HARNESS_ROOT`；检查需显式使用新的补丁检出。
-尚未创建PR、合并或发布。下方为历史快照，不恢复旧流水线。
+代码提交3c4c042；安装候选alpha.2已验证，真实页面待Browser恢复。尚未合并或发布。下方为历史快照，不恢复旧流水线。
 
 ## 2026-09-09 较早快照：官方右栏迁移 Issue 已就绪
 

@@ -1,8 +1,8 @@
 {
-  "version": "0.11.0-alpha.1",
+  "version": "0.11.0-alpha.2",
   "baseline": "0.1.5-alpha.1+737e95c657a95fd04b12269313902f9b5ca2f6ca",
-  "profile": "/tmp/mdpreview-0110-smoke-EAUxA9/profiles/web",
-  "archiveSha256": "2476d0cd004afaf2e27a8f6e3eb729767ddb7379473c33f30e91e5e6dbd16439",
+  "profile": "/tmp/mdpreview-0110a2-smoke-tETfmG/profiles/web",
+  "archiveSha256": "27f44b8ac4c840ed903c68d627a93b329ac34df3612aa2ad0a7d9cb5eacfaf6e",
   "shutdown": [
     {
       "code": 0,
@@ -19,17 +19,17 @@
     "exportsPresent": true,
     "noSourceMaps": true,
     "lazyFactory": true,
-    "clientSha256": "a5c2a5208acb7b72603bd557fedfa0851767b04db457ec70c6f02d2fc50a6504"
+    "clientSha256": "acac9217acdd54bd517b96a13d9080696afb911bedb3079a14597f797e3fa37f"
   },
   "installedMatchesArchive": true,
-  "lockSha256": "fa4238911b17e512ac9a602b47dae940f90434d39274b0796fd3b907a792fa2b",
-  "port": 64104,
+  "lockSha256": "7077883f9053d8908db8f6a4b5f0abbce9c0a1091af8c6afc435af8b3e6065b9",
+  "port": 58715,
   "boot": {
     "status": 200,
     "entries": 54,
-    "bytes": 3889589,
-    "servedSha256": "9d70ed0cb85bd9eb1138b11371b1e0841473a4d7598679c7d92a7afd316e4ee7",
-    "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=0531aa96851b3438-48",
+    "bytes": 3890886,
+    "servedSha256": "5ef8c982e6091cf43e09b82e57969ee826055019db745c7e6c1754f4b1ccac7f",
+    "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=3b5e13b5db2595da-48",
     "releaseMarkers": true
   },
   "imports": {
@@ -58,7 +58,7 @@
     "priorBundleStatus": 404,
     "absent": true
   },
-  "pluginCodeCommit": "7f55e85ca8b0156ac3303736cbe4944cbc7a09ae",
+  "pluginCodeCommit": "3c4c042b1034484742d1c5d87c7adf5c8b13b841",
   "node": "v26.4.0",
   "pnpm": "11.17.0"
 }

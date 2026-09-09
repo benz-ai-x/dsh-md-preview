@@ -9,7 +9,7 @@
 固定 Harness 补丁提交 `737e95c657a95fd04b12269313902f9b5ca2f6ca`。
 `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-md-guard`，原检出和用户实例未修改。
 官方 npm 的 0.1.5-alpha.1 尚无关闭守卫，不可直接宣称兼容。当前自动化190项通过，
-真实浏览器和同归档验收状态见 [本轮 TDD](verification/official-sidebar-markdown/TDD.md)。
+同归档安装/移除通过，真实浏览器待恢复连接；状态见 [本轮 TDD](verification/official-sidebar-markdown/TDD.md)。
 
 ## 当前发布与验收
 

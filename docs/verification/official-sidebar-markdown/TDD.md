@@ -160,3 +160,20 @@ manifest与双语用户说明。Node v26.4.0，pnpm11.17.0。后续证据元数�
 最终完整verify退出0：138项strict、16文件190测试、类型检查、双端构建与6项产物检查。
 见 [verify.log](verify.log)。五项新增回归通过，文档链接和diff空白检查通过；
 完整验证后进入alpha.2归档安装验证。
+
+
+## 当前交付状态：alpha.2
+
+- 代码提交 `3c4c042b1034484742d1c5d87c7adf5c8b13b841`，完整verify190项通过。
+- 新候选只生成一次，`pnpm pack:publishable`退出0；用同一归档完成全新profile安装、正常boot、
+  public-name Host/Remote导入、资源HTTP200、移除后404及两次SIGTERM退出0。
+- 干净安装目录 `/tmp/mdpreview-0110a2-smoke-tETfmG/profiles/web`；该测试服务已停止。
+  完整结果：[packed-smoke.json](packed-smoke.json)、[pack.log](pack.log)、[SHA256SUMS](SHA256SUMS)。
+- 独立浏览器profile已从同一归档更新为alpha.2，3196端口启动；此前alpha.1验收服务已退出0。
+  新日志 `/tmp/dsh-markdown-core-dev-20260909/60-alpha2-visual-server.log`。
+  默认工作目录和样例位于 `/tmp/dsh-markdown-core-dev-20260909/fixtures/workspace-a`，
+  同级workspace-b提供同名不同正文；另有CRLF、无末尾换行、空文件和超限样例。
+- 同归档配置覆盖dump再次通过。旧技能、流水线链接等工作区改动未清理；原Harness检出未修改。
+
+#54/#55/#56/#59实现、自动化与复核完成；#60仅安装部分完成，实际页面矩阵仍待Browser连接恢复。
+从未正式发布，未启动后置功能。待用户允许为已安装扩展的Chrome配置打开空白窗口后继续。

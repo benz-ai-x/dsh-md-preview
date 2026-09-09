@@ -9,15 +9,15 @@ import { runInNewContext } from 'node:vm'
 
 const project = '/Users/pc2026/DSH-Space/dsh-md-preview'
 const cli = '/Users/pc2026/DSH-Space/deepseek-harness-md-guard/apps/cli/lib/bin.js'
-const version = '0.11.0-alpha.1'
+const version = '0.11.0-alpha.2'
 const id = '@benz-ai-x/dsh-md-preview'
 const archive = join(project, `benz-ai-x-dsh-md-preview-${version}.tgz`)
-const smokeHome = mkdtempSync('/tmp/mdpreview-0110-smoke-')
+const smokeHome = mkdtempSync('/tmp/mdpreview-0110a2-smoke-')
 const profile = join(smokeHome, 'profiles/web')
 const env = { ...process.env, DSH_HOME: smokeHome }
 const digest = (body, algorithm = 'sha256') => createHash(algorithm).update(body).digest('hex')
 const result = { version, baseline: '0.1.5-alpha.1+737e95c657a95fd04b12269313902f9b5ca2f6ca', profile, archiveSha256: digest(readFileSync(archive)), shutdown: [] }
-writeFileSync('/tmp/mdpreview-0110-smoke-home.txt', smokeHome + '\n')
+writeFileSync('/tmp/mdpreview-0110a2-smoke-home.txt', smokeHome + '\n')
 
 function start(args, label) {
   const log = join(smokeHome, label + '.log')
@@ -136,7 +136,7 @@ try {
   assert.equal(result.boot.entries - result.removal.entries, 1)
   await stop(server)
   server = null
-  writeFileSync('/tmp/mdpreview-0110-packed-smoke.json', JSON.stringify(result, null, 2) + '\n')
+  writeFileSync('/tmp/mdpreview-0110a2-packed-smoke.json', JSON.stringify(result, null, 2) + '\n')
   console.log(JSON.stringify(result))
 } finally {
   if (server) await stop(server)
