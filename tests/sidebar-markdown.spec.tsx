@@ -8,6 +8,69 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { mountSidebar, SESSION } from './sidebar-harness.tsx'
 
 describe('Markdown in the official right sidebar', () => {
+  it('returns keyboard focus and the selection to the editor after Keep editing', async () => {
+    const { runtime, view } = await mountSidebar()
+    await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md')) })
+    await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+    const editor = EditorView.findFromDOM(document.querySelector('.cm-editor') as HTMLElement)!
+    await act(async () => {
+      editor.dispatch({ changes: { from: 0, insert: 'draft ' }, selection: { anchor: 1, head: 4 } })
+      editor.focus()
+      const reload = view.view.getByRole('button', { name: 'Reload', exact: true })
+      reload.focus(); reload.click()
+    })
+    const keep = [...document.querySelectorAll('button')].find(button => button.textContent === 'Keep editing')!
+    expect(document.activeElement).toBe(keep)
+    await act(async () => { keep.click() })
+    expect(editor.hasFocus).toBe(true)
+    expect(editor.state.selection.main.from).toBe(1)
+    expect(editor.state.selection.main.to).toBe(4)
+    expect(editor.state.sliceDoc()).toMatch(/^draft /)
+  })
+
+  it('keeps the visible draft, selection and history when floating and docking the same tab', async () => {
+    const { runtime, view } = await mountSidebar()
+    await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md')) })
+    await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+    let editor = EditorView.findFromDOM(document.querySelector('.cm-editor') as HTMLElement)!
+    await act(async () => { editor.dispatch({ changes: { from: 0, insert: 'float draft ' }, selection: { anchor: 3, head: 8 } }) })
+    const expected = editor.state.sliceDoc()
+    await act(async () => { runtime.ctx.sidebarRight.float(runtime.ctx.sidebarRight.active()!.id, { x: 10, y: 10, width: 550, height: 600 }) })
+    editor = EditorView.findFromDOM(document.querySelector('.cm-editor') as HTMLElement)!
+    expect(editor.state.sliceDoc()).toBe(expected)
+    expect(editor.state.selection.main.from).toBe(3)
+    expect(editor.state.selection.main.to).toBe(8)
+    const click = (name: string) => [...document.querySelectorAll('button')].find(button => button.textContent?.trim() === name)!.click()
+    await act(async () => { click('Undo') })
+    expect(editor.state.sliceDoc()).toBe('# Migrated Markdown\n\n**Ready**\n')
+    await act(async () => { click('Redo') })
+    const dock = document.querySelector<HTMLButtonElement>('[data-dockkit-float-dock]')!
+    await act(async () => { dock.click() })
+    editor = EditorView.findFromDOM(document.querySelector('.cm-editor') as HTMLElement)!
+    expect(editor.state.sliceDoc()).toBe(expected)
+    await act(async () => { click('Undo') })
+    expect(editor.state.sliceDoc()).toBe('# Migrated Markdown\n\n**Ready**\n')
+  })
+
+  it('freezes formatting shortcuts while the draft is being saved', async () => {
+    const { runtime, view, remote } = await mountSidebar()
+    const write = remote.write
+    let finish!: () => void
+    remote.write = async (...args) => { await new Promise<void>(resolve => { finish = resolve }); return write(...args) }
+    await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md')) })
+    await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+    const editor = EditorView.findFromDOM(view.container.querySelector('.cm-editor') as HTMLElement)!
+    const format = (key: string) => editor.contentDOM.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true }))
+    await act(async () => { format('b') })
+    expect(editor.state.sliceDoc()).toContain('****')
+    const draft = editor.state.sliceDoc()
+    await act(async () => { view.view.getByRole('button', { name: 'Save', exact: true }).click() })
+    try {
+      await act(async () => { format('b'); format('i'); format('k') })
+      expect(editor.state.sliceDoc()).toBe(draft)
+    } finally { await act(async () => { finish() }) }
+  })
+
   it('coalesces a rapid double reload so an older read cannot replace the latest file', async () => {
     const { runtime, view, remote } = await mountSidebar()
     await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md')) })

@@ -1,5 +1,9 @@
 # Harness 0.1.5-alpha.1 兼容性核对清单
 
+> 当前状态（2026-09-09）：本初审涉及的旧面板已在开发分支退役，旧源码链接固定到初审基点。
+> 迁移结果与待验收项见 [TDD记录](../verification/official-sidebar-markdown/TDD.md)。
+
+
 日期：2026-09-09。状态：初审完成，待与用户人工审查结果核对；未确定处理方案。
 
 后续状态（同日）：用户已明确采用官方右边栏，并要求整理 Issue 准备开发。
@@ -14,7 +18,7 @@
   `5dda764ed3aa172535a7967b06ff95d9cbfe536a`；审查时工作区干净。
 - 插件：当前 main，`0.10.0`，提交
   `ae58cd4d3cfeec7b745f692cda502f66916e58ad`；已有未提交改动保留。
-- 对照基线：[lock](../../dsh-reference.lock.json) 中的 `0.1.2-rc.1`，提交
+- 对照基线：[lock](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/dsh-reference.lock.json) 中的 `0.1.2-rc.1`，提交
   `a66e4702047846cdaa10c66c9d3df3951f5ea70d`。
 - 未合入的 #39 以功能提交 `2491a52` 为参考；功能分支当前 `8ab313d`
   是其后的暂停交接文档提交。本轮没有恢复功能开发或执行旧流水线。
@@ -58,13 +62,13 @@ Harness frame 的 `max-width`。新版原生 `rightbar` 已负责右栏占宽、
 进入自动全屏。物理窗口宽度与原生收到的可用宽度因此不同。原生全屏层为
 z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核对。
 
-证据：[插件几何与 frame 写入](../../src/client/panel-dock.ts)（22、75–81 行）、
-[插件 portal](../../src/client/PreviewOverlay.tsx)（755–758、1093 行）、
-[新版 AppFrame](../../../deepseek-harness/packages/client/ui-layout/src/client/AppFrame.tsx)
+证据：[插件几何与 frame 写入](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/panel-dock.ts)（22、75–81 行）、
+[插件 portal](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/PreviewOverlay.tsx)（755–758、1093 行）、
+[新版 AppFrame](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-layout/src/client/AppFrame.tsx)
 （132–151、234 行）、
-[新版全屏判定](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/shell/SidebarRight.tsx)
+[新版全屏判定](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/shell/SidebarRight.tsx)
 （348–373 行）、
-[新版层级](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/shell/SidebarRight.module.css)
+[新版层级](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/shell/SidebarRight.module.css)
 （19–51 行）。原来的 `data-shell-overlay` 锚点仍存在，不能把问题描述为锚点删除。
 
 ## C02：同一文件的打开链路分裂
@@ -83,13 +87,13 @@ z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核�
 文本，图片、PDF 等二进制文件可能以 `not-text` 失败，不会自动转为桌面打开。
 这条路由变化由新版 Host UI 引入，插件仍依赖其旧语义。
 
-证据：[插件入口注册](../../src/client/mount.ts)（127–142 行）、
-[插件 chip 点击](../../src/client/MdChips.tsx)（34–55 行）、
-[新版聊天 opener](../../../deepseek-harness/packages/client/ui-chat/src/client/apply.ts)
+证据：[插件入口注册](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/mount.ts)（127–142 行）、
+[插件 chip 点击](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/MdChips.tsx)（34–55 行）、
+[新版聊天 opener](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-chat/src/client/apply.ts)
 （119–137 行）、
-[原生文件类型](../../../deepseek-harness/packages/client/ui-sidebar-textpreview/src/client/definition.ts)
+[原生文件类型](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-textpreview/src/client/definition.ts)
 （45–54 行）、
-[原生文件树点击](../../../deepseek-harness/packages/client/ui-sidebar-files/src/client/FilesBody.tsx)
+[原生文件树点击](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-files/src/client/FilesBody.tsx)
 （158–162 行）。
 
 ## C03：工作区树和开合入口重复
@@ -105,11 +109,11 @@ z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核�
 搜索、当前回合产出、最近阅读和继续阅读。这里记录职责重叠，不认定这些已有
 插件功能可以直接取消。
 
-证据：[插件 header 注册](../../src/client/mount.ts)（144–156 行）、
-[原生右栏及 header 注册](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/index.ts)
+证据：[插件 header 注册](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/mount.ts)（144–156 行）、
+[原生右栏及 header 注册](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/index.ts)
 （159–189 行）、
-[原生文件树说明](../../../deepseek-harness/packages/client/ui-sidebar-files/README.md)、
-[shipped web 组合](../../../deepseek-harness/packages/bundle/web-app/cordis.patch.yml)
+[原生文件树说明](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-files/README.md)、
+[shipped web 组合](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/bundle/web-app/cordis.patch.yml)
 （217–235 行）。
 
 ## C04：会话和标签状态模型不同
@@ -124,12 +128,12 @@ z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核�
 已有标签并推进导航 revision。这是两套既有状态语义的差异，不是已发现跨会话
 写入错误。
 
-证据：[插件目标](../../src/client/preview-state.ts)（9–28 行）、
-[插件开合判断](../../src/client/WorkspaceDocsAction.tsx)（42–58 行）、
-[插件目标读取](../../src/client/PreviewOverlay.tsx)（171–178 行）、
-[原生标签生命周期](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/contract/slots.ts)
+证据：[插件目标](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/preview-state.ts)（9–28 行）、
+[插件开合判断](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/WorkspaceDocsAction.tsx)（42–58 行）、
+[插件目标读取](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/PreviewOverlay.tsx)（171–178 行）、
+[原生标签生命周期](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/contract/slots.ts)
 （129–143 行）、
-[原生导航 revision](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/tab-domain.ts)
+[原生导航 revision](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/tab-domain.ts)
 （124–130 行）。
 
 ## C05：插件保存没有原生文件变化通知
@@ -143,12 +147,12 @@ z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核�
 后续 Agent 文件观察、手动刷新或重新获取资源的情况下，会继续持有旧页面。
 原生本身也不监听任意 OS 文件变化，不能把它描述成通用文件 watcher。
 
-证据：[插件 write](../../src/remote.ts)（145–167 行）、
-[原生变化源](../../../deepseek-harness/packages/api/workspace-files/src/changes.ts)
+证据：[插件 write](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/remote.ts)（145–167 行）、
+[原生变化源](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/api/workspace-files/src/changes.ts)
 （1–27 行）、
-[原生元数据消费者](../../../deepseek-harness/packages/api/workspace-files/src/client/provider.ts)
+[原生元数据消费者](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/api/workspace-files/src/client/provider.ts)
 （92–122 行）、
-[文件工具通知](../../../deepseek-harness/packages/fs/tool-fs/src/write.ts)（120 行）。
+[文件工具通知](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/fs/tool-fs/src/write.ts)（120 行）。
 
 ## C06：符号链接准入不同
 
@@ -161,8 +165,8 @@ z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核�
 同一入口文件因此会出现两种准入结果。这是产品规则差异，本轮没有认定其中
 一方的规则应当优先。
 
-证据：[插件 resolve 与 stat](../../src/remote.ts)（317–368 行）、
-[原生 lstat 与文件准入](../../../deepseek-harness/packages/api/workspace-files/src/index.ts)
+证据：[插件 resolve 与 stat](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/remote.ts)（317–368 行）、
+[原生 lstat 与文件准入](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/api/workspace-files/src/index.ts)
 （324–367 行）。
 
 ## C07：版本约束与旧布局验收失效
@@ -183,7 +187,7 @@ z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核�
 
 证据：[版本约束](../../package.json)（95–122 行）、
 [旧测试调用](../../tests/client-assembly.spec.tsx)（208、507–509 行）、
-[新版布局服务](../../../deepseek-harness/packages/client/ui-layout/src/client/service.ts)。
+[新版布局服务](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-layout/src/client/service.ts)。
 
 ## C08：原生标签关闭尚无未保存守卫接入点
 
@@ -195,12 +199,12 @@ z-index 40，插件 portal 为 20；覆盖和开合效果还需真实页面核�
 等待编辑器确认的 before-close/veto 接口。直接把现有编辑器作为标签 body
 挂入，不能据此认为原生标签 ×、替换标签等操作已经受现有守卫保护。
 
-证据：[插件离开守卫](../../src/client/leave-intent.ts)、
-[原生 close](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/service.ts)
+证据：[插件离开守卫](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/client/leave-intent.ts)、
+[原生 close](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/service.ts)
 （345–352 行）、
-[记录删除后的 abort](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/tab-domain.ts)
+[记录删除后的 abort](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/tab-domain.ts)
 （85–90 行）、
-[公开标签动作](../../../deepseek-harness/packages/client/ui-sidebar-right/src/client/contract/slots.ts)
+[公开标签动作](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-right/src/client/contract/slots.ts)
 （111–143 行）。本轮未把当前独立面板的关闭守卫判为失效。
 
 ## C09：原生文本页不能直接视为编辑全文
@@ -214,10 +218,10 @@ read 返回 `text: "# Before"`、`lines: 1`、`eof: true`。原生契约明确�
 `\n` 连接，不携带最后一行的终止换行。其页面是阅读表示，不能直接替代现有
 Markdown 编辑器的原始内容快照，否则保存时可能改掉未编辑的末尾换行。
 
-证据：[原生文本页协议](../../../deepseek-harness/packages/api/workspace-files/src/types.ts)
+证据：[原生文本页协议](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/api/workspace-files/src/types.ts)
 （41–68 行）、
-[原生默认限额](../../../deepseek-harness/packages/api/workspace-files/src/index.ts)
-（172–176 行）、[插件 read](../../src/remote.ts)（90–107 行）。
+[原生默认限额](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/api/workspace-files/src/index.ts)
+（172–176 行）、[插件 read](https://github.com/benz-ai-x/dsh-md-preview/blob/ae58cd4d3cfeec7b745f692cda502f66916e58ad/src/remote.ts)（90–107 行）。
 
 ## C10：续读版本变化策略与已确认要求不同
 
@@ -231,7 +235,7 @@ Markdown 编辑器的原始内容快照，否则保存时可能改掉未编辑�
 该验收条件完成。此处只指“续读读到新版本”分支；通常收到 changed 元数据时，
 原生会保留旧内容并显示提示。
 
-证据：[新版续读分支](../../../deepseek-harness/packages/client/ui-sidebar-textpreview/src/client/face.ts)
+证据：[新版续读分支](https://github.com/deepseek-ai/deepseek-harness/blob/5dda764ed3aa172535a7967b06ff95d9cbfe536a/packages/client/ui-sidebar-textpreview/src/client/face.ts)
 （91–107 行）、[已确认需求](../../TODO.md)。
 
 ## 尚未发现破坏的接口与能力边界

@@ -6,7 +6,7 @@ import { sessionFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
 import { mountSidebar, SESSION } from './sidebar-harness.tsx'
 
 const initialize = vi.fn()
-const render = vi.fn(async (id: string, text: string) => ({ svg: `<svg data-id="${id}" data-src="${text}"></svg>` }))
+const render = vi.fn(async (id: string, text: string, _container?: HTMLElement) => ({ svg: `<svg data-id="${id}" data-src="${text}"></svg>` }))
 vi.mock('mermaid', () => ({ default: { initialize, render } }))
 
 const DOC = [
@@ -37,10 +37,38 @@ const blocksOf = (container: HTMLElement) =>
   Array.from(container.querySelectorAll<HTMLElement>('.md-code-block'))
 
 afterEach(() => {
-  vi.clearAllMocks()
+  // Initialization belongs to the module's cached Mermaid import. Keep that
+  // evidence across cases while resetting the per-document external render.
+  render.mockClear()
 })
 
 describe('diagram pass', () => {
+  it('waits for a pending external render and confines its late nodes to the released body', async () => {
+    let finish!: () => void
+    let renderParent: HTMLElement | undefined
+    const lateNode = document.createElement('div')
+    render.mockImplementationOnce(async (_id, _text, container) => {
+      renderParent = container
+      await new Promise<void>(resolve => { finish = resolve })
+      ;(container ?? document.body).append(lateNode)
+      return { svg: '<svg></svg>' }
+    })
+    const h = await mountSidebar()
+    h.files.set(`${SESSION}/doc.md`, { content: DOC, fingerprint: 'v1' })
+    await act(async () => { h.runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'doc.md')) })
+    let stopped = false
+    const disposal = h.disposePlugin().then(() => { stopped = true })
+    await act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve() })
+    try {
+      expect(stopped).toBe(false)
+      expect(renderParent).toBeInstanceOf(HTMLElement)
+    } finally { await act(async () => { finish(); await disposal }) }
+    try {
+      expect(lateNode.isConnected).toBe(false)
+      expect(stopped).toBe(true)
+    } finally { lateNode.remove() }
+  })
+
   it('renders mermaid blocks as SVG and hides their code; other blocks stay', async () => {
     const container = await renderDiagrams(DOC)
     await settle()

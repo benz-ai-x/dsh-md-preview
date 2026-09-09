@@ -4,7 +4,7 @@
 
 在 **DeepSeek Harness 官方右边栏标签页**中预览和编辑 Markdown。
 
-当前分支为 **0.11.0-alpha.1 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
+当前分支为 **0.11.0-alpha.2 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
 [dsh-reference.lock.json](dsh-reference.lock.json) 固定的公共关闭守卫补丁。
 官方 npm 同版本尚无该接口，候选插件会拒绝激活。已发布的
 [v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
@@ -17,7 +17,7 @@
 
 ```sh
 dsh --profile markdown-accept --from-default-profile web --dump-config
-dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.1.tgz --save-exact
+dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.2.tgz --save-exact
 dsh --profile markdown-accept --dump-config
 dsh --profile markdown-accept --no-open
 ```

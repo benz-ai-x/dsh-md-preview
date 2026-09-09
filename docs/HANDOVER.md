@@ -5,10 +5,10 @@
 
 ## 当前开发候选（2026-09-09）
 
-`feat/official-sidebar-markdown` 的 `0.11.0-alpha.1` 迁移候选使用官方右栏；
+`feat/official-sidebar-markdown` 的 `0.11.0-alpha.2` 迁移候选使用官方右栏；
 固定 Harness 补丁提交 `737e95c657a95fd04b12269313902f9b5ca2f6ca`。
 `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-md-guard`，原检出和用户实例未修改。
-官方 npm 的 0.1.5-alpha.1 尚无关闭守卫，不可直接宣称兼容。当前自动化185项通过，
+官方 npm 的 0.1.5-alpha.1 尚无关闭守卫，不可直接宣称兼容。当前自动化190项通过，
 真实浏览器和同归档验收状态见 [本轮 TDD](verification/official-sidebar-markdown/TDD.md)。
 
 ## 当前发布与验收
@@ -24,7 +24,7 @@
 证据见 [发布验证](verification/releases/v0.10.0/WALKTHROUGH.md)。
 
 人工验收实例 `r3-accept` 已安装 npm 精确版本 0.10.0，入口为
-`http://127.0.0.1:3185/`，tmux 会话 `dsh-r3`。主题、缩放和完整页面流程仍待补验；
+`http://127.0.0.1:3190/`，tmux 会话 `dsh-r3`。主题、缩放和完整页面流程仍待补验；
 A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化和安装包验证不替代视觉验收。
 
 ## 文档地图
@@ -143,7 +143,7 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
   strict 退出 1，版本、commit、文档摘要 3 项不匹配；兼容性尚未评估。
   下方 alpha.2 与路径移动记录仅保留其当时事实。
 - 本次未修改 lock、依赖或执行 `context:link`。独立临时 3291 服务已停止；
-  用户原有 3185 实例本次未重启、未升级。恢复前重新核对实际实例与目标基线。
+  用户原有 3190 实例本次未重启、未升级。恢复前重新核对实际实例与目标基线。
 
 ## 本机环境事实（2026-09-08）
 
@@ -173,8 +173,8 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
   `dsh` 不在本机 PATH；CLI 入口为
   `node /Users/pc2026/Dev-Space/deepseek-harness/apps/cli/lib/bin.js`。
   基线为 `0.1.2-rc.1`，commit 以仓库 lock 为准。
-- 当前人工验收使用 `DSH_HOME=/Users/pc2026/.dsh`、profile `r3-accept`、端口 3185、
-  tmux `dsh-r3`。启动参数为 `--profile r3-accept --port 3185 --no-open`。
+- 当前人工验收使用 `DSH_HOME=/Users/pc2026/.dsh`、profile `r3-accept`、端口 3190、
+  tmux `dsh-r3`。启动参数为 `--profile r3-accept --port 3190 --no-open`。
   其他端口与旧 `web` 实例需要独立确认；它们不是本次重启目标。
 - npm 默认 registry 指向 npmmirror；发布与验货显式使用 npm 官方 Registry。
   本机发布链路使用代理 `http://127.0.0.1:8888`，账号 `benz.ai.coder` 开启 2FA。

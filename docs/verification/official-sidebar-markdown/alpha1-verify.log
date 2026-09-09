@@ -147,9 +147,9 @@ $ vitest run
 
 
  Test Files  16 passed (16)
-      Tests  190 passed (190)
-   Start at  17:55:10
-   Duration  6.25s (transform 1000ms, setup 0ms, import 2.53s, tests 1.65s, environment 1.16s)
+      Tests  185 passed (185)
+   Start at  17:33:22
+   Duration  5.84s (transform 956ms, setup 0ms, import 2.40s, tests 1.52s, environment 1.02s)
 
 $ node scripts/clean-build.mjs && tsc -p tsconfig.json && tsdown
 ℹ tsdown v0.22.14 powered by rolldown v1.2.6
@@ -164,12 +164,12 @@ $ node scripts/clean-build.mjs && tsc -p tsconfig.json && tsdown
 
  WARN  inlineDynamicImports option is deprecated, please use codeSplitting: false instead.
 
-ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js                     21.89 kB │ gzip:  6.20 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js                     21.54 kB │ gzip:  6.13 kB
 ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/typert/remote-client.js       5.70 kB │ gzip:  1.24 kB
-ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js.map                 37.50 kB │ gzip: 10.13 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js.map                 36.90 kB │ gzip: 10.01 kB
 ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/typert/remote-client.js.map  10.97 kB │ gzip:  2.13 kB
-ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] 4 files, total: 76.05 kB
-✔ [@benz-ai-x/dsh-md-preview/host] Build complete in 77ms
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] 4 files, total: 75.11 kB
+✔ [@benz-ai-x/dsh-md-preview/host] Build complete in 73ms
 ℹ [@benz-ai-x/dsh-md-preview/client] Hint: consider adding deps.onlyBundle option to avoid unintended bundling of dependencies, or set deps.onlyBundle: false to disable this hint.
 See more at https://tsdown.dev/options/dependencies#deps-onlybundle
 Detected dependencies in bundle:
@@ -243,8 +243,8 @@ Detected dependencies in bundle:
 - cytoscape-fcose
 - @upsetjs/venn.js
 ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] lib/client.js       3.89 MB
-ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] lib/client.js.map  13.96 MB
-ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] 2 files, total: 17.85 MB
-✔ [@benz-ai-x/dsh-md-preview/client] Build complete in 468ms
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] lib/client.js.map  13.95 MB
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] 2 files, total: 17.84 MB
+✔ [@benz-ai-x/dsh-md-preview/client] Build complete in 471ms
 $ node scripts/verify-built.mjs
 built check passed: 6 artifact(s) fresh

@@ -51,6 +51,7 @@ const markdownHighlightStyle = HighlightStyle.define([
  * stack like any edit.
  */
 function wrapMarkup(view: EditorView, open: string, close: string): boolean {
+  if (view.state.readOnly) return false
   const changes = view.state.changeByRange(range => ({
     changes: [
       { from: range.from, insert: open },
@@ -82,7 +83,7 @@ export interface MarkdownEditorProps {
   /** Document text at edit-session start; a changed value remounts the editor. */
   initialValue: string
   /** In-memory JSON captured when a live tab body unmounts; never persisted. */
-  memento?: Record<string, unknown> | undefined
+  restoreMemento?: () => Record<string, unknown> | undefined
   onMemento?: (state: Record<string, unknown>) => void
   /** Freeze typing while this exact draft is being written. */
   readOnly?: boolean
@@ -109,7 +110,7 @@ export interface MarkdownEditorProps {
  * @param props - initial document plus change, save, and view callbacks.
  * @returns the editor host element.
  */
-export function MarkdownEditor({ initialValue, memento, onMemento, readOnly = false, onChange, onSave, onView, onCursorLine, onStatus, onOpenKeys, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
+export function MarkdownEditor({ initialValue, restoreMemento, onMemento, readOnly = false, onChange, onSave, onView, onCursorLine, onStatus, onOpenKeys, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null)
   const mounted = useRef<EditorView | null>(null)
   const editability = useMemo(() => new Compartment(), [])
@@ -235,6 +236,9 @@ export function MarkdownEditor({ initialValue, memento, onMemento, readOnly = fa
           }),
         ],
     }
+    // Read after old-body cleanup, which can happen in this same React commit
+    // when a native tab moves between the dock and a floating portal.
+    const memento = restoreMemento?.()
     const view = new EditorView({
       state: memento === undefined ? EditorState.create(config) : EditorState.fromJSON(memento, config, { history: historyField }),
       ...(parent === null ? {} : { parent }),

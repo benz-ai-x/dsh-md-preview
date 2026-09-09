@@ -8,9 +8,9 @@
 
 - **开发方向**：用户已授权按 TDD 开发 #54 → #55 → #56 → #59 → #60，只迁移已有
   Markdown 预览/编辑并清理冲突接线。分支 `feat/official-sidebar-markdown`，候选
-  `0.11.0-alpha.1`；搜索、独立大纲/持久阅读、通用文本及其他格式后置。
+  `0.11.0-alpha.2`；搜索、独立大纲/持久阅读、通用文本及其他格式后置。
 - **实现与自动化**：#54 基线升级、#55 公共关闭守卫、#56 原生 Markdown、#59 旧接线清理
-  已实施。完整 verify 退出0：138项strict、16文件185测试、类型检查、双端构建、6项产物检查。
+  已实施。完整 verify 退出0：138项strict、16文件190测试、类型检查、双端构建、6项产物检查。
   #60 真实浏览器及同归档安装验收继续，不能把自动化通过标为正式发布或人工验收。
 - **固定基线**：Harness `0.1.5-alpha.1` 加本地补丁提交 `737e95c657a95fd04b12269313902f9b5ca2f6ca`。
   独立检出 `../deepseek-harness-md-guard`，命令显式覆盖旧全局 `DSH_HARNESS_ROOT`。
@@ -35,9 +35,9 @@
 
 - [x] 更新母 Spec，保留原 15 张子票；新增 7 张任务，原生父子关系与 34 条阻塞关系已回读核对。
 - [x] [#54](https://github.com/benz-ai-x/dsh-md-preview/issues/54)：目标基线、依赖与兼容验证；原生共存与编辑由后续票验收。
-- [ ] [#55](https://github.com/benz-ai-x/dsh-md-preview/issues/55)：官方标签关闭的未保存守卫公共接入点。
-- [ ] [#56](https://github.com/benz-ai-x/dsh-md-preview/issues/56)：统一 Markdown 打开、渲染、安全编辑与文件变化通知。
-- [ ] [#59](https://github.com/benz-ai-x/dsh-md-preview/issues/59)：直接在 #56 后切换官方入口，清理影响 Markdown 使用的旧面板冲突和接线。
+- [x] [#55](https://github.com/benz-ai-x/dsh-md-preview/issues/55)：公共关闭守卫及自动化完成，上游补丁未发布。
+- [x] [#56](https://github.com/benz-ai-x/dsh-md-preview/issues/56)：原生Markdown及自动化完成，实际页面由#60验收。
+- [x] [#59](https://github.com/benz-ai-x/dsh-md-preview/issues/59)：官方入口、旧接线清理和文档完成；真实布局由#60验收。
 - [ ] [#60](https://github.com/benz-ai-x/dsh-md-preview/issues/60)：新版 DSH 中 Markdown 预览/编辑的真实浏览器与同归档安装/移除验收。
 
 首阶段顺序：#54 → #55 → #56 → #59 → #60。
@@ -205,17 +205,17 @@
 - [x] **截图反馈 · F-01/F-02** A 换原生回形针、B 换 ×；提示改为打开工作区文档/关闭
       文档面板，保留未保存守卫。后续建议与验收见
       [人工截图反馈 TODO](docs/research/sidebar-screenshot-feedback.md)。`pnpm verify` 通过
-      290 项测试；已重新安装并重启 3185，服务资源与安装包校验通过。
+      290 项测试；已重新安装并重启 3190，服务资源与安装包校验通过。
 - [ ] **截图反馈 · F-03/F-04** 对齐两侧顶栏操作行，强化导航、面孔切换、面板操作分组。
 - [ ] **截图反馈 · F-05/F-06** 同条件校准正文宽度与排版，独立核查文档开头测试残留。
 - [ ] **截图反馈 · F-07/F-08** 评估分隔拖柄反馈、默认宽度恢复、大纲与长表格体验。
 - [ ] **文档侧边栏 · 页面验收（并入 UX-12）** 复验修正后的 A/B，记录真实布局、
       左右栏开合、工具详情共存、拖宽、浅/深主题、中/英文、边界宽度、缩放与完整阅读链路。
       2026-09-08 最近一次自动化浏览器连接超时，视觉证据仍待补齐。
-      人工验收沿用 `r3-accept`（3185，tmux `dsh-r3`，npm 精确版本 0.10.0）。
+      人工验收沿用 `r3-accept`（3190，tmux `dsh-r3`，npm 精确版本 0.10.0）。
 - [x] **发布 v0.10.0**：`pnpm verify` 与干净 profile 安装/启动/移除冒烟通过；
       npm `latest` 已更新，提交 `9016f87` 与新标签已推送，GitHub Release 已公开。
-      已下载核验同一 tarball，并将 `r3-accept`（3185）更新为 npm 正式版后重启。
+      已下载核验同一 tarball，并将 `r3-accept`（3190）更新为 npm 正式版后重启。
 
 ## 验证与评估
 

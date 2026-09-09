@@ -9,6 +9,7 @@ import { createLeaveDecision } from './leave-intent.ts'
 
 export interface MarkdownDocument extends PreviewSessionState {
   readonly editor?: Record<string, unknown>
+  readonly focusRevision?: number
 }
 export type MarkdownDocuments = Readonly<Record<string, MarkdownDocument>>
 export interface MarkdownLeavePrompt { readonly key: string; readonly path: string }
@@ -87,13 +88,23 @@ export function createMarkdownDocuments(read: MarkdownDocumentApi['read'], write
   }
   return {
     snapshot, prompts, attach,
+    restoreEditor(key: string): Record<string, unknown> | undefined {
+      return snapshot.getSnapshot()[key]?.editor
+    },
     takeNavigation(key: string, revision: number, face: 'view' | 'edit'): boolean {
       const record = records.get(key)
       if (record === undefined || (record.navigation?.revision === revision && record.navigation.face === face)) return false
       record.navigation = { revision, face }
       return true
     },
-    decide(key: string, allow: boolean): void { records.get(key)?.leave.decide(allow) },
+    decide(key: string, allow: boolean): void {
+      const pending = prompts.getSnapshot().some(prompt => prompt.key === key)
+      records.get(key)?.leave.decide(allow)
+      const state = snapshot.getSnapshot()[key]
+      if (!allow && pending && state !== undefined) {
+        snapshot.set({ ...snapshot.getSnapshot(), [key]: { ...state, focusRevision: (state.focusRevision ?? 0) + 1 } })
+      }
+    },
     rememberEditor(key: string, editor: Record<string, unknown>): void {
       const state = snapshot.getSnapshot()[key]
       if (!disposed && records.has(key) && state?.face === 'edit') {

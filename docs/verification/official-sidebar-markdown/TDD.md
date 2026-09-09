@@ -83,10 +83,10 @@
 同步用户文档、完整 verify，再进入 #60 的真实环境验收。
 
 
-## 当前自动化结论（2026-09-09）
+## 首个候选的自动化结论（2026-09-09）
 
 - 最终完整 `pnpm verify` 退出 0：138 项 strict、16 文件 / 185 测试、类型检查、双端构建、
-  6 项产物检查。见 [verify.log](verify.log)。
+  6 项产物检查。见 [verify.log](alpha1-verify.log)。
 - 旧 overlay、frame 适配、header toggle、重复树/产出接管和全局单目标已退出运行图。
   已删除被替代的 UI 组件及对应旧控件测试；保留纯阅读、偏好、大纲、产出推导和 Host 搜索测试。
   数量从旧版290降至185是此次范围收敛，不能解读为已恢复所有旧功能。
@@ -104,11 +104,11 @@
   未放宽检查。完整构建先清生成目录，归档不含已删除源码的残留声明。
 - README 双语、契约、词汇表及 ADR-0007 说明当前/后置边界。旧 ADR-0004 和旧版本证据保留为历史。
 
-## #60 — 同归档安装通过，真实页面待恢复浏览器连接
+## #60 — alpha.1 首个候选安装记录（后续复核已替换）
 
 候选 `0.11.0-alpha.1`；Harness 精确提交如上。未正式发布。
 完整 verify 后 `pnpm pack:publishable` 退出 0；此后未重新打包。
-归档 SHA-256 见 [SHA256SUMS](SHA256SUMS)，实际结果见 [packed-smoke.json](packed-smoke.json)。
+归档 SHA-256 见 [SHA256SUMS](alpha1-SHA256SUMS)，实际结果见 [packed-smoke.json](alpha1-packed-smoke.json)。
 
 - 35 项归档文件，公开 exports 均存在，无 devDependencies/link:/workspace:/source map，
   lazy-CJS factory 正常；无旧 PreviewOverlay/panel-dock/use-preview-session 等声明。
@@ -116,7 +116,7 @@
 - 正常 shipped web profile boot（补丁 Harness 的正常 CLI）后，普通包名 Host/Remote 导入成功；
   未使用测试别名、源码路径导入插件或私有 Host bootstrap。
 - 配置包含插件，启动图54项，客户端资源HTTP 200；移除后53项，原资源HTTP 404。
-  两次SIGTERM退出0。实际脚本快照见 [packed-smoke.mjs](packed-smoke.mjs)，本机路径明确写在快照中。
+  两次SIGTERM退出0。实际脚本快照见 [packed-smoke.mjs](alpha1-packed-smoke.mjs)，本机路径明确写在快照中。
 - 同归档另装于独立浏览器验收 profile。对既有 md-preview 行的整份 config 覆盖组合通过 dump-config，
   maxBytes4096、仅.md可编辑、搜索3/4/2等值保留；未套用用户实例配置。
 - 独立验收服务 `/tmp/dsh-markdown-core-dev-20260909/accept-home`，web profile，3196端口；
@@ -130,3 +130,33 @@ Browser连接命令连续超时；已按恢复规则请求打开对应Chrome配�
 实际树/聊天/工具行号/chip入口、有效Mermaid、分栏/浮动、编辑保存与原生关闭/替换矩阵。
 自动化对行尾、会话隔离、失败/冲突及迟到结果的验证不替代这些实际页面证据。
 #60 保持打开，#57/#58/#39及其他格式不启动；最终人工验收与发布也未执行。
+
+代码快照提交：`7f55e85ca8b0156ac3303736cbe4944cbc7a09ae`；归档对应此提交的运行源码、
+manifest与双语用户说明。Node v26.4.0，pnpm11.17.0。后续证据元数据提交不重新生成该归档。
+原始命令日志与format-patch保留精确空白；`.gitattributes`仅对这两类证据关闭空白告警，
+代码和文档仍执行`git diff --check`，未放宽strict或构建检查。
+
+
+## 交付前复核与 alpha.2 修复
+
+按 code-review 技能从本轮起点 ae58cd4 到代码快照7f55e85做两路只读评审，
+报告见 [REVIEW.md](REVIEW.md)。Standards3项、Spec2项全部进入逐项红→绿回归：
+
+- `review-format`：保存中格式快捷键修改可见源码，模型忽略后会丢失；命令检查readOnly。
+- `review-float`：真实float/dock同次React提交重挂正文时，新body的props拿到旧memento；
+  改为编辑器初始化effect执行时读取记录最新memento，草稿、选区与撤销历史均保留。
+- `review-focus`：Keep editing原先回焦到Reload按钮；记录focusRevision让正文在Modal清理后回焦。
+- `review-probe`：lstat权限/IO错误原样泄漏；转换为md-preview/forbidden或unavailable，取消不转换。
+- `review-diagrams`：卸载早于外部Mermaid完成；挂载持有图表任务并等待，加载后复核取消，
+  临时SVG节点限定在自己的渲染容器，取消或完成时清理。
+
+五条功能红灯均有实际失败日志；对应定向绿灯退出0。图表全套第一次失败是新用例先触发
+模块缓存初始化，而旧fixture在每条测试后清空initialize记录；调整为仅清空逐文档render记录，
+保留模块初始化证据后5项通过。这一夹具修正与产品修复分开记录。
+两个评审者在限定修复范围回读后未发现新的阻断错误，未代替执行测试。
+
+源码版本提升为0.11.0-alpha.2，alpha.1归档和记录仅保留历史，不再用于当前验收。
+
+最终完整verify退出0：138项strict、16文件190测试、类型检查、双端构建与6项产物检查。
+见 [verify.log](verify.log)。五项新增回归通过，文档链接和diff空白检查通过；
+完整验证后进入alpha.2归档安装验证。

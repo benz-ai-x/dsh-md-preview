@@ -12,7 +12,7 @@ import type { MarkdownDocuments, createMarkdownDocuments } from './markdown-docu
 import { MarkdownEditor } from './editor.tsx'
 import type { EditorStatus } from './editor.tsx'
 import { canSave, isDirty } from './preview-session.ts'
-import { enhanceDiagrams } from './diagrams.ts'
+import type { createDiagramRenderer } from './diagrams.ts'
 import { activeIndexForLine, extractOutline, findHeadingElement } from './outline.ts'
 
 export interface MarkdownTabInjected {
@@ -22,6 +22,8 @@ export interface MarkdownTabInjected {
   edit: ReturnType<typeof createMarkdownDocuments>['edit']
   save: ReturnType<typeof createMarkdownDocuments>['save']
   rememberEditor: ReturnType<typeof createMarkdownDocuments>['rememberEditor']
+  restoreEditor: ReturnType<typeof createMarkdownDocuments>['restoreEditor']
+  renderDiagrams: ReturnType<typeof createDiagramRenderer>['render']
   leave: ReturnType<typeof createMarkdownDocuments>['leave']
   takeNavigation: ReturnType<typeof createMarkdownDocuments>['takeNavigation']
   openNativeText(address: string): void
@@ -30,7 +32,7 @@ export interface MarkdownTabInjected {
 export type MarkdownTabProps = PropsRuntime<'sidebar.right.pane.tab'>
   & PropsLocale<'md-preview'> & InjectFace<MarkdownTabInjected>
 
-export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, attach, enterEdit, edit, save, rememberEditor, leave, takeNavigation, openNativeText, t }: MarkdownTabProps) {
+export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, attach, enterEdit, edit, save, rememberEditor, restoreEditor, renderDiagrams, leave, takeNavigation, openNativeText, t }: MarkdownTabProps) {
   const { tab } = useTabInfo()
   const metadata = useResource<'file'>(tab.contentId)
   const key = documentKey(sessionId, tab.id)
@@ -38,6 +40,9 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
   const editor = useRef<EditorView | null>(null)
   const rendered = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<EditorStatus | null>(null)
+  useEffect(() => {
+    if (state?.focusRevision) editor.current?.focus()
+  }, [state?.focusRevision])
   const searchPhrases = useMemo(() => ({
     Find: t('find.phrases.find'), Replace: t('find.phrases.replace'),
     next: t('find.phrases.next'), previous: t('find.phrases.previous'), all: t('find.phrases.all'),
@@ -70,9 +75,9 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
     const controller = new AbortController()
     const abort = () => controller.abort()
     tab.signal.addEventListener('abort', abort, { once: true })
-    void enhanceDiagrams(rendered.current, state.content.file.content, { error: t('diagram.error') }, controller.signal)
+    renderDiagrams(rendered.current, state.content.file.content, { error: t('diagram.error') }, controller.signal)
     return () => { controller.abort(); tab.signal.removeEventListener('abort', abort) }
-  }, [state?.content, state?.face, tab.signal, t])
+  }, [state?.content, state?.face, tab.signal, t, renderDiagrams])
   return <section className="dsh-md-tab" data-plugin-version={process.env.MD_PREVIEW_VERSION}>
     <div className="dsh-md-tab-toolbar">
       <span title={parseFileAddress(tab.contentId)?.path}>{parseFileAddress(tab.contentId)?.path}</span>
@@ -107,7 +112,7 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
     {state !== undefined && isDirty(state) && <span>{t('status.unsaved')}</span>}
     {state?.content.state === 'ready'
       ? state.face === 'edit'
-        ? <MarkdownEditor initialValue={state.content.file.content} memento={state.editor}
+        ? <MarkdownEditor initialValue={state.content.file.content} restoreMemento={() => restoreEditor(key)}
             readOnly={state.saving}
             searchPhrases={searchPhrases}
             onMemento={value => rememberEditor(key, value)} onView={value => { editor.current = value }} onStatus={setStatus}

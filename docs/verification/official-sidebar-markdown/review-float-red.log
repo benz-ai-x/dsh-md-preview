@@ -1,0 +1,38 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'floating and docking'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (28 tests | 1 failed | 27 skipped) 154ms
+     × keeps the visible draft, selection and history when floating and docking the same tab 153ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > keeps the visible draft, selection and history when floating and docking the same tab
+AssertionError: expected '# Migrated Markdown\n\n**Ready**\n' to be 'float draft # Migrated Markdown\n\n**…' // Object.is equality
+
+- Expected
++ Received
+
+- float draft # Migrated Markdown
++ # Migrated Markdown
+
+  **Ready**
+
+
+ ❯ tests/sidebar-markdown.spec.tsx:20:37
+     18|     await act(async () => { runtime.ctx.sidebarRight.float(runtime.ctx…
+     19|     editor = EditorView.findFromDOM(document.querySelector('.cm-editor…
+     20|     expect(editor.state.sliceDoc()).toBe(expected)
+       |                                     ^
+     21|     expect(editor.state.selection.main.from).toBe(3)
+     22|     expect(editor.state.selection.main.to).toBe(8)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 27 skipped (28)
+   Start at  17:48:42
+   Duration  1.36s (transform 617ms, setup 0ms, import 950ms, tests 154ms, environment 200ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

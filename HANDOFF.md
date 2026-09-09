@@ -86,7 +86,7 @@ strict 退出 1（源码不存在）；显式指定上述新目录后退出 1（
 - [#39](https://github.com/benz-ai-x/dsh-md-preview/issues/39) 的 7/7 代码验收项已勾选，
   Issue 仍为 OPEN、保留 `in-progress`。**尚未创建 PR，尚未进行独立评审。**
   PR-1 是规划编号，不是 GitHub PR 编号。
-- [批次状态](PIPELINE_STATE.yaml) 的实际文件位于功能 worktree；原工作区的 YAML
+- 批次状态 `PIPELINE_STATE.yaml`（当前为失效链接） 的实际文件位于功能 worktree；原工作区的 YAML
   与 JSONL 是指向该处的软链接。保留 worktree；不要删除它而留下失效入口。
   PR-1 保留 `developing` 枚举，用户暂停记录在恢复注记中；它不表示仍在后台开发。
 - [#36](https://github.com/benz-ai-x/dsh-md-preview/issues/36)、

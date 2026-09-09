@@ -14,6 +14,7 @@ import { MarkdownTab } from './MarkdownTab.tsx'
 import { MarkdownLeaveDialog } from './MarkdownLeaveDialog.tsx'
 import { PreviewAction } from './PreviewAction.tsx'
 import { createMarkdownDocuments } from './markdown-documents.ts'
+import { createDiagramRenderer } from './diagrams.ts'
 import { isDirty } from './preview-session.ts'
 import { en, NS, zh } from './locale.ts'
 import { installStyles } from './styles.ts'
@@ -44,6 +45,8 @@ function registerUi(ctx: ClientContext): void {
     (sessionId, tabId, guard) => ctx.sidebarRight.beforeClose(sessionId, tabId, guard),
   )
   ctx.effect(() => () => documents.dispose(), 'md-preview: document lifetimes')
+  const diagrams = createDiagramRenderer()
+  ctx.effect(() => () => diagrams.dispose(), 'md-preview: diagram lifetimes')
   ctx.effect(() => {
     const warn = (event: BeforeUnloadEvent): void => {
       if (!Object.values(documents.snapshot.getSnapshot()).some(state => isDirty(state) || state.saving)) return
@@ -65,7 +68,9 @@ function registerUi(ctx: ClientContext): void {
     inject: () => ({
       hooks: { documents: documents.snapshot }, attach: documents.attach,
       enterEdit: documents.enterEdit, edit: documents.edit, save: documents.save,
-      rememberEditor: documents.rememberEditor, leave: documents.leave, takeNavigation: documents.takeNavigation,
+      rememberEditor: documents.rememberEditor, restoreEditor: documents.restoreEditor,
+      leave: documents.leave, takeNavigation: documents.takeNavigation,
+      renderDiagrams: diagrams.render,
       openNativeText: (address: string) => ctx.sidebarRight.openResource(address, { kind: 'text' }),
     }),
   }, MarkdownTab)), 'md-preview: Markdown body')

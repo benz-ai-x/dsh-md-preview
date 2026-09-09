@@ -371,7 +371,15 @@ export class MdPreviewService extends TypertRemoteService {
       if (op === 'read' || op === 'write') {
         // Match workspaceFiles: the named final entry must not be a link,
         // including a link to another file inside this workspace.
-        const entry = await this.ctx.fs.lstat(path, { cwd }, signal)
+        let entry: Awaited<ReturnType<typeof this.ctx.fs.lstat>>
+        try {
+          entry = await this.ctx.fs.lstat(path, { cwd }, signal)
+        } catch (error) {
+          if (signal.aborted) throw error
+          const code = fsErrorCode(error)
+          throw failure(code === 'EACCES' || code === 'EPERM' || code === 'FS_SANDBOX_DENIED'
+            ? 'md-preview/forbidden' : 'md-preview/unavailable', `mdPreview/${op} cannot inspect "${path}"`)
+        }
         if (entry?.type === 'symlink') {
           throw failure('md-preview/unsupported-extension', `mdPreview/${op} target "${path}" is a symbolic link, not a regular file`)
         }

@@ -6,6 +6,21 @@ import { Config } from '../src/config.ts'
 import { makeService, markdownFile, SESSION } from './host-harness.ts'
 
 describe('MdPreviewService.read specifics', () => {
+  it('reports link-probe failures with a stable code while preserving cancellation', async () => {
+    const { service, fs } = await makeService()
+    const controller = new AbortController()
+    const denied = Object.assign(new Error('permission denied'), { code: 'EACCES' })
+    fs.lstat = async () => { throw denied }
+    await expect(service.read(SESSION as never, 'guide.md', controller.signal))
+      .rejects.toMatchObject({ code: 'md-preview/forbidden' })
+    fs.lstat = async () => { throw Object.assign(new Error('disk error'), { code: 'EIO' }) }
+    await expect(service.read(SESSION as never, 'guide.md', controller.signal))
+      .rejects.toMatchObject({ code: 'md-preview/unavailable' })
+    fs.lstat = async () => { controller.abort(); throw controller.signal.reason }
+    await expect(service.read(SESSION as never, 'guide.md', controller.signal))
+      .rejects.toMatchObject({ name: 'AbortError' })
+  })
+
   it('rejects a body whose file version changed during the full read', async () => {
     const file = markdownFile('# Before\n', 'v1')
     const { service, fs } = await makeService({ files: new Map([['/workspace/project/guide.md', file]]) })
