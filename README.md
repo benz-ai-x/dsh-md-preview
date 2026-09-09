@@ -2,76 +2,87 @@ English | [中文](README.zh.md)
 
 # @benz-ai-x/dsh-md-preview
 
-Read and edit workspace documents beside a DeepSeek Harness conversation. Open a Markdown document produced by an assistant, browse the session workspace, or pick up where you last read.
+Preview and edit Markdown in the **official DeepSeek Harness right-sidebar tabs**.
 
-[![npm](https://img.shields.io/npm/v/@benz-ai-x/dsh-md-preview)](https://www.npmjs.com/package/@benz-ai-x/dsh-md-preview)
-[![GitHub](https://img.shields.io/badge/repo-benz--ai--x%2Fdsh--md--preview-24292e?logo=github)](https://github.com/benz-ai-x/dsh-md-preview)
+This branch is the **0.11.0-alpha.5 development candidate**. It requires Harness
+`0.1.5-alpha.1` plus the public close-guard and Markdown source-position patches pinned by
+[dsh-reference.lock.json](dsh-reference.lock.json). Stock npm Harness of that version
+lacks the guard and this candidate refuses activation. The published
+[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
+uses the old sidebar and does not include this migration. No new release is implied.
 
-Current release: **[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)**, published on 2026-09-08. Requires the pinned Harness **0.1.2-rc.1** baseline and a web profile.
+## Install the candidate
 
-## Install or upgrade
-
-```sh
-dsh plugin --profile web add @benz-ai-x/dsh-md-preview@0.10.0 --save-exact
-dsh --profile web --dump-config
-```
-
-The effective configuration should contain the `md-preview` row. Start the profile with `dsh --profile web`; if it is already running, restart that same instance and reload its page. Replace `web` with your existing web-profile name when needed.
-
-To remove the plugin:
+Apply the [close-guard patch](patches/harness-sidebar-close-guard.patch) followed by
+the [heading-source patch](patches/harness-markdown-heading-source.patch) to the pinned official base and build it,
+then use that checkout's normal CLI and an isolated web profile. With its `dsh` command:
 
 ```sh
-dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
+dsh --profile markdown-accept --from-default-profile web --dump-config
+dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.5.tgz --save-exact
+dsh --profile markdown-accept --dump-config
+dsh --profile markdown-accept --no-open
 ```
 
-## What it does
+For a new custom profile, initialize it first with
+`dsh --profile markdown-accept --from-default-profile web --dump-config`.
+The composed configuration must contain `md-preview`. Restart that same profile
+and reload its page after installing into a running instance. To remove:
 
-- **Preview and edit** — render Markdown, GFM tables, highlighted code, TeX and Mermaid; edit existing Markdown documents with CodeMirror and save back to the workspace.
-- **Read beside the conversation** — a document sidebar reserves space on wide screens, remembers your width preference and uses an overlay on narrow screens or when maximized. Native navigation and tool details keep their own controls.
-- **Find documents** — browse the workspace tree, search document names across unexpanded directories, and use current-turn outputs, recently read documents and the continue-reading entry.
-- **Keep your place** — reopening restores the recorded reading position after fetching the latest content. Panel width, navigation width and navigation choices persist when browser storage is available.
-- **Guard edits** — closing, opening another document or switching back to Preview checks for an unsaved draft. Concurrent file changes offer Reload or Force overwrite; failures retain a retry path.
-- **Follow Harness styling** — shared typography, theme colors, native icons and visible keyboard focus; document paragraphs and headings use the platform Markdown renderer.
+```sh
+dsh plugin --profile markdown-accept remove @benz-ai-x/dsh-md-preview
+```
 
-## Open, navigate and close
+A local archive is an unpublished candidate, not an npm installation recommendation.
+Source setup and actual acceptance results are in the
+[TDD record](docs/verification/official-sidebar-markdown/TDD.md).
 
-| Entry or control | Action |
-| --- | --- |
-| Paperclip beside Session-log download | Opens workspace browsing while the panel is closed; closes the current panel while it is open |
-| Markdown chip under a turn | Opens that produced document |
-| Per-message “Preview documents” action | Lists Markdown documents produced by that message's turn |
-| Folder icon inside the panel | Toggles the workspace navigation on wide panels; opens the Browse Face on narrow panels |
-| Outline | Navigates headings and highlights the current reading position |
-| Preview / Edit | Switches between the View Face and Edit Face for editable documents |
-| Maximize / Restore | Fills the application content area, then returns to the remembered width |
-| × | Closes the panel through the Unsaved Guard and returns focus to the paperclip entry |
+## Markdown workflow
 
-The paperclip opens **workspace documents**; uploaded attachments are not supported. Non-Markdown produced-file chips keep Harness's desktop-open behavior. The workspace browser can also preview `.txt` as plain text by default.
+- Open `.md` or `.markdown` from the official file tree, chat file mentions, tool paths,
+  or produced-file chips. The optional per-message **Preview documents** action uses
+  the same native resource path. Harness owns tabs, splits, floating panes and sidebar visibility.
+- Read GFM tables, highlighted code, mathematics and Mermaid through the shared Markdown
+  renderer. A diagram failure keeps the original code and a visible explanation.
+- Choose **Edit** for CodeMirror, then **Save** or Mod-S. Undo, redo and in-document
+  find are retained. Saving writes the complete original-format text and re-reads the committed file.
+  **Saved** confirms success until the next edit or explicit reload.
+- A live tab retains its draft and undo history while switching tabs or sessions, hiding
+  the right sidebar, or remounting its body. Closing its record releases that state.
+- Native close/replacement, Reload and returning to Preview share an unsaved-change
+  guard. **Keep editing** preserves the draft; **Discard changes** authorizes the held
+  action. Repeated destructive requests retain the first decision. Closing waits for
+  an in-progress save. Refreshing the browser asks its native leave warning when possible.
+- Conflicts retain the draft and offer Reload or explicit **Overwrite**. A successful
+  write followed by a failed read is reported as already saved with a read retry.
+  Observed version differences show a hint until this tab reloads; another viewer's
+  metadata refresh does not dismiss it or replace the draft. This tab's Reload also
+  refreshes file metadata after the guarded body read.
 
-The sidebar docks when the available application width is at least 1056px; narrower layouts and maximized reading use an overlay. Width starts at half the viewport, capped at 720px, and remembers a 360–1200px drag preference subject to available space. Drag the left edge to resize; double-click it to toggle maximization. Panels at least 640px wide can show the Files/Outline navigation beside the document; narrower panels use the Browse Face or outline popover. Direct document entries open body-first unless you have chosen a navigation preference.
-
-In Edit, save with the toolbar button or Cmd/Ctrl-S. To leave without saving, request Preview, another document or close, then choose **Discard changes** in the guard; **Keep editing** preserves the draft. There is no separate Cancel-edit button. Save writes only an existing file and returns to Preview after confirmation.
-
-Workspace search matches document **names**, case-insensitively, without reading file contents. Partial traversal reports an incomplete result with its reasons. Clearing a query restores the tree expansion state. Recently read documents are derived from recorded reading positions, so opening a file without scrolling may not add a recent entry.
+`line` navigation reveals the enclosing ATX section in Preview, including linked,
+indented and repeated headings. **Source line N**
+opens the editor at the exact source line on every click, preserving an active draft
+and its undo history; a fresh native navigation updates the target.
+Each target is applied once per face, so switching faces does not replay an old line.
 
 ## Keyboard
 
-`Mod` means Cmd on macOS and Ctrl on Windows/Linux. Panel shortcuts require focus inside the panel; editor shortcuts require focus in the editor.
+`Mod` means Cmd on macOS and Ctrl on Windows/Linux; editor keys require editor focus.
 
 | Shortcut | Action |
 | --- | --- |
 | Mod-S | Save |
-| Mod-F | Find within the editor |
+| Mod-F | In-document find |
 | Mod-Z / Mod-Shift-Z | Undo / redo |
-| Mod-B / Mod-I / Mod-K | Wrap the selection as bold, italic or a link |
-| Mod-Shift-O / Mod-Shift-E | Open Outline / workspace navigation |
-| Mod-/ | Show editor shortcut help |
-| Esc | Dismiss an open popover or editor find panel first, then request panel close; never silently discard a draft |
-| Arrow keys / Enter | Navigate and open workspace tree entries |
+| Mod-B / Mod-I / Mod-K | Wrap selection as bold, italic or link |
+| Esc | Close the editor search panel or cancel an open unsaved dialog |
 
-## Configuration
+There is no plugin-wide Esc-to-close shortcut, standalone sidebar toggle, duplicate
+file tree, maximize control, or workspace navigation shortcut in this candidate.
 
-After installation, override the existing row in the profile's `cordis.patch.yml`:
+## Configuration and limits
+
+Override the existing row in the profile's `cordis.patch.yml`:
 
 ```yaml
 - id: md-preview
@@ -84,91 +95,69 @@ After installation, override the existing row in the profile's `cordis.patch.yml
     searchConcurrency: 8
 ```
 
-A later patch replaces the row's **whole config**; preserve all custom values you intend to keep. Omitted fields use schema defaults.
+These are schema defaults. A later patch replaces the whole config; preserve your custom values.
+`maxBytes` caps UTF-8 bytes for both full reads and writes. `allowedExtensions` may
+restrict editing; it cannot grant write access beyond `.md` and `.markdown`.
+`previewExtensions` and the three search bounds remain Host RPC settings for future
+work. They do not register extra native tab types or expose a search UI in this phase.
 
-| Field | Default | Meaning |
-| --- | --- | --- |
-| `maxBytes` | `1048576` | Per-file read/write cap in bytes |
-| `allowedExtensions` | `[".md", ".markdown"]` | Extensions allowed for editing |
-| `previewExtensions` | `[".md", ".markdown", ".txt"]` | Preview extensions; members outside the editable set are read-only |
-| `searchMaxResults` | `200` | Maximum matches returned by a workspace search |
-| `searchMaxDirectories` | `2000` | Maximum directories visited by a workspace search |
-| `searchConcurrency` | `8` | Parallel directory listings per traversal step |
+The Host verifies explicit session identity, workspace containment, final-component
+symlinks (rejected), file type, bytes and version. Editing targets existing files only.
+Reads verify the version again after reading. Writes use the filesystem's version
+comparison unless the user explicitly overwrites, and publish a native file observation
+only after success. This is not an OS-wide file watcher.
 
-Paths are scoped to the session workspace. Saves require the backing read's fingerprint or an explicit force-overwrite choice. The schema is the authority for configuration defaults; the editable extensions are included in the preview union.
+Failures keep stable `md-preview/` codes: `bad-request`, `unknown-session`,
+`no-workspace`, `unsupported-extension`, `forbidden`, `not-found`, `too-large`,
+`conflict`, `unavailable`. Over-limit files offer the official read-only text viewer;
+its own reading limits still apply. Upload attachments and other formats are deferred.
 
-## Failure codes
+Workspace filename search/current outputs (#57), independent outline/persistent reading
+(#58), general text (#39) and other formats are deferred. Existing reading records and
+preferences are preserved but are not restored or applied to the native layout.
+Drafts, bodies, fingerprints and undo history stay in memory, not browser storage.
+Mermaid retains its default theme; mixed indented/fenced blocks skip enhancement when
+source and rendered block counts disagree.
 
-| Code | Meaning |
-| --- | --- |
-| `md-preview/bad-request` | Invalid input; for example, a save with neither fingerprint nor force |
-| `md-preview/unknown-session` | Session does not exist |
-| `md-preview/no-workspace` | Session has no working directory |
-| `md-preview/unsupported-extension` | Unsupported document extension |
-| `md-preview/forbidden` | Workspace containment or filesystem access was denied |
-| `md-preview/not-found` | Target does not exist |
-| `md-preview/too-large` | Read or write exceeds `maxBytes` |
-| `md-preview/conflict` | File changed since the read backing the save |
-| `md-preview/unavailable` | Filesystem or transport operation failed |
+## Development
 
-## Installation forms
-
-| Form | Command | Delivery |
-| --- | --- | --- |
-| npm | `dsh plugin --profile web add @benz-ai-x/dsh-md-preview@0.10.0 --save-exact` | Prebuilt JavaScript and declarations |
-| Release archive | `dsh plugin --profile web add ./benz-ai-x-dsh-md-preview-0.10.0.tgz` | The same archive verified for publication; available with SHA256SUMS in the GitHub Release |
-| Git source | `dsh plugin --profile web add github:benz-ai-x/dsh-md-preview#<commit>` | Self-contained `prepare` builds JavaScript; this form does not generate declarations |
-
-For Git installs, pnpm may require explicit build permission. Use the exact package key it reports in that profile's `pnpm-workspace.yaml`, then rerun `add`:
-
-```yaml
-allowBuilds:
-  '@benz-ai-x/dsh-md-preview': true
-```
-
-Build permission runs the package's source on your machine. Use a trusted source and a fixed commit. npm and release archives already contain their build output.
-
-## Development and verification
-
-Node must satisfy `^22.19.0 || >=24.0.0`; the repository declares pnpm 11.17.0. The pinned Harness checkout is resolved from `DSH_HARNESS_ROOT`, falling back to `../deepseek-harness`.
+Read [AGENTS.md](AGENTS.md), [the contract](docs/agent/PROJECT_CONTRACT.md) and
+[ADR-0007](docs/adr/0007-markdown-in-official-sidebar-tabs.md). Use the exact patched
+checkout in the lock; the source-link workflow is explicit:
 
 ```sh
-pnpm install
+export DSH_HARNESS_ROOT=/absolute/path/to/deepseek-harness-md-guard
+pnpm context:link
 pnpm context:check:strict
 pnpm verify
-pnpm watch:client
+pnpm pack:publishable
 ```
 
-Dependencies use published versions by default. `pnpm context:link` explicitly switches development dependencies to the pinned source checkout and refreshes the lockfile; it is also the available command for resynchronizing moved source links.
+The audited Harness worktree is `a28c5a8f4927217f345d02e22c782a32d5750f0a`, containing
+both patches over official `0.1.5-alpha.1` / `5dda764ed3aa172535a7967b06ff95d9cbfe536a`.
+To reproduce the changes independently, create a clean worktree at that official
+commit, then run the following from this plugin repository's root. Set
+`dsh_patch_worktree` to the new worktree. The close-guard patch is a format-patch;
+the heading-source patch is a plain diff and needs `git apply --index` followed by a commit.
 
-| Area | Source | Responsibility |
-| --- | --- | --- |
-| Host service | `src/remote.ts` | `mdPreview.read/write/list/search`, workspace authority and cancellation |
-| Remote descriptors | `src/typert/remote-client.ts` | Browser-safe codecs and the four RPC methods |
-| Client registration | `src/client/mount.ts` | Remote mounting and four Slot contributions |
-| Preview Panel | `src/client/PreviewOverlay.tsx` | Rendering, navigation and local geometry |
-| Dock adapter | `src/client/panel-dock.ts`, `use-panel-dock.ts` | Reversible space reservation beside the pinned Harness frame |
-| Header entry | `src/client/WorkspaceDocsAction.tsx`, `PanelToggle.tsx` | Paperclip entry, × close and current-turn output projection |
-| Preview Session | `src/client/preview-session.ts`, `use-preview-session.ts` | Read/edit/save lifecycle and guarded transitions |
-| Reading and preferences | `src/client/reading.ts`, `preferences.ts` | Position restoration and bounded browser preferences |
-| Workspace Browser | `src/client/WorkspaceBrowser.tsx` | Tree, search results, quick entries and navigation |
-| Editor / diagrams | `src/client/editor.tsx`, `diagrams.ts` | CodeMirror editing and lazy Mermaid enhancement |
+```sh
+dsh_patch_worktree=/absolute/path/to/new-harness-worktree
+git -C "$dsh_patch_worktree" am "$PWD/patches/harness-sidebar-close-guard.patch"
+git -C "$dsh_patch_worktree" apply --index "$PWD/patches/harness-markdown-heading-source.patch"
+git -C "$dsh_patch_worktree" commit -m 'feat(client): expose source positions for settled Markdown headings'
+git -C "$dsh_patch_worktree" rev-parse 'HEAD^{tree}'
+```
 
-The v0.10.0 release passed **290 tests**, strict baseline checks, typechecking and build checks. Its exact archive passed a clean-profile install, public-name imports, configuration composition, startup, client-resource serving and removal; see the [release verification](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/verification/releases/v0.10.0/WALKTHROUGH.md).
+The resulting tree must be `651b692f063e3d11806c5a53509fb705e1deb13e`. Replaying creates
+new commit identities; a matching tree alone does not satisfy the lock's exact commit
+check. Build and re-audit that checkout before recording its commit in the lock, then
+use the source-link workflow above. Keep the original Harness checkout separate.
 
-For publication, run `pnpm pack:publishable`, complete the clean-profile smoke with that archive, then publish **the same `.tgz`** with `npm publish <archive.tgz> --ignore-scripts --access public --registry=https://registry.npmjs.org/`. The full procedure, browser 2FA and runtime verification are in the [maintainer handover](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/HANDOVER.md).
-
-## Known limits and documentation
-
-- The layout adapter depends on the pinned Harness frame structure; revalidate it when upgrading Harness. See [ADR-0004](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/adr/0004-dock-preview-beside-the-harness-frame.md).
-- Uploaded document attachments are not previewable. Inline prose mentions of `.md` files keep Harness's desktop-open behavior.
-- Editing targets existing supported documents; it does not create files. Fenced code and inline HTML are edited as plain text.
-- The outline collects ATX headings; setext headings render but are not listed.
-- Mermaid uses its default theme. Mixed indented and fenced code blocks skip enhancement; rendering failures retain the original code block.
-- Browser theme/zoom acceptance and further header refinements remain tracked in [TODO](https://github.com/benz-ai-x/dsh-md-preview/blob/main/TODO.md).
-
-Development starts with the [project contract](https://github.com/benz-ai-x/dsh-md-preview/blob/main/docs/agent/PROJECT_CONTRACT.md) and [domain glossary](https://github.com/benz-ai-x/dsh-md-preview/blob/main/CONTEXT.md). Release notes are under [GitHub Releases](https://github.com/benz-ai-x/dsh-md-preview/releases).
-
-## License
+Node/pnpm requirements are in [package.json](package.json). The client keeps the
+repository's lazy-CJS factory protocol and frozen platform-module list; CodeMirror
+and Mermaid are bundled. Full builds remove obsolete generated declarations.
+Use one verified archive for clean-profile installation, ordinary package imports,
+resource serving and removal. Publishing follows [HANDOVER](docs/HANDOVER.md#发布流程)
+and is a separate action from development acceptance.
 
 MIT

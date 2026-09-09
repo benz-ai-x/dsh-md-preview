@@ -1,0 +1,10 @@
+$ vitest run tests/host-read.spec.ts -t 'link-probe failures'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 8 skipped (9)
+   Start at  17:51:43
+   Duration  352ms (transform 235ms, setup 0ms, import 272ms, tests 4ms, environment 0ms)
+

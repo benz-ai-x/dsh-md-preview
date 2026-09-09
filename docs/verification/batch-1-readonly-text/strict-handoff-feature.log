@@ -1,0 +1,126 @@
+$ node scripts/verify-dsh-context.mjs --require-source
+PASS README.md exists
+PASS AGENTS.md exists
+PASS CLAUDE.md exists
+PASS TODO.md exists
+PASS package.json exists
+PASS dsh-reference.lock.json exists
+PASS docs/agent/PROJECT_CONTRACT.md exists
+PASS src/index.ts exists
+PASS src/config.ts exists
+PASS src/constants.ts exists
+PASS src/remote.ts exists
+PASS src/typert/remote-client.ts exists
+PASS src/client/index.ts exists
+PASS cordis.patch.yml exists
+PASS tsdown.config.ts exists
+PASS tests/host-read.spec.ts exists
+PASS tests/contribution.spec.ts exists
+PASS tests/client-registration.spec.ts exists
+PASS scripts/verify-built.mjs exists
+PASS package name matches the project contract
+PASS publishable package is not private
+PASS scoped package publishes with public access
+PASS package uses ESM
+PASS package Node engine matches the pinned Harness
+PASS package declares its DSH bundle patch
+PASS package exports its bundle patch
+PASS package declares a web client face
+PASS package exports the built browser bundle
+PASS package exports the Remote contribution
+PASS strict context script requires the source baseline
+PASS context link script rewrites links and refreshes the package-manager lock
+PASS external package contains no workspace protocol dependency
+PASS reference lock schema is supported
+PASS reference lock has a full Git commit
+PASS reference lock has a docs SHA-256
+PASS reference lock records the pinned Node engine
+PASS Node v26.4.0 satisfies ^22.19.0 || >=24.0.0
+PASS DSH version matches 0.1.2-rc.1
+PASS DSH Node engine matches ^22.19.0 || >=24.0.0
+PASS DSH commit matches a66e4702047846cdaa10c66c9d3df3951f5ea70d
+PASS DSH docs digest matches the audited baseline
+PASS DSH Harness attested source inputs are clean
+PASS @deepseek-ai/cordis has a built main entry
+PASS @deepseek-ai/cordis built main entry is fresh
+PASS @deepseek-ai/cordis has a built types entry
+PASS @deepseek-ai/cordis built types entry is fresh
+PASS @deepseek-ai/cordis-plugin-include has a built main entry
+PASS @deepseek-ai/cordis-plugin-include built main entry is fresh
+PASS @deepseek-ai/cordis-plugin-include has a built types entry
+PASS @deepseek-ai/cordis-plugin-include built types entry is fresh
+PASS @deepseek-ai/cordis-plugin-loader has a built main entry
+PASS @deepseek-ai/cordis-plugin-loader built main entry is fresh
+PASS @deepseek-ai/cordis-plugin-loader has a built types entry
+PASS @deepseek-ai/cordis-plugin-loader built types entry is fresh
+PASS @deepseek-ai/dsh-agent has a built main entry
+PASS @deepseek-ai/dsh-agent built main entry is fresh
+PASS @deepseek-ai/dsh-agent has a built types entry
+PASS @deepseek-ai/dsh-agent built types entry is fresh
+PASS @deepseek-ai/dsh-api-remotes has a built main entry
+PASS @deepseek-ai/dsh-api-remotes built main entry is fresh
+PASS @deepseek-ai/dsh-api-remotes has a built types entry
+PASS @deepseek-ai/dsh-api-remotes built types entry is fresh
+PASS @deepseek-ai/dsh-client-locale has a built main entry
+PASS @deepseek-ai/dsh-client-locale built main entry is fresh
+PASS @deepseek-ai/dsh-client-locale has a built types entry
+PASS @deepseek-ai/dsh-client-locale built types entry is fresh
+PASS @deepseek-ai/dsh-client-store has a built main entry
+PASS @deepseek-ai/dsh-client-store built main entry is fresh
+PASS @deepseek-ai/dsh-client-store has a built types entry
+PASS @deepseek-ai/dsh-client-store built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-chat has a built main entry
+PASS @deepseek-ai/dsh-client-ui-chat built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-chat has a built types entry
+PASS @deepseek-ai/dsh-client-ui-chat built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-conversation has a built main entry
+PASS @deepseek-ai/dsh-client-ui-conversation built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-conversation has a built types entry
+PASS @deepseek-ai/dsh-client-ui-conversation built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-deliverables has a built main entry
+PASS @deepseek-ai/dsh-client-ui-deliverables built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-deliverables has a built types entry
+PASS @deepseek-ai/dsh-client-ui-deliverables built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-layout has a built main entry
+PASS @deepseek-ai/dsh-client-ui-layout built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-layout has a built types entry
+PASS @deepseek-ai/dsh-client-ui-layout built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-primitives has a built main entry
+PASS @deepseek-ai/dsh-client-ui-primitives built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-primitives has a built types entry
+PASS @deepseek-ai/dsh-client-ui-primitives built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-slots has a built main entry
+PASS @deepseek-ai/dsh-client-ui-slots built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-slots has a built types entry
+PASS @deepseek-ai/dsh-client-ui-slots built types entry is fresh
+PASS @deepseek-ai/dsh-fs has a built main entry
+PASS @deepseek-ai/dsh-fs built main entry is fresh
+PASS @deepseek-ai/dsh-fs has a built types entry
+PASS @deepseek-ai/dsh-fs built types entry is fresh
+PASS @deepseek-ai/dsh-session has a built main entry
+PASS @deepseek-ai/dsh-session built main entry is fresh
+PASS @deepseek-ai/dsh-session has a built types entry
+PASS @deepseek-ai/dsh-session built types entry is fresh
+PASS @deepseek-ai/dsh-typert-protocol has a built main entry
+PASS @deepseek-ai/dsh-typert-protocol built main entry is fresh
+PASS @deepseek-ai/dsh-typert-protocol has a built types entry
+PASS @deepseek-ai/dsh-typert-protocol built types entry is fresh
+PASS @deepseek-ai/cordis development dependency pins its registry version (4.0.2)
+PASS @deepseek-ai/cordis-plugin-include development dependency pins its registry version (1.0.7)
+PASS @deepseek-ai/cordis-plugin-loader development dependency pins its registry version (1.0.3)
+PASS @deepseek-ai/dsh-agent development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-api-remotes development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-locale development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-store development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-ui-chat development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-ui-conversation development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-ui-deliverables development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-ui-layout development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-ui-primitives development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-client-ui-slots development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-fs development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-session development dependency pins its registry version (0.1.2-rc.1)
+PASS @deepseek-ai/dsh-typert-protocol development dependency pins its registry version (0.1.2-rc.1)
+PASS validated DSH source at /Users/pc2026/Dev-Space/deepseek-harness-md-preview-baseline
+
+context check passed: 123 check(s), 0 warning(s)

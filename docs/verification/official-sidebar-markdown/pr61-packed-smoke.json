@@ -1,0 +1,79 @@
+{
+  "version": "0.11.0-alpha.3",
+  "baseline": "0.1.5-alpha.1+737e95c657a95fd04b12269313902f9b5ca2f6ca",
+  "profile": "/tmp/mdpreview-0110a3-smoke-keWFBi/profiles/web",
+  "archiveSha256": "3108f5bffaa9d99c8a1c928023d2a86d4120f7367a69466fa4d19a79bda77e7b",
+  "shutdown": [
+    {
+      "code": 0,
+      "signal": null
+    },
+    {
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "archive": {
+    "fileCount": 35,
+    "cleanManifest": true,
+    "exportsPresent": true,
+    "noSourceMaps": true,
+    "lazyFactory": true,
+    "clientSha256": "b9d4f813dcacb7541c9dc82c16444038f11e9cbd48d8cb12c60a505fe179b5ac"
+  },
+  "configuration": {
+    "composed": true,
+    "override": {
+      "maxBytes": 4096,
+      "allowedExtensions": [
+        ".md"
+      ],
+      "previewExtensions": [
+        ".markdown"
+      ],
+      "searchMaxResults": 3,
+      "searchMaxDirectories": 4,
+      "searchConcurrency": 2
+    }
+  },
+  "installedMatchesArchive": true,
+  "lockSha256": "4fa6b04684236de71612b91582b9b53020f87fa6044029fb20bb659ab9afaf34",
+  "port": 64515,
+  "boot": {
+    "status": 200,
+    "entries": 54,
+    "bytes": 3891013,
+    "servedSha256": "664f8dbb7e5dd885b594bdb4dffcb4bc8b153062ceaf2e6d7bb423e2e6291c34",
+    "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=8d15643939ab0ecc-48",
+    "releaseMarkers": true
+  },
+  "imports": {
+    "host": [
+      "Config",
+      "DEFAULT_ALLOWED_EXTENSIONS",
+      "DEFAULT_MAX_BYTES",
+      "DEFAULT_PREVIEW_EXTENSIONS",
+      "DEFAULT_SEARCH_CONCURRENCY",
+      "DEFAULT_SEARCH_MAX_DIRECTORIES",
+      "DEFAULT_SEARCH_MAX_RESULTS",
+      "MD_PREVIEW_FAILURE_CODES",
+      "MdPreviewService",
+      "apply",
+      "inject",
+      "isAllowedExtension",
+      "name"
+    ],
+    "remote": [
+      "TYPERT_REMOTE",
+      "default"
+    ]
+  },
+  "removal": {
+    "entries": 53,
+    "priorBundleStatus": 404,
+    "absent": true
+  },
+  "sourceCommit": "dff7f6273041b7590cce7a120089fe91fc7fd467",
+  "node": "v26.4.0",
+  "pnpm": "11.17.0"
+}

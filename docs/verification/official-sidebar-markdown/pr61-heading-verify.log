@@ -1,0 +1,250 @@
+$ pnpm context:check:strict && pnpm typecheck && pnpm test && pnpm build && pnpm built:check
+$ node scripts/verify-dsh-context.mjs --require-source
+PASS README.md exists
+PASS AGENTS.md exists
+PASS CLAUDE.md exists
+PASS TODO.md exists
+PASS package.json exists
+PASS dsh-reference.lock.json exists
+PASS docs/agent/PROJECT_CONTRACT.md exists
+PASS src/index.ts exists
+PASS src/config.ts exists
+PASS src/constants.ts exists
+PASS src/remote.ts exists
+PASS src/typert/remote-client.ts exists
+PASS src/client/index.ts exists
+PASS cordis.patch.yml exists
+PASS tsdown.config.ts exists
+PASS tests/host-read.spec.ts exists
+PASS tests/contribution.spec.ts exists
+PASS tests/client-registration.spec.ts exists
+PASS scripts/verify-built.mjs exists
+PASS package name matches the project contract
+PASS publishable package is not private
+PASS scoped package publishes with public access
+PASS package uses ESM
+PASS package Node engine matches the pinned Harness
+PASS package declares its DSH bundle patch
+PASS package exports its bundle patch
+PASS package declares a web client face
+PASS package exports the built browser bundle
+PASS package exports the Remote contribution
+PASS strict context script requires the source baseline
+PASS context link script rewrites links and refreshes the package-manager lock
+PASS external package contains no workspace protocol dependency
+PASS reference lock schema is supported
+PASS reference lock has a full Git commit
+PASS reference lock has a docs SHA-256
+PASS reference lock records the pinned Node engine
+PASS Node v26.4.0 satisfies ^22.19.0 || >=24.0.0
+PASS DSH version matches 0.1.5-alpha.1
+PASS DSH Node engine matches ^22.19.0 || >=24.0.0
+PASS DSH commit matches a28c5a8f4927217f345d02e22c782a32d5750f0a
+PASS DSH docs digest matches the audited baseline
+PASS DSH Harness attested source inputs are clean
+PASS @deepseek-ai/cordis has a built main entry
+PASS @deepseek-ai/cordis built main entry is fresh
+PASS @deepseek-ai/cordis has a built types entry
+PASS @deepseek-ai/cordis built types entry is fresh
+PASS @deepseek-ai/cordis-plugin-include has a built main entry
+PASS @deepseek-ai/cordis-plugin-include built main entry is fresh
+PASS @deepseek-ai/cordis-plugin-include has a built types entry
+PASS @deepseek-ai/cordis-plugin-include built types entry is fresh
+PASS @deepseek-ai/cordis-plugin-loader has a built main entry
+PASS @deepseek-ai/cordis-plugin-loader built main entry is fresh
+PASS @deepseek-ai/cordis-plugin-loader has a built types entry
+PASS @deepseek-ai/cordis-plugin-loader built types entry is fresh
+PASS @deepseek-ai/dsh-agent has a built main entry
+PASS @deepseek-ai/dsh-agent built main entry is fresh
+PASS @deepseek-ai/dsh-agent has a built types entry
+PASS @deepseek-ai/dsh-agent built types entry is fresh
+PASS @deepseek-ai/dsh-api-remotes has a built main entry
+PASS @deepseek-ai/dsh-api-remotes built main entry is fresh
+PASS @deepseek-ai/dsh-api-remotes has a built types entry
+PASS @deepseek-ai/dsh-api-remotes built types entry is fresh
+PASS @deepseek-ai/dsh-api-workspace-files has a built main entry
+PASS @deepseek-ai/dsh-api-workspace-files built main entry is fresh
+PASS @deepseek-ai/dsh-api-workspace-files has a built types entry
+PASS @deepseek-ai/dsh-api-workspace-files built types entry is fresh
+PASS @deepseek-ai/dsh-client-locale has a built main entry
+PASS @deepseek-ai/dsh-client-locale built main entry is fresh
+PASS @deepseek-ai/dsh-client-locale has a built types entry
+PASS @deepseek-ai/dsh-client-locale built types entry is fresh
+PASS @deepseek-ai/dsh-client-store has a built main entry
+PASS @deepseek-ai/dsh-client-store built main entry is fresh
+PASS @deepseek-ai/dsh-client-store has a built types entry
+PASS @deepseek-ai/dsh-client-store built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-chat has a built main entry
+PASS @deepseek-ai/dsh-client-ui-chat built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-chat has a built types entry
+PASS @deepseek-ai/dsh-client-ui-chat built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-conversation has a built main entry
+PASS @deepseek-ai/dsh-client-ui-conversation built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-conversation has a built types entry
+PASS @deepseek-ai/dsh-client-ui-conversation built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-deliverables has a built main entry
+PASS @deepseek-ai/dsh-client-ui-deliverables built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-deliverables has a built types entry
+PASS @deepseek-ai/dsh-client-ui-deliverables built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-layout has a built main entry
+PASS @deepseek-ai/dsh-client-ui-layout built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-layout has a built types entry
+PASS @deepseek-ai/dsh-client-ui-layout built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-primitives has a built main entry
+PASS @deepseek-ai/dsh-client-ui-primitives built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-primitives has a built types entry
+PASS @deepseek-ai/dsh-client-ui-primitives built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-sidebar-right has a built main entry
+PASS @deepseek-ai/dsh-client-ui-sidebar-right built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-sidebar-right has a built types entry
+PASS @deepseek-ai/dsh-client-ui-sidebar-right built types entry is fresh
+PASS @deepseek-ai/dsh-client-ui-slots has a built main entry
+PASS @deepseek-ai/dsh-client-ui-slots built main entry is fresh
+PASS @deepseek-ai/dsh-client-ui-slots has a built types entry
+PASS @deepseek-ai/dsh-client-ui-slots built types entry is fresh
+PASS @deepseek-ai/dsh-fs has a built main entry
+PASS @deepseek-ai/dsh-fs built main entry is fresh
+PASS @deepseek-ai/dsh-fs has a built types entry
+PASS @deepseek-ai/dsh-fs built types entry is fresh
+PASS @deepseek-ai/dsh-session has a built main entry
+PASS @deepseek-ai/dsh-session built main entry is fresh
+PASS @deepseek-ai/dsh-session has a built types entry
+PASS @deepseek-ai/dsh-session built types entry is fresh
+PASS @deepseek-ai/dsh-typert-protocol has a built main entry
+PASS @deepseek-ai/dsh-typert-protocol built main entry is fresh
+PASS @deepseek-ai/dsh-typert-protocol has a built types entry
+PASS @deepseek-ai/dsh-typert-protocol built types entry is fresh
+PASS @deepseek-ai/dsh-util-workspace-path has a built main entry
+PASS @deepseek-ai/dsh-util-workspace-path built main entry is fresh
+PASS @deepseek-ai/dsh-util-workspace-path has a built types entry
+PASS @deepseek-ai/dsh-util-workspace-path built types entry is fresh
+PASS @deepseek-ai/cordis development dependency links to the audited source
+PASS @deepseek-ai/cordis-plugin-include development dependency links to the audited source
+PASS @deepseek-ai/cordis-plugin-loader development dependency links to the audited source
+PASS @deepseek-ai/dsh-agent development dependency links to the audited source
+PASS @deepseek-ai/dsh-api-remotes development dependency links to the audited source
+PASS @deepseek-ai/dsh-api-workspace-files development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-locale development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-store development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-ui-chat development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-ui-conversation development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-ui-deliverables development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-ui-layout development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-ui-primitives development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-ui-sidebar-right development dependency links to the audited source
+PASS @deepseek-ai/dsh-client-ui-slots development dependency links to the audited source
+PASS @deepseek-ai/dsh-fs development dependency links to the audited source
+PASS @deepseek-ai/dsh-session development dependency links to the audited source
+PASS @deepseek-ai/dsh-typert-protocol development dependency links to the audited source
+PASS @deepseek-ai/dsh-util-workspace-path development dependency links to the audited source
+PASS validated DSH source at /Users/pc2026/DSH-Space/deepseek-harness-md-guard
+
+context check passed: 138 check(s), 0 warning(s)
+$ tsc -p tsconfig.json --noEmit
+$ vitest run
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  16 passed (16)
+      Tests  201 passed (201)
+   Start at  20:05:02
+   Duration  6.81s (transform 979ms, setup 0ms, import 2.55s, tests 2.06s, environment 1.23s)
+
+$ node scripts/clean-build.mjs && tsc -p tsconfig.json && tsdown
+ℹ tsdown v0.22.14 powered by rolldown v1.2.6
+ℹ config file: /Users/pc2026/DSH-Space/dsh-md-preview/tsdown.config.ts 
+ℹ [@benz-ai-x/dsh-md-preview/client] entry: src/client/index.ts
+ℹ [@benz-ai-x/dsh-md-preview/client] target: es2024
+ℹ [@benz-ai-x/dsh-md-preview/client] tsconfig: tsconfig.json
+ℹ [@benz-ai-x/dsh-md-preview/host] entry: src/index.ts, src/typert/remote-client.ts
+ℹ [@benz-ai-x/dsh-md-preview/host] target: es2024
+ℹ [@benz-ai-x/dsh-md-preview/host] tsconfig: tsconfig.json
+ℹ Build start
+
+ WARN  inlineDynamicImports option is deprecated, please use codeSplitting: false instead.
+
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js                     21.89 kB │ gzip:  6.20 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/typert/remote-client.js       5.70 kB │ gzip:  1.24 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js.map                 37.50 kB │ gzip: 10.13 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/typert/remote-client.js.map  10.97 kB │ gzip:  2.13 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] 4 files, total: 76.05 kB
+✔ [@benz-ai-x/dsh-md-preview/host] Build complete in 77ms
+ℹ [@benz-ai-x/dsh-md-preview/client] Hint: consider adding deps.onlyBundle option to avoid unintended bundling of dependencies, or set deps.onlyBundle: false to disable this hint.
+See more at https://tsdown.dev/options/dependencies#deps-onlybundle
+Detected dependencies in bundle:
+- zod
+- @marijn/find-cluster-break
+- @codemirror/state
+- style-mod
+- w3c-keyname
+- crelt
+- @codemirror/view
+- @lezer/common
+- @lezer/highlight
+- @codemirror/language
+- @codemirror/commands
+- @codemirror/search
+- @lezer/markdown
+- mermaid
+- dayjs
+- khroma
+- dompurify
+- katex
+- d3-array
+- internmap
+- d3-axis
+- d3-dispatch
+- d3-selection
+- d3-drag
+- d3-color
+- d3-interpolate
+- d3-timer
+- d3-transition
+- d3-ease
+- d3-brush
+- d3-path
+- d3-chord
+- d3-contour
+- d3-delaunay
+- d3-dsv
+- d3-fetch
+- d3-quadtree
+- d3-force
+- d3-format
+- d3-geo
+- d3-hierarchy
+- d3-polygon
+- d3-random
+- d3-scale
+- d3-time
+- d3-time-format
+- d3-scale-chromatic
+- d3-shape
+- d3-zoom
+- d3
+- @iconify/utils
+- @braintree/sanitize-url
+- es-toolkit
+- fastdom
+- marked
+- ts-dedent
+- roughjs
+- lodash-es
+- dagre-d3-es
+- cytoscape
+- layout-base
+- cose-base
+- cytoscape-cose-bilkent
+- stylis
+- @mermaid-js/parser
+- uuid
+- d3-sankey
+- cytoscape-fcose
+- @upsetjs/venn.js
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] lib/client.js       3.89 MB
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] lib/client.js.map  13.96 MB
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] 2 files, total: 17.85 MB
+✔ [@benz-ai-x/dsh-md-preview/client] Build complete in 482ms
+$ node scripts/verify-built.mjs
+built check passed: 6 artifact(s) fresh

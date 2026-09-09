@@ -1,0 +1,35 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'returns keyboard focus'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (29 tests | 1 failed | 28 skipped) 156ms
+     × returns keyboard focus and the selection to the editor after Keep editing 155ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > returns keyboard focus and the selection to the editor after Keep editing
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/sidebar-markdown.spec.tsx:25:29
+     23|     expect(document.activeElement).toBe(keep)
+     24|     await act(async () => { keep.click() })
+     25|     expect(editor.hasFocus).toBe(true)
+       |                             ^
+     26|     expect(editor.state.selection.main.from).toBe(1)
+     27|     expect(editor.state.selection.main.to).toBe(4)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 28 skipped (29)
+   Start at  17:49:55
+   Duration  1.39s (transform 632ms, setup 0ms, import 977ms, tests 156ms, environment 199ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

@@ -1,34 +1,13 @@
 // @vitest-environment jsdom
-/**
- * The diagram pass against the real rendered MarkdownText: mermaid blocks
- * gain the SVG host and hide their code, other blocks stay untouched, and a
- * failing render falls back to the source with a caption. Mermaid itself is
- * mocked at the import seam (its own rendering is upstream-tested).
- */
-
-import { useSyncExternalStore } from 'react'
+/** Real native-tab MarkdownText with the external Mermaid renderer stubbed. */
 import { act } from 'react-dom/test-utils'
-import { createRoot, type Root } from 'react-dom/client'
-import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
-import { PreviewOverlay } from '../src/client/PreviewOverlay.tsx'
-import { createPreviewStore } from '../src/client/preview-state.ts'
-import { createLeaveIntentSeat } from '../src/client/leave-intent.ts'
-import type { MdPreviewFile } from '../src/protocol.ts'
-
-const t = (key: string) => key
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { sessionFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
+import { mountSidebar, SESSION } from './sidebar-harness.tsx'
 
 const initialize = vi.fn()
-const render = vi.fn(async (id: string, text: string) => ({ svg: `<svg data-id="${id}" data-src="${text}"></svg>` }))
+const render = vi.fn(async (id: string, text: string, _container?: HTMLElement) => ({ svg: `<svg data-id="${id}" data-src="${text}"></svg>` }))
 vi.mock('mermaid', () => ({ default: { initialize, render } }))
-
-beforeAll(() => {
-  globalThis.ResizeObserver ??= class {
-    observe(): void {}
-    unobserve(): void {}
-    disconnect(): void {}
-  } as unknown as typeof ResizeObserver
-  ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-})
 
 const DOC = [
   '# Diagrams',
@@ -43,30 +22,10 @@ const DOC = [
 ].join('\n')
 
 async function renderDiagrams(content: string): Promise<HTMLElement> {
-  const store = createPreviewStore()
-  const leave = createLeaveIntentSeat()
-  const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path: 'doc.md', content, fingerprint: 'v1' } }
-  const container = document.createElement('div')
-  document.body.appendChild(container)
-  const usePreviewTarget = (selector: (state: unknown) => unknown) =>
-    selector(useSyncExternalStore(store.subscribe, store.getSnapshot))
-  const root: Root = createRoot(container)
-  const element = () => (
-    <PreviewOverlay
-      usePreviewTarget={usePreviewTarget as never}
-      leave={leave}
-      close={() => { store.set(null) }}
-      read={(() => Promise.resolve(readResult)) as never}
-      write={(vi.fn(() => Promise.resolve({ ok: true, value: { path: 'doc.md', fingerprint: 'v2' } }))) as never}
-      list={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } })) as never}
-      setTarget={vi.fn() as never}
-      t={t as never}
-    />
-  )
-  store.set({ sessionId: 'session-1', path: 'doc.md' })
-  await act(async () => { root.render(element()) })
-  await act(async () => { await Promise.resolve() })
-  return container
+  const h = await mountSidebar()
+  h.files.set(`${SESSION}/doc.md`, { content, fingerprint: 'v1' })
+  await act(async () => { h.runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'doc.md')) })
+  return h.view.container
 }
 
 const settle = async (): Promise<void> => {
@@ -78,11 +37,38 @@ const blocksOf = (container: HTMLElement) =>
   Array.from(container.querySelectorAll<HTMLElement>('.md-code-block'))
 
 afterEach(() => {
-  document.body.replaceChildren()
-  vi.clearAllMocks()
+  // Initialization belongs to the module's cached Mermaid import. Keep that
+  // evidence across cases while resetting the per-document external render.
+  render.mockClear()
 })
 
 describe('diagram pass', () => {
+  it('waits for a pending external render and confines its late nodes to the released body', async () => {
+    let finish!: () => void
+    let renderParent: HTMLElement | undefined
+    const lateNode = document.createElement('div')
+    render.mockImplementationOnce(async (_id, _text, container) => {
+      renderParent = container
+      await new Promise<void>(resolve => { finish = resolve })
+      ;(container ?? document.body).append(lateNode)
+      return { svg: '<svg></svg>' }
+    })
+    const h = await mountSidebar()
+    h.files.set(`${SESSION}/doc.md`, { content: DOC, fingerprint: 'v1' })
+    await act(async () => { h.runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'doc.md')) })
+    let stopped = false
+    const disposal = h.disposePlugin().then(() => { stopped = true })
+    await act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve() })
+    try {
+      expect(stopped).toBe(false)
+      expect(renderParent).toBeInstanceOf(HTMLElement)
+    } finally { await act(async () => { finish(); await disposal }) }
+    try {
+      expect(lateNode.isConnected).toBe(false)
+      expect(stopped).toBe(true)
+    } finally { lateNode.remove() }
+  })
+
   it('renders mermaid blocks as SVG and hides their code; other blocks stay', async () => {
     const container = await renderDiagrams(DOC)
     await settle()
@@ -104,7 +90,7 @@ describe('diagram pass', () => {
     const [mermaid] = blocksOf(container) as [HTMLElement, HTMLElement]
     expect(mermaid.querySelector('.dsh-md-preview-diagram')).toBeNull()
     expect(mermaid.querySelector('pre')?.hasAttribute('hidden')).toBe(false)
-    expect(mermaid.querySelector('.dsh-md-preview-diagram-error')?.textContent).toBe('diagram.error')
+    expect(mermaid.querySelector('.dsh-md-preview-diagram-error')?.textContent).toContain('Diagram')
   })
 
   it('enhances nothing for a document without mermaid blocks', async () => {

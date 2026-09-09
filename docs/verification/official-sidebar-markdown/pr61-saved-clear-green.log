@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'clears an earlier save confirmation|edits the full original'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 29 skipped (31)
+   Start at  18:34:58
+   Duration  2.24s (transform 953ms, setup 0ms, import 1.47s, tests 254ms, environment 415ms)
+

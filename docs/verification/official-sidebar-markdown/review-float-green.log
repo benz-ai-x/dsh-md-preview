@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'floating and docking'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 27 skipped (28)
+   Start at  17:49:17
+   Duration  1.44s (transform 663ms, setup 0ms, import 1.01s, tests 167ms, environment 203ms)
+

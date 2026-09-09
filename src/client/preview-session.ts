@@ -1,7 +1,7 @@
 /**
  * The PreviewSession machine: the pure state algebra of one preview target's
- * lifecycle — content read, edit session, guarded save, prompts. The React
- * adapter lives beside the panel (use-preview-session.ts); effects and RPC
+ * lifecycle — content read, edit session, guarded save, prompts. The tab-record
+ * owner lives in markdown-documents.ts; effects and RPC
  * never enter here. `READ_STARTED` is the single reset point: a new read
  * begins only when the previous document's whole session is over. Leaving
  * with a dirty draft is asked about at the leave-intent seat (leave-intent.ts)
@@ -112,6 +112,7 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
         ...state,
         face: 'edit',
         draft: state.content.file.content,
+        toast: false,
         conflicted: false,
         saveError: null,
       }

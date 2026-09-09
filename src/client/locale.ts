@@ -5,6 +5,9 @@ export const NS = 'md-preview'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'panel.sourceLine': '查看源码第 {line} 行',
+  'panel.readOnly.limit': '文件超过编辑限额，可使用原生文本查看器只读浏览。',
+  'panel.nativeText': '打开原生文本查看器',
   'panel.title': 'Markdown 预览',
   'panel.close': '关闭文档面板',
   'panel.maximize': '全屏显示',
@@ -107,6 +110,9 @@ export const zh = {
 
 /** English dictionary (same key set). */
 export const en: Record<MdPreviewKey, string> = {
+  'panel.sourceLine': 'Source line {line}',
+  'panel.readOnly.limit': 'This file exceeds the editing limit. Use the native text viewer to read it.',
+  'panel.nativeText': 'Open native text viewer',
   'panel.title': 'Markdown preview',
   'panel.close': 'Close document panel',
   'panel.maximize': 'Maximize',

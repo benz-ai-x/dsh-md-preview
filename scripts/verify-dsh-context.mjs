@@ -20,6 +20,7 @@ const expectedLinks = Object.freeze({
   '@deepseek-ai/cordis-plugin-loader': 'vendor/loader',
   '@deepseek-ai/dsh-agent': 'packages/core/agent',
   '@deepseek-ai/dsh-api-remotes': 'packages/api/remotes',
+  '@deepseek-ai/dsh-api-workspace-files': 'packages/api/workspace-files',
   '@deepseek-ai/dsh-client-locale': 'packages/client/locale',
   '@deepseek-ai/dsh-client-store': 'packages/client/store',
   '@deepseek-ai/dsh-client-ui-chat': 'packages/client/ui-chat',
@@ -27,10 +28,12 @@ const expectedLinks = Object.freeze({
   '@deepseek-ai/dsh-client-ui-deliverables': 'packages/client/ui-deliverables',
   '@deepseek-ai/dsh-client-ui-layout': 'packages/client/ui-layout',
   '@deepseek-ai/dsh-client-ui-primitives': 'packages/client/ui-primitives',
+  '@deepseek-ai/dsh-client-ui-sidebar-right': 'packages/client/ui-sidebar-right',
   '@deepseek-ai/dsh-client-ui-slots': 'packages/client/ui-slots',
   '@deepseek-ai/dsh-fs': 'packages/fs/fs',
   '@deepseek-ai/dsh-session': 'packages/core/session',
   '@deepseek-ai/dsh-typert-protocol': 'packages/typert/protocol',
+  '@deepseek-ai/dsh-util-workspace-path': 'packages/util/workspace-path',
 })
 
 function check(condition, message) {

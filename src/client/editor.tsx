@@ -8,8 +8,8 @@
  * GFM parser is assembled directly from `@lezer/markdown` — embedded HTML
  * edits as plain text, which is acceptable inside the editor face.
  */
-import { useEffect, useRef } from 'react'
-import { EditorSelection, EditorState } from '@codemirror/state'
+import { useEffect, useMemo, useRef } from 'react'
+import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
 import { defaultKeymap, history, historyField, historyKeymap } from '@codemirror/commands'
 import { getSearchQuery, RegExpCursor, search, searchKeymap } from '@codemirror/search'
 import {
@@ -51,6 +51,7 @@ const markdownHighlightStyle = HighlightStyle.define([
  * stack like any edit.
  */
 function wrapMarkup(view: EditorView, open: string, close: string): boolean {
+  if (view.state.readOnly) return false
   const changes = view.state.changeByRange(range => ({
     changes: [
       { from: range.from, insert: open },
@@ -81,6 +82,11 @@ export interface EditorStatus {
 export interface MarkdownEditorProps {
   /** Document text at edit-session start; a changed value remounts the editor. */
   initialValue: string
+  /** In-memory JSON captured when a live tab body unmounts; never persisted. */
+  restoreMemento?: () => Record<string, unknown> | undefined
+  onMemento?: (state: Record<string, unknown>) => void
+  /** Freeze typing while this exact draft is being written. */
+  readOnly?: boolean
   /** Reports every document change (the panel's draft). */
   onChange: (value: string) => void
   /** Cmd/Ctrl-S from the editor's keymap. */
@@ -104,8 +110,10 @@ export interface MarkdownEditorProps {
  * @param props - initial document plus change, save, and view callbacks.
  * @returns the editor host element.
  */
-export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCursorLine, onStatus, onOpenKeys, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
+export function MarkdownEditor({ initialValue, restoreMemento, onMemento, readOnly = false, onChange, onSave, onView, onCursorLine, onStatus, onOpenKeys, searchPhrases, onSearchStatus }: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null)
+  const mounted = useRef<EditorView | null>(null)
+  const editability = useMemo(() => new Compartment(), [])
   // Refs keep the extension closures stable without remounting on callback identity.
   const changeRef = useRef(onChange)
   changeRef.current = onChange
@@ -121,6 +129,8 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
   editStatusRef.current = onStatus
   const openKeysRef = useRef(onOpenKeys)
   openKeysRef.current = onOpenKeys
+  const mementoRef = useRef(onMemento)
+  mementoRef.current = onMemento
 
   /** Report the status-bar payload: cursor, size, and history availability. */
   const reportEditStatus = (view: EditorView): void => {
@@ -172,10 +182,13 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
 
   useEffect(() => {
     const parent = host.current
-    const view = new EditorView({
-      state: EditorState.create({
+    const config = {
         doc: initialValue,
         extensions: [
+          editability.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+          // CodeMirror stores logical lines; preserve the original separator
+          // when serializing a changed document or a tab's edit memento.
+          EditorState.lineSeparator.of(initialValue.includes('\r\n') ? '\r\n' : '\n'),
           lineNumbers(),
           history(),
           drawSelection(),
@@ -202,7 +215,7 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
             ...historyKeymap,
           ]),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) changeRef.current(update.state.doc.toString())
+            if (update.docChanged) changeRef.current(update.state.sliceDoc())
             if (update.docChanged || update.selectionSet) {
               cursorRef.current?.(update.state.doc.lineAt(update.state.selection.main.head).number)
             }
@@ -222,22 +235,36 @@ export function MarkdownEditor({ initialValue, onChange, onSave, onView, onCurso
             '.cm-searchMatch-selected': { backgroundColor: 'color-mix(in srgb, var(--dsw-alias-state-business-primary) 28%, transparent)' },
           }),
         ],
-      }),
+    }
+    // Read after old-body cleanup, which can happen in this same React commit
+    // when a native tab moves between the dock and a floating portal.
+    const memento = restoreMemento?.()
+    const view = new EditorView({
+      state: memento === undefined ? EditorState.create(config) : EditorState.fromJSON(memento, config, { history: historyField }),
       ...(parent === null ? {} : { parent }),
     })
+    mounted.current = view
     viewRef.current?.(view)
     cursorRef.current?.(view.state.doc.lineAt(view.state.selection.main.head).number)
     reportSearch(view)
     reportEditStatus(view)
     return () => {
+      mementoRef.current?.(view.state.toJSON({ history: historyField }) as Record<string, unknown>)
       statusRef.current?.(null)
       editStatusRef.current?.(null)
       viewRef.current?.(null)
+      mounted.current = null
       view.destroy()
     }
     // A new edit session (different initial document) mounts a fresh editor;
     // callbacks travel through refs, so this effect otherwise runs once.
   }, [initialValue])
+
+  useEffect(() => {
+    mounted.current?.dispatch({ effects: editability.reconfigure([
+      EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly),
+    ]) })
+  }, [editability, readOnly])
 
   return <div className="dsh-md-preview-editor" ref={host} />
 }

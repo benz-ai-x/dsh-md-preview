@@ -1,0 +1,555 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'announces a newer first metadata version'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (32 tests | 1 failed | 31 skipped) 190ms
+     × announces a newer first metadata version without replacing the loaded draft 189ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > announces a newer first metadata version without replacing the loaded draft
+TestingLibraryElementError: Unable to find an accessible element with the role "status"
+
+Here are the accessible roles:
+
+  tablist:
+
+  Name "":
+  [36m<div[39m
+    [33mclass[39m=[32m"_tabStrip_1be5ba"[39m
+    [33mdata-dockkit-strip[39m=[32m"pane1"[39m
+    [33mrole[39m=[32m"tablist"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  presentation:
+
+  Name "":
+  [36m<div[39m
+    [33mclass[39m=[32m"_stripTabs_1be5ba"[39m
+    [33mdata-dockkit-strip-tabs[39m=[32m"pane1"[39m
+    [33mrole[39m=[32m"presentation"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  tab:
+
+  Name "Start":
+  [36m<div[39m
+    [33maria-selected[39m=[32m"false"[39m
+    [33mclass[39m=[32m"_tab_1be5ba"[39m
+    [33mdata-dockkit-tab[39m=[32m"tab2"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "guide.md":
+  [36m<div[39m
+    [33maria-selected[39m=[32m"true"[39m
+    [33mclass[39m=[32m"_tab_1be5ba _tabActive_1be5ba"[39m
+    [33mdata-dockkit-tab[39m=[32m"tab3"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Close":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Close"[39m
+    [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+    [33mdata-dockkit-tab-close[39m=[32m"tab2"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Close":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Close"[39m
+    [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+    [33mdata-dockkit-tab-close[39m=[32m"tab3"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Split to the right":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Split to the right"[39m
+    [33mclass[39m=[32m"_iconButton_1be5ba"[39m
+    [33mdata-dockkit-split-button[39m=[32m"pane1"[39m
+    [33mtitle[39m=[32m"Split to the right"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Show the sidebar fullscreen":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Show the sidebar fullscreen"[39m
+    [33mclass[39m=[32m"_iconButton_6714e9"[39m
+    [33mdata-sidebar-right-mode[39m=[32m"fullscreen"[39m
+    [33mtitle[39m=[32m"Show the sidebar fullscreen"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Close the sidebar":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Close the sidebar"[39m
+    [33mclass[39m=[32m"_iconButton_6714e9"[39m
+    [33mdata-sidebar-right-toggle[39m=[32m"true"[39m
+    [33mtitle[39m=[32m"Close the sidebar"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Reload":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Preview":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Find":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Undo":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Redo":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Save":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "":
+  [36m<div[39m
+    [33maria-multiline[39m=[32m"true"[39m
+    [33mautocapitalize[39m=[32m"off"[39m
+    [33mautocorrect[39m=[32m"off"[39m
+    [33mclass[39m=[32m"cm-content cm-lineWrapping"[39m
+    [33mcontenteditable[39m=[32m"true"[39m
+    [33mrole[39m=[32m"textbox"[39m
+    [33mspellcheck[39m=[32m"false"[39m
+    [33mstyle[39m=[32m"tab-size: 4;"[39m
+    [33mtranslate[39m=[32m"no"[39m
+    [33mwritingsuggestions[39m=[32m"false"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<div[39m
+  [33mdata-slot[39m=[32m"rightbar"[39m
+  [33mstyle[39m=[32m"display: contents;"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"_panel_6714e9"[39m
+    [33mdata-sidebar-right-open[39m=[32m"true"[39m
+    [33mdata-sidebar-right-panel[39m=[32m"push"[39m
+    [33mstyle[39m=[32m"width: 560px;"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"_panelBody_6714e9"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"_surface_1be5ba"[39m
+        [33mdata-dockkit-drop-zones[39m=[32m"horizontal"[39m
+        [33mdata-dockkit-surface[39m=[32m"true"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"_pane_1be5ba"[39m
+          [33mdata-dockkit-pane[39m=[32m"pane1"[39m
+          [33mdata-dockkit-pane-active[39m=[32m"true"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"_tabStrip_1be5ba"[39m
+            [33mdata-dockkit-strip[39m=[32m"pane1"[39m
+            [33mrole[39m=[32m"tablist"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"_stripTabs_1be5ba"[39m
+              [33mdata-dockkit-strip-tabs[39m=[32m"pane1"[39m
+              [33mrole[39m=[32m"presentation"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33maria-selected[39m=[32m"false"[39m
+                [33mclass[39m=[32m"_tab_1be5ba"[39m
+                [33mdata-dockkit-tab[39m=[32m"tab2"[39m
+                [33mrole[39m=[32m"tab"[39m
+                [33mtabindex[39m=[32m"-1"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"_tabTitle_1be5ba"[39m
+                  [33mdata-dockkit-tab-title[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mdata-slot[39m=[32m"sidebar.right.pane.tab.title"[39m
+                    [33mstyle[39m=[32m"display: contents;"[39m
+                  [36m>[39m
+                    [0mStart[0m
+                  [36m</div>[39m
+                [36m</span>[39m
+                [36m<button[39m
+                  [33maria-label[39m=[32m"Close"[39m
+                  [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+                  [33mdata-dockkit-tab-close[39m=[32m"tab2"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"10"[39m
+                    [33mviewBox[39m=[32m"0 0 10 10"[39m
+                    [33mwidth[39m=[32m"10"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M1.5 1.5l7 7M8.5 1.5l-7 7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.2"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33maria-selected[39m=[32m"true"[39m
+                [33mclass[39m=[32m"_tab_1be5ba _tabActive_1be5ba"[39m
+                [33mdata-dockkit-tab[39m=[32m"tab3"[39m
+                [33mrole[39m=[32m"tab"[39m
+                [33mtabindex[39m=[32m"0"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"_tabTitle_1be5ba"[39m
+                  [33mdata-dockkit-tab-title[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mdata-slot[39m=[32m"sidebar.right.pane.tab.title"[39m
+                    [33mstyle[39m=[32m"display: contents;"[39m
+                  [36m>[39m
+                    [0mguide.md[0m
+                  [36m</div>[39m
+                [36m</span>[39m
+                [36m<button[39m
+                  [33maria-label[39m=[32m"Close"[39m
+                  [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+                  [33mdata-dockkit-tab-close[39m=[32m"tab3"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"10"[39m
+                    [33mviewBox[39m=[32m"0 0 10 10"[39m
+                    [33mwidth[39m=[32m"10"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M1.5 1.5l7 7M8.5 1.5l-7 7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.2"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"_stripFill_1be5ba"[39m
+              [33mdata-dockkit-strip-fill[39m=[32m"true"[39m
+            [36m/>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Split to the right"[39m
+              [33mclass[39m=[32m"_iconButton_1be5ba"[39m
+              [33mdata-dockkit-split-button[39m=[32m"pane1"[39m
+              [33mtitle[39m=[32m"Split to the right"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"14"[39m
+                [33mviewBox[39m=[32m"0 0 14 14"[39m
+                [33mwidth[39m=[32m"14"[39m
+              [36m>[39m
+                [36m<rect[39m
+                  [33mheight[39m=[32m"10"[39m
+                  [33mrx[39m=[32m"1.5"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mwidth[39m=[32m"11"[39m
+                  [33mx[39m=[32m"1.5"[39m
+                  [33my[39m=[32m"2"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M7 2v10"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"_stripChrome_1be5ba"[39m
+              [33mdata-dockkit-strip-chrome[39m=[32m"true"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Show the sidebar fullscreen"[39m
+                [33mclass[39m=[32m"_iconButton_6714e9"[39m
+                [33mdata-sidebar-right-mode[39m=[32m"fullscreen"[39m
+                [33mtitle[39m=[32m"Show the sidebar fullscreen"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M5 1.5H1.5V5M9 1.5h3.5V5M1.5 9v3.5H5M12.5 9v3.5H9"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Close the sidebar"[39m
+                [33mclass[39m=[32m"_iconButton_6714e9"[39m
+                [33mdata-sidebar-right-toggle[39m=[32m"true"[39m
+                [33mtitle[39m=[32m"Close the sidebar"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"12"[39m
+                  [33mviewBox[39m=[32m"0 0 12 12"[39m
+                  [33mwidth[39m=[32m"12"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M2 2l8 8M10 2l-8 8"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.3"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"_paneBody_1be5ba"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mdata-slot[39m=[32m"sidebar.right.pane.tab"[39m
+              [33mstyle[39m=[32m"display: contents;"[39m
+            [36m>[39m
+              [36m<section[39m
+                [33mclass[39m=[32m"dsh-md-tab"[39m
+                [33mdata-plugin-version[39m=[32m"v0.11.0-alpha.2"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"dsh-md-tab-toolbar"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33mtitle[39m=[32m"guide.md"[39m
+                  [36m>[39m
+                    [0mguide.md[0m
+                  [36m</span>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mReload[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mPreview[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mFind[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mUndo[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mdisabled[39m=[32m""[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mRedo[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mSave[0m
+                  [36m</button>[39m
+                [36m</div>[39m
+                [36m<span>[39m
+                  [0mUnsaved[0m
+                [36m</span>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"dsh-md-preview-editor"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"cm-editor ͼ1 ͼ2 ͼ4 ͼv"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33maria-live[39m=[32m"polite"[39m
+                      [33mclass[39m=[32m"cm-announced"[39m
+                    [36m/>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"cm-scroller"[39m
+                      [33mtabindex[39m=[32m"-1"[39m
+                    [36m>[39m
+                      [36m<div[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"cm-gutters cm-gutters-before"[39m
+                        [33mstyle[39m=[32m"min-height: 72px; position: sticky;"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"cm-gutter cm-lineNumbers"[39m
+                        [36m>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"cm-gutterElement"[39m
+                            [33mstyle[39m=[32m"height: 0px; visibility: hidden; pointer-events: none;"[39m
+                          [36m>[39m
+                            [0m9[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"cm-gutterElement"[39m
+                            [33mstyle[39m=[32m"height: 14px; margin-top: 8px;"[39m
+                          [36m>[39m
+                            [0m1[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"cm-gutterElement"[39m
+                            [33mstyle[39m=[32m"height: 14px;"[39m
+                          [36m>[39m
+                            [0m2[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"cm-gutterElement"[39m
+                            [33mstyle[39m=[32m"height: 14px;"[39m
+                          [36m>[39m
+                            [0m3[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"cm-gutterElement"[39m
+                            [33mstyle[39m=[32m"height: 14px;"[39m
+                          [36m>[39m
+                            [0m4[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33maria-multiline[39m=[32m"true"[39m
+                        [33mautocapitalize[39m=[32m"off"[39m
+                        [33mautocorrect[39m=[32m"off"[39m
+                        [33mclass[39m=[32m"cm-content cm-lineWrapping"[39m
+                        [33mcontenteditable[39m=[32m"true"[39m
+                        [33mrole[39m=[32m"textbox"[39m
+                        [33mspellcheck[39m=[32m"false"[39m
+                        [33mstyle[39m=[32m"tab-size: 4;"[39m
+                        [33mtranslate[39m=[32m"no"[39m
+                        [33mwritingsuggestions[39m=[32m"false"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"cm-line cm-activeLine"[39m
+                        [36m>[39m
+                          [0munsaved # Migrated Markdown[0m
+                        [36m</div>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"cm-line"[39m
+                        [36m>[39m
+                          [36m<br />[39m
+                        [36m</div>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"cm-line"[39m
+                        [36m>[39m
+                          [36m<span[39m
+                            [33mclass[39m=[32m"ͼp ͼt"[39m
+                          [36m>[39m
+                            [0m**[0m
+                          [36m</span>[39m
+                          [36m<span[39m
+                            [33mclass[39m=[32m"ͼp"[39m
+                          [36m>[39m
+                            [0mReady[0m
+                          [36m</span>[39m
+                          [36m<span[39m
+                            [33mclass[39m=[32m"ͼp ͼt"[39m
+                          [36m>[39m
+                            [0m**[0m
+                          [36m</span>[39m
+                        [36m</div>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"cm-line"[39m
+                        [36m>[39m
+                          [36m<br />[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"cm-layer cm-layer-above cm-cursorLayer"[39m
+                        [33mstyle[39m=[32m"z-index: 150; animation-duration: 1200ms;"[39m
+                      [36m/>[39m
+                      [36m<div[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"cm-layer cm-selectionLayer"[39m
+                        [33mstyle[39m=[32m"z-index: -2;"[39m
+                      [36m/>[39m
+                    [36m</div>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</section>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</div>[39m
+ ❯ Object.getElementError ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/sidebar-markdown.spec.tsx:420:22
+    418|       source.set({ ...source.getSnapshot(), status: 'live', value: { a…
+    419|     })
+    420|     expect(view.view.getByRole('status').textContent).toContain('The f…
+       |                      ^
+    421|     expect(editor.state.sliceDoc()).toBe('unsaved # Migrated Markdown\…
+    422|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 31 skipped (32)
+   Start at  18:35:37
+   Duration  1.63s (transform 752ms, setup 0ms, import 1.14s, tests 190ms, environment 224ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

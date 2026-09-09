@@ -1,0 +1,51 @@
+$ git clone --shared --no-checkout /Users/pc2026/DSH-Space/deepseek-harness-md-guard /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness
+Cloning into '/var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness'...
+done.
+EXIT 0
+
+$ git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness switch --detach 5dda764ed3aa172535a7967b06ff95d9cbfe536a
+HEAD is now at 5dda764ed3 Merge pull request #3809 from deepseek-harness/worktree/release/dsh-0.1.5-alpha.1
+EXIT 0
+
+$ git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness config user.name 'README verification'
+EXIT 0
+
+$ git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness config user.email readme-verification@example.invalid
+EXIT 0
+
+$ zsh -n -c 'dsh_patch_worktree=/var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness
+git -C "$dsh_patch_worktree" am "$PWD/patches/harness-sidebar-close-guard.patch"
+git -C "$dsh_patch_worktree" apply --index "$PWD/patches/harness-markdown-heading-source.patch"
+git -C "$dsh_patch_worktree" commit -m '"'"'feat(client): expose source positions for settled Markdown headings'"'"'
+git -C "$dsh_patch_worktree" rev-parse '"'"'HEAD^{tree}'"'"'
+'
+EXIT 0
+
+$ zsh -e -x -c 'dsh_patch_worktree=/var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness
+git -C "$dsh_patch_worktree" am "$PWD/patches/harness-sidebar-close-guard.patch"
+git -C "$dsh_patch_worktree" apply --index "$PWD/patches/harness-markdown-heading-source.patch"
+git -C "$dsh_patch_worktree" commit -m '"'"'feat(client): expose source positions for settled Markdown headings'"'"'
+git -C "$dsh_patch_worktree" rev-parse '"'"'HEAD^{tree}'"'"'
+'
++zsh:1> dsh_patch_worktree=/var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness 
++zsh:2> git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness am /Users/pc2026/DSH-Space/dsh-md-preview/patches/harness-sidebar-close-guard.patch
+Applying: feat(ui-sidebar-right): guard tab removal before layout commits
++zsh:3> git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness apply --index /Users/pc2026/DSH-Space/dsh-md-preview/patches/harness-markdown-heading-source.patch
++zsh:4> git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness commit -m 'feat(client): expose source positions for settled Markdown headings'
+[detached HEAD 8d9f3f789c] feat(client): expose source positions for settled Markdown headings
+ 10 files changed, 103 insertions(+), 8 deletions(-)
+ create mode 100644 .agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.i18n.yaml
+ create mode 100644 .agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.md
+ create mode 100644 .agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.zh.md
++zsh:5> git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness rev-parse 'HEAD^{tree}'
+651b692f063e3d11806c5a53509fb705e1deb13e
+EXIT 0
+
+$ git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness rev-parse 'HEAD^{tree}'
+651b692f063e3d11806c5a53509fb705e1deb13e
+EXIT 0
+
+$ git -C /var/folders/8x/zbvzzwh525lfw_ldp529f4lm0000gn/T/pr61-readme-replay-fcc8mtf0/harness status --porcelain
+EXIT 0
+
+PASS: both README command blocks are identical; patch replay matches locked Harness tree; temporary checkout clean.

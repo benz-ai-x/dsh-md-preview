@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'returns keyboard focus'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 28 skipped (29)
+   Start at  17:50:47
+   Duration  1.47s (transform 666ms, setup 0ms, import 1.04s, tests 156ms, environment 215ms)
+

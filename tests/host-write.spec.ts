@@ -3,9 +3,98 @@
 
 import { describe, expect, it } from 'vitest'
 import { Config } from '../src/config.ts'
+import { WorkspaceFiles } from '@deepseek-ai/dsh-api-workspace-files'
 import { makeService, markdownFile, SESSION, WORKSPACE } from './host-harness.ts'
 
 describe('MdPreviewService.write specifics', () => {
+  it('cannot grant text write authority by widening the extension configuration', async () => {
+    const { service, fs } = await makeService({
+      files: new Map([['/workspace/project/notes.txt', markdownFile('plain')]]),
+      config: Config({ allowedExtensions: ['.md', '.txt'] }),
+    })
+    await expect(service.write(SESSION as never, 'notes.txt', 'edited', 'v1', false, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/unsupported-extension' })
+    expect(fs.writes).toEqual([])
+  })
+
+  it('counts UTF-8 bytes rather than characters when accepting a write', async () => {
+    const { service, fs } = await makeService({
+      config: Config({ maxBytes: 4 }),
+      files: new Map([['/workspace/project/guide.md', markdownFile('x')]]),
+    })
+    await expect(service.write(SESSION as never, 'guide.md', '你好', 'v1', false, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/too-large' })
+    expect(fs.writes).toEqual([])
+  })
+
+  it('publishes the successful version through the public filesystem observation event', async () => {
+    const { service, ctx } = await makeService({ files: new Map([['/workspace/project/guide.md', markdownFile()]]) })
+    const observations: unknown[] = []
+    const release = ctx.on('fs/observed', (target, observation, actor) => { observations.push({ target, observation, actor }) })
+    try {
+      await service.write(SESSION as never, 'guide.md', '# Saved\n', 'v1', false, new AbortController().signal)
+      expect(observations).toEqual([{
+        target: { targetKey: '/workspace/project/guide.md', displayPath: '/workspace/project/guide.md' },
+        observation: { kind: 'present', version: 'v1+w1' }, actor: undefined,
+      }])
+    } finally { release() }
+  })
+
+  it('refuses a detectable target change to a link before a forced write', async () => {
+    const links = new Map<string, string>()
+    const { service, fs } = await makeService({
+      files: new Map([
+        ['/workspace/project/guide.md', markdownFile()],
+        ['/workspace/project/other.md', markdownFile('# Other\n')],
+      ]), symlinks: links,
+    })
+    const stat = fs.stat
+    fs.stat = async (...args) => {
+      const info = await stat(...args)
+      links.set('/workspace/project/guide.md', '/workspace/project/other.md')
+      return info
+    }
+    await expect(service.write(SESSION as never, 'guide.md', '# New\n', undefined, true, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/unsupported-extension' })
+    expect(fs.writes).toEqual([])
+  })
+
+  it('delivers a plugin save to the official workspace changes stream', async () => {
+    const { service, ctx } = await makeService({ files: new Map([['/workspace/project/guide.md', markdownFile()]]) })
+    ctx.provide('sandboxPolicy', { resolve: () => ({ workspaceRoot: WORKSPACE }) } as never)
+    let native!: WorkspaceFiles
+    const fiber = ctx.plugin((owned) => { native = new WorkspaceFiles(owned, WorkspaceFiles.Config({})) })
+    await fiber.await()
+    const controller = new AbortController()
+    const stream = native.changes({ session: { header: { cwd: WORKSPACE } } } as never, controller.signal)[Symbol.asyncIterator]()
+    try {
+      expect(await stream.next()).toEqual({ done: false, value: { kind: 'ready' } })
+      await service.write(SESSION as never, 'guide.md', '# Saved\n', 'v1', false, new AbortController().signal)
+      expect(await stream.next()).toEqual({ done: false, value: {
+        kind: 'change', change: { absolutePath: '/workspace/project/guide.md', version: 'v1+w1' },
+      } })
+    } finally {
+      controller.abort()
+      await stream.return?.()
+      await fiber.dispose()
+    }
+  })
+
+  it.each(['conflict', 'cancel', 'failure'] as const)('publishes no successful observation after %s', async (outcome) => {
+    const { service, ctx } = await makeService({
+      files: new Map([['/workspace/project/guide.md', markdownFile()]]),
+      ...(outcome === 'failure' ? { writeFailure: new Set(['/workspace/project/guide.md']) } : {}),
+    })
+    const observations: unknown[] = []
+    const release = ctx.on('fs/observed', (_target, observation) => { observations.push(observation) })
+    const controller = new AbortController()
+    if (outcome === 'cancel') controller.abort()
+    try {
+      await expect(service.write(SESSION as never, 'guide.md', 'x', outcome === 'conflict' ? 'stale' : 'v1', false, controller.signal)).rejects.toThrow()
+      expect(observations).toEqual([])
+    } finally { release() }
+  })
+
   it('persists guarded content and returns the new fingerprint', async () => {
     const { service, fs } = await makeService({
       files: new Map([['/workspace/project/README.md', markdownFile()]]),

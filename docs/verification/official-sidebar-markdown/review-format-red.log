@@ -1,0 +1,38 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'freezes formatting'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (27 tests | 1 failed | 26 skipped) 156ms
+     × freezes formatting shortcuts while the draft is being saved 155ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > freezes formatting shortcuts while the draft is being saved
+AssertionError: expected '*****[](url)*****# Migrated Markdown\…' to be '****# Migrated Markdown\n\n**Ready**\n' // Object.is equality
+
+- Expected
++ Received
+
+- ****# Migrated Markdown
++ *****[](url)*****# Migrated Markdown
+
+  **Ready**
+
+
+ ❯ tests/sidebar-markdown.spec.tsx:26:39
+     24|     try {
+     25|       await act(async () => { format('b'); format('i'); format('k') })
+     26|       expect(editor.state.sliceDoc()).toBe(draft)
+       |                                       ^
+     27|     } finally { await act(async () => { finish() }) }
+     28|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 26 skipped (27)
+   Start at  17:47:07
+   Duration  1.79s (transform 742ms, setup 0ms, import 1.21s, tests 156ms, environment 359ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

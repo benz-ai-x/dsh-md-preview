@@ -1,0 +1,42 @@
+$ node scripts/verify-dsh-context.mjs --require-source
+PASS README.md exists
+PASS AGENTS.md exists
+PASS CLAUDE.md exists
+PASS TODO.md exists
+PASS package.json exists
+PASS dsh-reference.lock.json exists
+PASS docs/agent/PROJECT_CONTRACT.md exists
+PASS src/index.ts exists
+PASS src/config.ts exists
+PASS src/constants.ts exists
+PASS src/remote.ts exists
+PASS src/typert/remote-client.ts exists
+PASS src/client/index.ts exists
+PASS cordis.patch.yml exists
+PASS tsdown.config.ts exists
+PASS tests/host-read.spec.ts exists
+PASS tests/contribution.spec.ts exists
+PASS tests/client-registration.spec.ts exists
+PASS scripts/verify-built.mjs exists
+PASS package name matches the project contract
+PASS publishable package is not private
+PASS scoped package publishes with public access
+PASS package uses ESM
+PASS package Node engine matches the pinned Harness
+PASS package declares its DSH bundle patch
+PASS package exports its bundle patch
+PASS package declares a web client face
+PASS package exports the built browser bundle
+PASS package exports the Remote contribution
+PASS strict context script requires the source baseline
+PASS context link script rewrites links and refreshes the package-manager lock
+PASS external package contains no workspace protocol dependency
+PASS reference lock schema is supported
+PASS reference lock has a full Git commit
+PASS reference lock has a docs SHA-256
+PASS reference lock records the pinned Node engine
+PASS Node v26.4.0 satisfies ^22.19.0 || >=24.0.0
+FAIL pinned DSH source not found at /Users/pc2026/Dev-Space/deepseek-harness-md-preview-baseline
+
+context check failed: 1 failure(s), 0 warning(s)
+[ELIFECYCLE] Command failed with exit code 1.

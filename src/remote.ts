@@ -12,6 +12,7 @@ import type { FsDirEntry, FsInfo, FsTarget, FsVersion } from '@deepseek-ai/dsh-f
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Config } from './config.ts'
+import { DEFAULT_ALLOWED_EXTENSIONS } from './constants.ts'
 import type {
   MdPreviewEntry, MdPreviewFile, MdPreviewFailureCode, MdPreviewListResult,
   MdPreviewSearchLimit, MdPreviewSearchMatch, MdPreviewSearchResult, MdPreviewWriteResult,
@@ -101,8 +102,12 @@ export class MdPreviewService extends TypertRemoteService {
       if (signal.aborted) throw error
       throw failure('md-preview/unavailable', `mdPreview/read failed for "${path}": ${error instanceof Error ? error.message : String(error)}`)
     }
-    if (content.length > this.config.maxBytes) {
+    if (Buffer.byteLength(content, 'utf8') > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/read refuses "${path}" above the configured byte cap`)
+    }
+    const after = await this.resolveWorkspaceTarget(sessionId, path, signal, 'read', [...this.config.allowedExtensions, ...this.config.previewExtensions])
+    if (after.target.targetKey !== target.targetKey || after.info.version !== info.version) {
+      throw failure('md-preview/conflict', `mdPreview/read refuses "${path}": the file changed during read`)
     }
     return { path, content, fingerprint: info.version }
   }
@@ -128,8 +133,9 @@ export class MdPreviewService extends TypertRemoteService {
     force: boolean,
     signal: AbortSignal,
   ): Promise<MdPreviewWriteResult> {
-    const { target, cwd } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write', this.config.allowedExtensions)
-    if (content.length > this.config.maxBytes) {
+    const editable = this.config.allowedExtensions.filter(extension => (DEFAULT_ALLOWED_EXTENSIONS as readonly string[]).includes(extension))
+    const { target, cwd } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write', editable)
+    if (Buffer.byteLength(content, 'utf8') > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/write refuses "${path}" above the configured byte cap`)
     }
     if (fingerprint === undefined && !force) {
@@ -146,6 +152,10 @@ export class MdPreviewService extends TypertRemoteService {
       mode: 'workspace-write',
       workspaceRoot: cwd,
       sessionId,
+    }
+    const current = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write', editable)
+    if (current.target.targetKey !== target.targetKey || current.cwd !== cwd) {
+      throw failure('md-preview/conflict', `mdPreview/write refuses "${path}": the target changed before write`)
     }
     let outcome: { version: string }
     try {
@@ -164,6 +174,9 @@ export class MdPreviewService extends TypertRemoteService {
       }
       throw failure('md-preview/unavailable', `mdPreview/write failed for "${path}": ${error instanceof Error ? error.message : String(error)}`)
     }
+    // This is an observed committed mutation, not an OS watcher or a forged
+    // tool execution. Workspace file subscribers consume the public event.
+    this.ctx.emit('fs/observed', target, { kind: 'present', version: outcome.version as FsVersion }, undefined)
     return { path, fingerprint: outcome.version }
   }
 
@@ -355,6 +368,22 @@ export class MdPreviewService extends TypertRemoteService {
     if (path.trim().length === 0) {
       target = root
     } else {
+      if (op === 'read' || op === 'write') {
+        // Match workspaceFiles: the named final entry must not be a link,
+        // including a link to another file inside this workspace.
+        let entry: Awaited<ReturnType<typeof this.ctx.fs.lstat>>
+        try {
+          entry = await this.ctx.fs.lstat(path, { cwd }, signal)
+        } catch (error) {
+          if (signal.aborted) throw error
+          const code = fsErrorCode(error)
+          throw failure(code === 'EACCES' || code === 'EPERM' || code === 'FS_SANDBOX_DENIED'
+            ? 'md-preview/forbidden' : 'md-preview/unavailable', `mdPreview/${op} cannot inspect "${path}"`)
+        }
+        if (entry?.type === 'symlink') {
+          throw failure('md-preview/unsupported-extension', `mdPreview/${op} target "${path}" is a symbolic link, not a regular file`)
+        }
+      }
       try {
         target = await this.ctx.fs.resolve(path, { cwd, signal })
       } catch (error) {

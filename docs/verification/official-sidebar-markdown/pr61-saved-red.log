@@ -1,0 +1,388 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'edits the full original'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (30 tests | 1 failed | 29 skipped) 199ms
+     × edits the full original and saves with its fingerprint before confirming the preview 198ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > edits the full original and saves with its fingerprint before confirming the preview
+TestingLibraryElementError: Unable to find an accessible element with the role "status"
+
+Here are the accessible roles:
+
+  tablist:
+
+  Name "":
+  [36m<div[39m
+    [33mclass[39m=[32m"_tabStrip_1be5ba"[39m
+    [33mdata-dockkit-strip[39m=[32m"pane1"[39m
+    [33mrole[39m=[32m"tablist"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  presentation:
+
+  Name "":
+  [36m<div[39m
+    [33mclass[39m=[32m"_stripTabs_1be5ba"[39m
+    [33mdata-dockkit-strip-tabs[39m=[32m"pane1"[39m
+    [33mrole[39m=[32m"presentation"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  tab:
+
+  Name "Start":
+  [36m<div[39m
+    [33maria-selected[39m=[32m"false"[39m
+    [33mclass[39m=[32m"_tab_1be5ba"[39m
+    [33mdata-dockkit-tab[39m=[32m"tab2"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "guide.md":
+  [36m<div[39m
+    [33maria-selected[39m=[32m"true"[39m
+    [33mclass[39m=[32m"_tab_1be5ba _tabActive_1be5ba"[39m
+    [33mdata-dockkit-tab[39m=[32m"tab3"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Close":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Close"[39m
+    [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+    [33mdata-dockkit-tab-close[39m=[32m"tab2"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Close":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Close"[39m
+    [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+    [33mdata-dockkit-tab-close[39m=[32m"tab3"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Split to the right":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Split to the right"[39m
+    [33mclass[39m=[32m"_iconButton_1be5ba"[39m
+    [33mdata-dockkit-split-button[39m=[32m"pane1"[39m
+    [33mtitle[39m=[32m"Split to the right"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Show the sidebar fullscreen":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Show the sidebar fullscreen"[39m
+    [33mclass[39m=[32m"_iconButton_6714e9"[39m
+    [33mdata-sidebar-right-mode[39m=[32m"fullscreen"[39m
+    [33mtitle[39m=[32m"Show the sidebar fullscreen"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Close the sidebar":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Close the sidebar"[39m
+    [33mclass[39m=[32m"_iconButton_6714e9"[39m
+    [33mdata-sidebar-right-toggle[39m=[32m"true"[39m
+    [33mtitle[39m=[32m"Close the sidebar"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Reload":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Edit":
+  [36m<button[39m
+    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Saved Markdown":
+  [36m<h1 />[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<div[39m
+  [33mdata-slot[39m=[32m"rightbar"[39m
+  [33mstyle[39m=[32m"display: contents;"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"_panel_6714e9"[39m
+    [33mdata-sidebar-right-open[39m=[32m"true"[39m
+    [33mdata-sidebar-right-panel[39m=[32m"push"[39m
+    [33mstyle[39m=[32m"width: 560px;"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"_panelBody_6714e9"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"_surface_1be5ba"[39m
+        [33mdata-dockkit-drop-zones[39m=[32m"horizontal"[39m
+        [33mdata-dockkit-surface[39m=[32m"true"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"_pane_1be5ba"[39m
+          [33mdata-dockkit-pane[39m=[32m"pane1"[39m
+          [33mdata-dockkit-pane-active[39m=[32m"true"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"_tabStrip_1be5ba"[39m
+            [33mdata-dockkit-strip[39m=[32m"pane1"[39m
+            [33mrole[39m=[32m"tablist"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"_stripTabs_1be5ba"[39m
+              [33mdata-dockkit-strip-tabs[39m=[32m"pane1"[39m
+              [33mrole[39m=[32m"presentation"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33maria-selected[39m=[32m"false"[39m
+                [33mclass[39m=[32m"_tab_1be5ba"[39m
+                [33mdata-dockkit-tab[39m=[32m"tab2"[39m
+                [33mrole[39m=[32m"tab"[39m
+                [33mtabindex[39m=[32m"-1"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"_tabTitle_1be5ba"[39m
+                  [33mdata-dockkit-tab-title[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mdata-slot[39m=[32m"sidebar.right.pane.tab.title"[39m
+                    [33mstyle[39m=[32m"display: contents;"[39m
+                  [36m>[39m
+                    [0mStart[0m
+                  [36m</div>[39m
+                [36m</span>[39m
+                [36m<button[39m
+                  [33maria-label[39m=[32m"Close"[39m
+                  [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+                  [33mdata-dockkit-tab-close[39m=[32m"tab2"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"10"[39m
+                    [33mviewBox[39m=[32m"0 0 10 10"[39m
+                    [33mwidth[39m=[32m"10"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M1.5 1.5l7 7M8.5 1.5l-7 7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.2"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33maria-selected[39m=[32m"true"[39m
+                [33mclass[39m=[32m"_tab_1be5ba _tabActive_1be5ba"[39m
+                [33mdata-dockkit-tab[39m=[32m"tab3"[39m
+                [33mrole[39m=[32m"tab"[39m
+                [33mtabindex[39m=[32m"0"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"_tabTitle_1be5ba"[39m
+                  [33mdata-dockkit-tab-title[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mdata-slot[39m=[32m"sidebar.right.pane.tab.title"[39m
+                    [33mstyle[39m=[32m"display: contents;"[39m
+                  [36m>[39m
+                    [0mguide.md[0m
+                  [36m</div>[39m
+                [36m</span>[39m
+                [36m<button[39m
+                  [33maria-label[39m=[32m"Close"[39m
+                  [33mclass[39m=[32m"_tabClose_1be5ba"[39m
+                  [33mdata-dockkit-tab-close[39m=[32m"tab3"[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"10"[39m
+                    [33mviewBox[39m=[32m"0 0 10 10"[39m
+                    [33mwidth[39m=[32m"10"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M1.5 1.5l7 7M8.5 1.5l-7 7"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.2"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"_stripFill_1be5ba"[39m
+              [33mdata-dockkit-strip-fill[39m=[32m"true"[39m
+            [36m/>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Split to the right"[39m
+              [33mclass[39m=[32m"_iconButton_1be5ba"[39m
+              [33mdata-dockkit-split-button[39m=[32m"pane1"[39m
+              [33mtitle[39m=[32m"Split to the right"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"14"[39m
+                [33mviewBox[39m=[32m"0 0 14 14"[39m
+                [33mwidth[39m=[32m"14"[39m
+              [36m>[39m
+                [36m<rect[39m
+                  [33mheight[39m=[32m"10"[39m
+                  [33mrx[39m=[32m"1.5"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mwidth[39m=[32m"11"[39m
+                  [33mx[39m=[32m"1.5"[39m
+                  [33my[39m=[32m"2"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M7 2v10"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"_stripChrome_1be5ba"[39m
+              [33mdata-dockkit-strip-chrome[39m=[32m"true"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Show the sidebar fullscreen"[39m
+                [33mclass[39m=[32m"_iconButton_6714e9"[39m
+                [33mdata-sidebar-right-mode[39m=[32m"fullscreen"[39m
+                [33mtitle[39m=[32m"Show the sidebar fullscreen"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"14"[39m
+                  [33mviewBox[39m=[32m"0 0 14 14"[39m
+                  [33mwidth[39m=[32m"14"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M5 1.5H1.5V5M9 1.5h3.5V5M1.5 9v3.5H5M12.5 9v3.5H9"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Close the sidebar"[39m
+                [33mclass[39m=[32m"_iconButton_6714e9"[39m
+                [33mdata-sidebar-right-toggle[39m=[32m"true"[39m
+                [33mtitle[39m=[32m"Close the sidebar"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"12"[39m
+                  [33mviewBox[39m=[32m"0 0 12 12"[39m
+                  [33mwidth[39m=[32m"12"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M2 2l8 8M10 2l-8 8"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.3"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"_paneBody_1be5ba"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mdata-slot[39m=[32m"sidebar.right.pane.tab"[39m
+              [33mstyle[39m=[32m"display: contents;"[39m
+            [36m>[39m
+              [36m<section[39m
+                [33mclass[39m=[32m"dsh-md-tab"[39m
+                [33mdata-plugin-version[39m=[32m"v0.11.0-alpha.2"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"dsh-md-tab-toolbar"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33mtitle[39m=[32m"guide.md"[39m
+                  [36m>[39m
+                    [0mguide.md[0m
+                  [36m</span>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mReload[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"_button_af9634 _ghost_af9634 _sm_af9634"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0mEdit[0m
+                  [36m</button>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"dsh-md-tab-document"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"_markdown_24095d"[39m
+                  [36m>[39m
+                    [36m<h1>[39m
+                      [0mSaved Markdown[0m
+                    [36m</h1>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</section>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</div>[39m
+ ❯ Object.getElementError ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../deepseek-harness-md-guard/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/sidebar-markdown.spec.tsx:125:22
+    123|     expect(writes).toEqual([{ sessionId: SESSION, path: 'guide.md', co…
+    124|     expect(view.view.getByRole('heading', { name: 'Saved Markdown' }))…
+    125|     expect(view.view.getByRole('status').textContent).toBe('Saved')
+       |                      ^
+    126|     expect(reads).toHaveLength(2)
+    127|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 29 skipped (30)
+   Start at  18:33:02
+   Duration  1.87s (transform 851ms, setup 0ms, import 1.32s, tests 199ms, environment 277ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

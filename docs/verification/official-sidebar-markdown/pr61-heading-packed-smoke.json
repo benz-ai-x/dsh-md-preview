@@ -1,0 +1,83 @@
+{
+  "version": "0.11.0-alpha.5",
+  "sourceCommit": "18b43c0810237c94bedb9200d05b496991e687dc",
+  "node": "v26.4.0",
+  "pnpm": "11.17.0",
+  "baseline": "0.1.5-alpha.1+a28c5a8f4927217f345d02e22c782a32d5750f0a",
+  "profile": "/tmp/mdpreview-0110a5-smoke-TNstzz/profiles/web",
+  "archiveSha256": "da9d91dae684c4836d8a9a10c78c15f11623b2c5b99bd995d5d0b33a8782567d",
+  "shutdown": [
+    {
+      "code": 0,
+      "signal": null
+    },
+    {
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "archive": {
+    "fileCount": 36,
+    "cleanManifest": true,
+    "exportsPresent": true,
+    "noSourceMaps": true,
+    "lazyFactory": true,
+    "clientSha256": "f4a5956129557d67adb0dafbe0cc942ed265149de3a9369627355b8681a2914e"
+  },
+  "configuration": {
+    "composed": true,
+    "override": {
+      "maxBytes": 4096,
+      "allowedExtensions": [
+        ".md"
+      ],
+      "previewExtensions": [
+        ".markdown"
+      ],
+      "searchMaxResults": 3,
+      "searchMaxDirectories": 4,
+      "searchConcurrency": 2
+    }
+  },
+  "installedMatchesArchive": true,
+  "lockSha256": "c13a4dd70c2d4ed6977c80683293016ea33b25ac2ccd2387f09fee8b1832b005",
+  "port": 62503,
+  "boot": {
+    "status": 200,
+    "entries": 54,
+    "bytes": 3890631,
+    "servedSha256": "9704f355a2580fb3918faaa93330b047e87f1f06364c1491e7cfdb8b6a3f2743",
+    "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=13b9177fc723d295-48",
+    "releaseMarkers": true,
+    "headingSourceAsset": {
+      "url": "./assets/index-D1ftMGDc.js",
+      "sha256": "01de00abfed798bf5bd2863012001da7dd0a52dcce201c46a0871de97998897d"
+    }
+  },
+  "imports": {
+    "host": [
+      "Config",
+      "DEFAULT_ALLOWED_EXTENSIONS",
+      "DEFAULT_MAX_BYTES",
+      "DEFAULT_PREVIEW_EXTENSIONS",
+      "DEFAULT_SEARCH_CONCURRENCY",
+      "DEFAULT_SEARCH_MAX_DIRECTORIES",
+      "DEFAULT_SEARCH_MAX_RESULTS",
+      "MD_PREVIEW_FAILURE_CODES",
+      "MdPreviewService",
+      "apply",
+      "inject",
+      "isAllowedExtension",
+      "name"
+    ],
+    "remote": [
+      "TYPERT_REMOTE",
+      "default"
+    ]
+  },
+  "removal": {
+    "entries": 53,
+    "priorBundleStatus": 404,
+    "absent": true
+  }
+}

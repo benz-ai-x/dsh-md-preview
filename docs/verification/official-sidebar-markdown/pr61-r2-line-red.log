@@ -1,0 +1,35 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'locates the source line again'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (34 tests | 1 failed | 33 skipped) 191ms
+     × locates the source line again when explicitly requested after returning to preview 189ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > locates the source line again when explicitly requested after returning to preview
+AssertionError: expected 1 to be 6 // Object.is equality
+
+- Expected
++ Received
+
+- 6
++ 1
+
+ ❯ tests/sidebar-markdown.spec.tsx:502:82
+    500|     await act(async () => { view.view.getByRole('button', { name: 'Pre…
+    501|     await act(async () => { view.view.getByRole('button', { name: 'Sou…
+    502|     expect(editor().state.doc.lineAt(editor().state.selection.main.hea…
+       |                                                                                  ^
+    503|   })
+    504|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+   Start at  19:01:13
+   Duration  1.66s (transform 745ms, setup 0ms, import 1.15s, tests 191ms, environment 245ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

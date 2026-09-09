@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'freezes formatting'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 26 skipped (27)
+   Start at  17:47:34
+   Duration  1.69s (transform 727ms, setup 0ms, import 1.14s, tests 156ms, environment 328ms)
+

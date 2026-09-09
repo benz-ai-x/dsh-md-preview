@@ -1,182 +1,104 @@
-/** Source-safe MdPreview browser registration and Remote mount lifecycle. */
-
+/** Source-safe Remote lifecycle and official right-sidebar registrations. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type {} from '@deepseek-ai/dsh-client-ui-deliverables/client'
-// The layout package's type merge declares the shell.overlay slot key.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
-import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type { WorkspaceFileParams } from '@deepseek-ai/dsh-api-workspace-files/client'
+import type { TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { MdPreviewFile, MdPreviewListResult, MdPreviewSearchResult, MdPreviewWriteResult } from '../protocol.ts'
-import type { MdPreviewTarget } from './preview-state.ts'
-import { MdChips } from './MdChips.tsx'
+import { fileAddressFor, parseFileAddress } from '@deepseek-ai/dsh-util-workspace-path'
+import { MarkdownTab } from './MarkdownTab.tsx'
+import { MarkdownLeaveDialog } from './MarkdownLeaveDialog.tsx'
 import { PreviewAction } from './PreviewAction.tsx'
-import { PreviewOverlay } from './PreviewOverlay.tsx'
-import { WorkspaceDocsAction } from './WorkspaceDocsAction.tsx'
+import { createMarkdownDocuments } from './markdown-documents.ts'
+import { createDiagramRenderer } from './diagrams.ts'
+import { isDirty } from './preview-session.ts'
 import { en, NS, zh } from './locale.ts'
-import { createPreviewStore } from './preview-state.ts'
-import { createLeaveIntentSeat } from './leave-intent.ts'
-import { browserStorage, createMemoryStorage, createReadingStore } from './reading.ts'
-import { createPanelPreferenceStore } from './preferences.ts'
-import { selectMdTurnFiles } from './turn-files.ts'
-import { ensureStyles } from './styles.ts'
+import { installStyles } from './styles.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    /** MdPreview panel, chips, and action copy. */
     'md-preview': import('./locale.ts').MdPreviewKey
   }
 }
-
-/** Required browser services for the Remote mount, slots, and locale. */
-export const inject = ['remote', 'slots', 'locale']
-
-function registerUi(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-md-preview: dictionaries')
-  ensureStyles()
-  const previewTarget = createPreviewStore()
-  // The common leave-intent entry (#21): every outlet requests opens and
-  // closes here; the panel owns the guard and the execution. UI-local
-  // viewing state only — it dies with the mount.
-  const leave = createLeaveIntentSeat()
-  // The reading record (#25): per-(session, path) positions over the
-  // browser's localStorage when reachable, else in-memory for the session.
-  // UI-local viewing state only — positions, never bodies or fingerprints.
-  const reading = createReadingStore(browserStorage() ?? createMemoryStorage())
-  // The current-turn outputs seat (#31): the session header's capsule (the
-  // plugin's always-mounted session-scoped entry) derives the newest turn's
-  // previewable produced documents from the owning chat facts and publishes
-  // them here for the root-scoped panel to read. A derived view, not a copy
-  // of turn facts — it dies with the mount.
-  const turnOutputs = createSnapshotStore<{ sessionId: SessionId; paths: readonly string[] } | null>(null)
-  let lastPublished: { sessionId: SessionId; paths: readonly string[] } | null = null
-  const publishTurnOutputs = (sessionId: SessionId, paths: readonly string[]): void => {
-    // Chat updates stream constantly; only real changes ripple to the panel.
-    if (lastPublished !== null && lastPublished.sessionId === sessionId
-      && lastPublished.paths.length === paths.length
-      && lastPublished.paths.every((path, index) => path === paths[index])) return
-    lastPublished = { sessionId, paths: [...paths] }
-    turnOutputs.set(lastPublished)
+declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
+  interface SidebarRightResourceParamsMap {
+    file: WorkspaceFileParams
   }
-  // The panel preference record (#26): manual geometry and navigation
-  // choices over the same storage discipline.
-  const preferences = createPanelPreferenceStore(browserStorage() ?? createMemoryStorage())
-  const openPreview = (sessionId: SessionId) => (path: string): void => {
-    leave.request({ kind: 'open', target: { sessionId, path } })
-  }
-  const read = (
-    sessionId: SessionId,
-    path: string,
-    signal: AbortSignal,
-  ): Promise<RemoteResult<MdPreviewFile>> => ctx.remote.mdPreview.read(sessionId, path, signal)
-  const write = (
-    sessionId: SessionId,
-    path: string,
-    content: string,
-    fingerprint: string | undefined,
-    force: boolean,
-    signal: AbortSignal,
-  ): Promise<RemoteResult<MdPreviewWriteResult>> =>
-    ctx.remote.mdPreview.write(sessionId, path, content, fingerprint, force, signal)
-  const list = (
-    sessionId: SessionId,
-    path: string,
-    signal: AbortSignal,
-  ): Promise<RemoteResult<MdPreviewListResult>> =>
-    ctx.remote.mdPreview.list(sessionId, path, signal)
-  const search = (
-    sessionId: SessionId,
-    query: string,
-    signal: AbortSignal,
-  ): Promise<RemoteResult<MdPreviewSearchResult>> =>
-    ctx.remote.mdPreview.search(sessionId, query, signal)
-  const setTarget = (target: MdPreviewTarget | null): void => { previewTarget.set(target) }
-
-  // The document sidebar: an additive shell.overlay entry. Its layout
-  // anchor lives with the contribution; while open the reversible adapter
-  // reserves frame space or uses an overlay on narrow screens (ADR-0004).
-  // The host details contribution keeps its shipped tool/approval surface.
-  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay',
-    id: 'md-preview-panel',
-    order: 80,
-    locale: NS,
-    inject: () => ({
-      hooks: { previewTarget },
-      leave,
-      close: () => { previewTarget.set(null) },
-      setTarget,
-      read,
-      write,
-      list,
-      search,
-      reading,
-      turnOutputs,
-      preferences,
-    }),
-  }, PreviewOverlay))
-
-  // The markdown-aware chip row: claims turns that produced markdown. The
-  // negative priority outranks ui-deliverables' entry (default 0) for those
-  // turns only; every other turn still resolves to the shipped row.
-  ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
-    name: 'conversation.chat.turnTail',
-    priority: -100,
-    select: selectMdTurnFiles,
-    locale: NS,
-    inject: (sessionId: SessionId) => ({ openPreview: openPreview(sessionId) }),
-  }, MdChips))
-
-  // The per-message action: additive list id, hidden without markdown.
-  ctx.slots.inject('conversation.chat.assistant-actions', () => ctx.slots.register({
-    name: 'conversation.chat.assistant-actions',
-    id: 'md-preview',
-    order: 50,
-    locale: NS,
-    inject: (sessionId: SessionId) => ({ openPreview: openPreview(sessionId) }),
-  }, PreviewAction))
-
-  // The document sidebar toggle: joins the Session Header's right-side
-  // utilities, rendered ascending by order — the shipped Session-log download
-  // capsule sits at the default 0, so order 100 parks us to its right. Session
-  // scope hands the component its Session directly. As the always-mounted
-  // session-scoped seat it also publishes the current-turn outputs (#31)
-  // derived from the session binding's chat facts.
-  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
-    name: 'conversation.session.header.utilities',
-    id: 'md-preview-docs',
-    order: 100,
-    locale: NS,
-    inject: () => ({ hooks: { previewTarget }, leave, publishTurnOutputs }),
-  }, WorkspaceDocsAction))
 }
 
-/**
- * Mount the MdPreview Remote contribution, then register its browser UI.
- * @param ctx - client root context carrying the Remote table, slots, and locale.
- * @param contribution - this package's Remote descriptors.
- * @returns disposer for both the UI registrations and the Remote namespace.
- */
-export async function mountMdPreview(
-  ctx: ClientContext,
-  contribution: TypertRemoteContribution,
-): Promise<() => Promise<void>> {
+/** The document owner consumes only public platform services. */
+export const inject = ['remote', 'slots', 'locale', 'sidebarRightTabs', 'sidebarRight']
+
+function registerUi(ctx: ClientContext): void {
+  if (typeof ctx.sidebarRight.beforeClose !== 'function') {
+    throw new Error('Markdown editing requires sidebarRight.beforeClose; use the Harness revision in dsh-reference.lock.json.')
+  }
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'md-preview: dictionaries')
+  ctx.effect(installStyles, 'md-preview: styles')
+  const documents = createMarkdownDocuments(
+    (sessionId, path, signal) => ctx.remote.mdPreview.read(sessionId, path, signal),
+    (sessionId, path, content, fingerprint, force, signal) => ctx.remote.mdPreview.write(sessionId, path, content, fingerprint, force, signal),
+    (sessionId, tabId, guard) => ctx.sidebarRight.beforeClose(sessionId, tabId, guard),
+  )
+  ctx.effect(() => () => documents.dispose(), 'md-preview: document lifetimes')
+  const diagrams = createDiagramRenderer()
+  ctx.effect(() => () => diagrams.dispose(), 'md-preview: diagram lifetimes')
+  ctx.effect(() => {
+    const warn = (event: BeforeUnloadEvent): void => {
+      if (!Object.values(documents.snapshot.getSnapshot()).some(state => isDirty(state) || state.saving)) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, 'md-preview: browser leave warning')
+
+  const markdownId = '@benz-ai-x/dsh-md-preview'
+  ctx.effect(() => ctx.sidebarRightTabs.register({
+    id: markdownId, kind: 'md-preview', patterns: ['dsh-resource://file/**'],
+    canOpen: address => /\.(md|markdown)$/i.test(parseFileAddress(address)?.path ?? ''),
+    title: address => parseFileAddress(address)?.path.split('/').at(-1) ?? address,
+  }), 'md-preview: Markdown type')
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
+    name: 'sidebar.right.pane.tab', key: markdownId, locale: NS,
+    inject: () => ({
+      hooks: { documents: documents.snapshot }, attach: documents.attach,
+      enterEdit: documents.enterEdit, edit: documents.edit, save: documents.save,
+      rememberEditor: documents.rememberEditor, restoreEditor: documents.restoreEditor,
+      leave: documents.leave, takeNavigation: documents.takeNavigation,
+      renderDiagrams: diagrams.render,
+      openNativeText: (address: string) => ctx.sidebarRight.openResource(address, { kind: 'text' }),
+    }),
+  }, MarkdownTab)), 'md-preview: Markdown body')
+  // Only the unsaved confirmation lives at root; document layout stays native.
+  ctx.effect(() => ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'md-preview-unsaved', locale: NS,
+    inject: () => ({ hooks: { prompts: documents.prompts }, decide: documents.decide }),
+  }, MarkdownLeaveDialog)), 'md-preview: unsaved confirmation')
+  ctx.effect(() => ctx.slots.inject('conversation.chat.assistant-actions', () => ctx.slots.register({
+    name: 'conversation.chat.assistant-actions', id: 'md-preview', order: 50, locale: NS,
+    inject: (sessionId: SessionId) => ({
+      openPreview: (path: string, cwd?: string) => ctx.sidebarRight.openResource(fileAddressFor(sessionId, cwd, path)),
+    }),
+  }, PreviewAction)), 'md-preview: conversation action')
+}
+
+/** Mount the Remote first; rollback or unload releases both halves. */
+export async function mountMdPreview(ctx: ClientContext, contribution: TypertRemoteContribution): Promise<() => Promise<void>> {
   const disposeRemote = await ctx.remote.$mount(contribution)
-  const ui = ctx.inject(['remote.mdPreview', 'slots', 'locale'], registerUi)
+  const ui = ctx.inject(['remote.mdPreview', 'slots', 'locale', 'sidebarRightTabs', 'sidebarRight'], registerUi)
   try {
     await ui
   } catch (error) {
-    await ui.dispose()
-    await disposeRemote()
+    try { await ui.dispose() } finally { await disposeRemote() }
     throw error
   }
-  return async () => {
-    await ui.dispose()
-    await disposeRemote()
-  }
+  let disposal: Promise<void> | undefined
+  return () => disposal ??= (async () => {
+    try { await ui.dispose() } finally { await disposeRemote() }
+  })()
 }

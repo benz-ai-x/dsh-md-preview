@@ -1,0 +1,6 @@
+# Raw validation logs retain the command's exact whitespace.
+docs/verification/batch-1-readonly-text/*.log -whitespace
+docs/verification/official-sidebar-markdown/*.log -whitespace
+# Unified diffs need their context-line prefixes and format-patch separator.
+patches/harness-sidebar-close-guard.patch -whitespace
+patches/harness-markdown-heading-source.patch -whitespace

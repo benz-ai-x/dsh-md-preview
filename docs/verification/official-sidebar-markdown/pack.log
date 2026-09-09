@@ -1,0 +1,98 @@
+$ node scripts/pack.mjs
+$ node scripts/clean-build.mjs && tsc -p tsconfig.json && tsdown
+ℹ tsdown v0.22.14 powered by rolldown v1.2.6
+ℹ config file: /Users/pc2026/DSH-Space/dsh-md-preview/tsdown.config.ts 
+ℹ [@benz-ai-x/dsh-md-preview/client] entry: src/client/index.ts
+ℹ [@benz-ai-x/dsh-md-preview/client] target: es2024
+ℹ [@benz-ai-x/dsh-md-preview/client] tsconfig: tsconfig.json
+ℹ [@benz-ai-x/dsh-md-preview/host] entry: src/index.ts, src/typert/remote-client.ts
+ℹ [@benz-ai-x/dsh-md-preview/host] target: es2024
+ℹ [@benz-ai-x/dsh-md-preview/host] tsconfig: tsconfig.json
+ℹ Build start
+
+ WARN  inlineDynamicImports option is deprecated, please use codeSplitting: false instead.
+
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js                     21.89 kB │ gzip:  6.20 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/typert/remote-client.js       5.70 kB │ gzip:  1.24 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/index.js.map                 37.50 kB │ gzip: 10.13 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] lib/typert/remote-client.js.map  10.97 kB │ gzip:  2.13 kB
+ℹ [@benz-ai-x/dsh-md-preview/host] [ESM] 4 files, total: 76.05 kB
+✔ [@benz-ai-x/dsh-md-preview/host] Build complete in 75ms
+ℹ [@benz-ai-x/dsh-md-preview/client] Hint: consider adding deps.onlyBundle option to avoid unintended bundling of dependencies, or set deps.onlyBundle: false to disable this hint.
+See more at https://tsdown.dev/options/dependencies#deps-onlybundle
+Detected dependencies in bundle:
+- zod
+- @marijn/find-cluster-break
+- @codemirror/state
+- style-mod
+- w3c-keyname
+- crelt
+- @codemirror/view
+- @lezer/common
+- @lezer/highlight
+- @codemirror/language
+- @codemirror/commands
+- @codemirror/search
+- @lezer/markdown
+- mermaid
+- dayjs
+- khroma
+- dompurify
+- katex
+- d3-array
+- internmap
+- d3-axis
+- d3-dispatch
+- d3-selection
+- d3-drag
+- d3-color
+- d3-interpolate
+- d3-timer
+- d3-transition
+- d3-ease
+- d3-brush
+- d3-path
+- d3-chord
+- d3-contour
+- d3-delaunay
+- d3-dsv
+- d3-fetch
+- d3-quadtree
+- d3-force
+- d3-format
+- d3-geo
+- d3-hierarchy
+- d3-polygon
+- d3-random
+- d3-scale
+- d3-time
+- d3-time-format
+- d3-scale-chromatic
+- d3-shape
+- d3-zoom
+- d3
+- @iconify/utils
+- @braintree/sanitize-url
+- es-toolkit
+- fastdom
+- marked
+- ts-dedent
+- roughjs
+- lodash-es
+- dagre-d3-es
+- cytoscape
+- layout-base
+- cose-base
+- cytoscape-cose-bilkent
+- stylis
+- @mermaid-js/parser
+- uuid
+- d3-sankey
+- cytoscape-fcose
+- @upsetjs/venn.js
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] lib/client.js       3.89 MB
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] lib/client.js.map  13.96 MB
+ℹ [@benz-ai-x/dsh-md-preview/client] [CJS] 2 files, total: 17.85 MB
+✔ [@benz-ai-x/dsh-md-preview/client] Build complete in 464ms
+built check passed: 6 artifact(s) fresh
+packed benz-ai-x-dsh-md-preview-0.11.0-alpha.2.tgz: manifest is registry-clean (no devDependencies, no link:/workspace:)

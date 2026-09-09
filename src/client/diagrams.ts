@@ -10,7 +10,7 @@
 /** The mermaid surface this pass uses (the import seam tests mock). */
 interface MermaidSurface {
   initialize(config: Record<string, unknown>): void
-  render(id: string, text: string): Promise<{ svg: string }>
+  render(id: string, text: string, container: HTMLElement): Promise<{ svg: string }>
 }
 
 let surfacePromise: Promise<MermaidSurface> | null = null
@@ -76,29 +76,75 @@ export interface DiagramLabels {
  * @param content - the document source backing the rendered container.
  * @param labels - the fallback caption.
  */
-export async function enhanceDiagrams(root: ParentNode, content: string, labels: DiagramLabels): Promise<void> {
+export async function enhanceDiagrams(root: ParentNode, content: string, labels: DiagramLabels, signal?: AbortSignal): Promise<void> {
   for (const block of findDiagramBlocks(root, fenceLanguages(content))) {
+    if (signal?.aborted) return
     if (block.hasAttribute('data-md-preview-diagram')) continue
-    block.setAttribute('data-md-preview-diagram', 'pending')
+    const id = `dsh-md-preview-diagram-${idCounter++}`
+    block.setAttribute('data-md-preview-diagram', id)
     const pre = block.querySelector('pre')
     const source = (pre?.textContent ?? '').trim()
     if (source.length === 0) continue
-    let svg: string
+    let staging: HTMLDivElement | undefined
+    const abort = (): void => {
+      if (block.getAttribute('data-md-preview-diagram') === id) block.removeAttribute('data-md-preview-diagram')
+      staging?.remove()
+    }
+    signal?.addEventListener('abort', abort, { once: true })
     try {
-      svg = (await (await loadSurface()).render(`dsh-md-preview-diagram-${idCounter++}`, source)).svg
+      const surface = await loadSurface()
+      if (signal?.aborted) return
+      // Mermaid measures attached SVG, but its temporary nodes must stay in
+      // this body's owned subtree rather than its default document.body.
+      staging = document.createElement('div')
+      Object.assign(staging.style, { position: 'absolute', left: '-10000px', width: `${Math.max(block.clientWidth, 320)}px` })
+      block.append(staging)
+      const { svg } = await surface.render(id, source, staging)
+      if (signal?.aborted) return
+      const host = document.createElement('div')
+      host.className = 'dsh-md-preview-diagram'
+      // Mermaid's own SVG output; securityLevel strict sanitizes its labels.
+      host.innerHTML = svg
+      block.append(host)
+      pre?.setAttribute('hidden', 'hidden')
+      block.setAttribute('data-md-preview-diagram', 'ready')
     } catch {
+      if (signal?.aborted) return
       block.setAttribute('data-md-preview-diagram', 'failed')
       const note = document.createElement('div')
       note.className = 'dsh-md-preview-diagram-error'
       note.textContent = labels.error
       block.append(note)
-      continue
+    } finally {
+      staging?.remove()
+      signal?.removeEventListener('abort', abort)
     }
-    const host = document.createElement('div')
-    host.className = 'dsh-md-preview-diagram'
-    // Mermaid's own SVG output; securityLevel strict sanitizes its labels.
-    host.innerHTML = svg
-    block.append(host)
-    pre?.setAttribute('hidden', 'hidden')
+  }
+}
+
+/** One plugin mount owns and drains its non-cancellable external renders. */
+export function createDiagramRenderer() {
+  const controllers = new Set<AbortController>()
+  const tasks = new Set<Promise<void>>()
+  let disposed = false
+  return {
+    render(root: ParentNode, content: string, labels: DiagramLabels, signal: AbortSignal): void {
+      if (disposed || signal.aborted) return
+      const controller = new AbortController()
+      const abort = () => controller.abort()
+      signal.addEventListener('abort', abort, { once: true })
+      controllers.add(controller)
+      const task = enhanceDiagrams(root, content, labels, controller.signal).finally(() => {
+        signal.removeEventListener('abort', abort)
+        controllers.delete(controller)
+        tasks.delete(task)
+      })
+      tasks.add(task)
+    },
+    async dispose(): Promise<void> {
+      disposed = true
+      for (const controller of controllers) controller.abort()
+      await Promise.all(tasks)
+    },
   }
 }

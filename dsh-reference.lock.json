@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "upstream": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
-    "version": "0.1.2-rc.1",
+    "version": "0.1.5-alpha.1",
     "node": "^22.19.0 || >=24.0.0",
-    "commit": "a66e4702047846cdaa10c66c9d3df3951f5ea70d",
-    "docsDigest": "bcf97ba2fec82bf16437ad5ec75bd719487f2bf47ea4504a1a34189ee949f0d9"
+    "commit": "a28c5a8f4927217f345d02e22c782a32d5750f0a",
+    "docsDigest": "aed2ad3126a0f0cd9b84250afe6e45c0682fee2c2c7b8268df98eb737686647f"
   },
   "localResolution": {
     "environmentVariable": "DSH_HARNESS_ROOT",
-    "fallbackRelativePath": "../deepseek-harness"
+    "fallbackRelativePath": "../deepseek-harness-md-guard"
   },
-  "verifiedOn": "2026-09-06"
+  "verifiedOn": "2026-09-09"
 }

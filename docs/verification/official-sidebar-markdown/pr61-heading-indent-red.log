@@ -1,0 +1,41 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'reveals an indented ATX heading'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (37 tests | 1 failed | 36 skipped) 99ms
+     × reveals an indented ATX heading instead of the preceding section 98ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > reveals an indented ATX heading instead of the preceding section
+AssertionError: expected [ <h1></h1> ] to deeply equal [ <h2></h2> ]
+
+- Expected
++ Received
+
+  [
+-   <h2>
+-     Section
+-   </h2>,
++   <h1>
++     Top
++   </h1>,
+  ]
+
+ ❯ tests/sidebar-markdown.spec.tsx:589:23
+    587|       })
+    588|       await act(async () => { runtime.ctx.sidebarRight.openResource(se…
+    589|       expect(scrolls).toEqual([view.view.getByRole('heading', { name: …
+       |                       ^
+    590|     } finally {
+    591|       if (previous) Object.defineProperty(Element.prototype, 'scrollIn…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 36 skipped (37)
+   Start at  19:40:06
+   Duration  1.50s (transform 723ms, setup 0ms, import 1.11s, tests 99ms, environment 225ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

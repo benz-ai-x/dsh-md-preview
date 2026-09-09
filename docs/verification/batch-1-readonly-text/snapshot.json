@@ -1,0 +1,49 @@
+{
+  "date": "2026-09-09",
+  "pausedByUser": true,
+  "codeCommit": "2491a52aaa991d57d5037e60f2dfc7598910b5f6",
+  "issue": 39,
+  "issueState": "OPEN",
+  "acTicked": "7/7",
+  "githubPr": null,
+  "independentReviewCompleted": false,
+  "verifiedHarness": {
+    "version": "0.1.2-rc.1",
+    "commit": "a66e4702047846cdaa10c66c9d3df3951f5ea70d",
+    "strictPassed": 123,
+    "verifyExitCode": 0,
+    "testFiles": 26,
+    "tests": 338,
+    "artifactChecks": 6
+  },
+  "updatedLocalHarness": {
+    "version": "0.1.5-alpha.1",
+    "commit": "5dda764ed3aa172535a7967b06ff95d9cbfe536a",
+    "strictExitCode": 1,
+    "strictFailures": [
+      "version",
+      "commit",
+      "docsDigest"
+    ],
+    "compatibilityAssessed": false
+  },
+  "candidate": {
+    "path": "/Users/pc2026/Dev-Space/dsh-md-preview-batch-1-readonly-text/benz-ai-x-dsh-md-preview-0.10.0.tgz",
+    "version": "0.10.0",
+    "bytes": 1110033,
+    "sha256": "a7cda449b6674ae0e681d7055cd0d16a6b9b62f1081a9b0eba6bcd25de1a7ed0",
+    "clientSha256": "1cb60f58d88477e158fee6b50b79e53b779640e1d4d2a048de495c13d397e463",
+    "packExitCode": 0,
+    "installationVerified": false,
+    "browserVerified": false,
+    "published": false
+  },
+  "finalEnvironmentRecheck": {
+    "at": "2026-09-09T02:26:35.122Z",
+    "baselinePathExists": false,
+    "ordinaryHarnessPathExists": false,
+    "latestStrictExitCode": 1,
+    "latestStrictFailure": "Pinned Harness source not found",
+    "newLocationConfirmed": false
+  }
+}

@@ -85,6 +85,28 @@ async function call(
 }
 
 describe('mdPreview authority (read × write)', () => {
+  it.each(['read', 'write'] as const)('%s rejects a workspace-internal final symlink before following it', async (method) => {
+    const { service, fs } = await makeService({
+      files: new Map([['/workspace/project/real.md', markdownFile()]]),
+      symlinks: new Map([['/workspace/project/link.md', '/workspace/project/real.md']]),
+    })
+    await expect(call(service, method, SESSION, 'link.md', new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/unsupported-extension' })
+    expect(fs.writes).toEqual([])
+  })
+
+  it.each(['read', 'write'] as const)('%s also rejects outside and broken final symlinks', async (method) => {
+    for (const destination of ['/outside/secret.md', '/workspace/project/missing.md']) {
+      const { service, fs } = await makeService({
+        files: new Map([['/outside/secret.md', markdownFile('# Outside\n')]]),
+        symlinks: new Map([['/workspace/project/link.md', destination]]),
+      })
+      await expect(call(service, method, SESSION, 'link.md', new AbortController().signal))
+        .rejects.toMatchObject({ code: 'md-preview/unsupported-extension' })
+      expect(fs.writes).toEqual([])
+    }
+  })
+
   for (const method of ['read', 'write'] as const) {
     for (const testCase of CASES) {
       it(`${method} rejects ${testCase.name}`, async () => {

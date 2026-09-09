@@ -1,24 +1,5 @@
-/** Preview target state shared by the conversation entries and the panel. */
-
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+/** Markdown path policy shared by retained document helpers. */
 import { DEFAULT_ALLOWED_EXTENSIONS } from '../constants.ts'
-
-/** The document the preview panel currently shows; null while closed. */
-export interface MdPreviewTarget {
-  readonly sessionId: SessionId
-  readonly path: string
-  /** Entry face for the panel (default 'document'); 'browse' opens on the tree. */
-  readonly face?: 'document' | 'browse'
-}
-
-/** Whole preview panel state: the current target or the closed state. */
-export type MdPreviewState = MdPreviewTarget | null
-
-/** Create the plugin-owned preview target store. */
-export function createPreviewStore() {
-  return createSnapshotStore<MdPreviewState>(null)
-}
 
 /** Trailing path segment; the part that identifies a file at a glance. */
 export function basename(path: string): string {

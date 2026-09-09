@@ -1,0 +1,38 @@
+$ vitest run tests/host-read.spec.ts -t 'link-probe failures'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/host-read.spec.ts (9 tests | 1 failed | 8 skipped) 6ms
+     × reports link-probe failures with a stable code while preserving cancellation 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/host-read.spec.ts > MdPreviewService.read specifics > reports link-probe failures with a stable code while preserving cancellation
+AssertionError: expected Error: permission denied { code: 'EA…' } to match object { code: 'md-preview/forbidden' }
+
+- Expected
++ Received
+
+- {
+-   "code": "md-preview/forbidden",
++ Error {
++   "code": "EACCES",
+  }
+
+ ❯ tests/host-read.spec.ts:14:80
+     12|     const denied = Object.assign(new Error('permission denied'), { cod…
+     13|     fs.lstat = async () => { throw denied }
+     14|     await expect(service.read(SESSION as never, 'guide.md', controller…
+       |                                                                                ^
+     15|       .rejects.toMatchObject({ code: 'md-preview/forbidden' })
+     16|     fs.lstat = async () => { throw Object.assign(new Error('disk error…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 skipped (9)
+   Start at  17:50:47
+   Duration  300ms (transform 193ms, setup 0ms, import 223ms, tests 6ms, environment 0ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

@@ -1,0 +1,240 @@
+diff --git a/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.i18n.yaml b/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.i18n.yaml
+new file mode 100644
+index 0000000000..c7285608ba
+--- /dev/null
++++ b/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.i18n.yaml
+@@ -0,0 +1,6 @@
++# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
++# side as of the last confirmed-consistent state. Both languages carry equal authority;
++# after editing either side, bring the other along and re-record with:
++#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.md
++2026-09-09-markdown-heading-source-positions.md: cf8f0a700f678cb5bff09398cdfb797add359a5d
++2026-09-09-markdown-heading-source-positions.zh.md: 9d7350c4991bf8febe09a03adf5f0f61acfa5a18
+diff --git a/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.md b/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.md
+new file mode 100644
+index 0000000000..cf8f0a700f
+--- /dev/null
++++ b/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.md
+@@ -0,0 +1,29 @@
++# Agent Note: Markdown heading source positions
++
++Status: implemented
++
++English | [中文](2026-09-09-markdown-heading-source-positions.zh.md)
++
++## Problem
++
++A document viewer receiving a source-line navigation needs to identify the corresponding rendered heading. Display labels are ambiguous after inline formatting and with repeated headings. Footnotes can place headings in a different DOM order from their source order, while a separate parser can disagree with the renderer's mathematics and other extensions.
++
++## Decision
++
++The public `MarkdownText` primitive accepts the opt-in `headingSource` prop. Its settled renderer exposes the original heading line and UTF-16 offset through `data-md-source-line` and `data-md-source-offset`. The consumer compares these coordinates against the exact `text` it supplied. The out-of-tree Markdown sidebar plugin uses them for enclosing ATX-section navigation.
++
++The renderer remains the owner of Markdown interpretation. Source attributes describe actual ATX and setext nodes, including container and footnote headings. Streaming output and generated footnote chrome omit them. The default is false, preserving ordinary component output. No file access, session state, persisted data, or event protocol is added.
++
++## Alternatives considered
++
++**Match display labels.** Inline links and duplicate labels make this ambiguous, and generated content can further change the visible text.
++
++**Parse again in the consumer.** A second grammar can disagree about code fences, mathematics and footnotes, leaving source and rendered heading sequences misaligned.
++
++**Always attach coordinates.** Existing consumers do not need them; an opt-in keeps ordinary and streaming output unchanged.
++
++## Consequences
++
++Consumers can navigate using the same parse that produced their displayed document. Coordinates are meaningful only for the supplied source and settled render. Consumers still own navigation lifetime, cancellation and the choice of which heading forms to target.
++
++The primitive tests cover opt-in source coordinates, CRLF, UTF-16, setext and omission during streaming or default rendering. The Markdown plugin's official Slot assembly tests exercise linked and indented headings, repeated labels, fences, mathematics and reordered footnotes. These automated checks do not establish visual scrolling behavior in a real browser.
+diff --git a/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.zh.md b/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.zh.md
+new file mode 100644
+index 0000000000..9d7350c499
+--- /dev/null
++++ b/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.zh.md
+@@ -0,0 +1,29 @@
++# Agent Note: Markdown 标题源位置
++
++Status: implemented
++
++[English](2026-09-09-markdown-heading-source-positions.md) | 中文
++
++## 问题
++
++文档查看器收到源行导航时，需要识别对应的渲染标题。行内格式和重复标题会让显示文字产生歧义。脚注可能使标题的 DOM 顺序与源顺序不同，独立解析器也可能与渲染器的数学等扩展语法产生分歧。
++
++## 决策
++
++公开的 `MarkdownText` 原子组件接受可选的 `headingSource` prop。其完整渲染通过 `data-md-source-line` 和 `data-md-source-offset` 暴露标题的原始行号与 UTF-16 偏移。消费方将坐标与自己传入的精确 `text` 对照。仓库外的 Markdown 右栏插件使用这些坐标定位所属 ATX 章节。
++
++Markdown 解释权仍属于渲染器。源属性描述实际 ATX 和 setext 节点，包括容器与脚注中的标题。流式输出和自动生成的脚注控件不带这些属性。选项默认为 false，保留普通组件输出。没有增加文件访问、会话状态、持久数据或事件协议。
++
++## 考虑过的替代方案
++
++**匹配显示文字。** 行内链接和重复文字会产生歧义，自动生成的内容还可能改变可见文字。
++
++**消费方再次解析。** 第二套语法可能对代码围栏、数学和脚注作出不同判断，导致源标题与渲染标题序列错位。
++
++**始终附加坐标。** 现有消费方不需要这些属性；可选开关保留普通和流式输出。
++
++## 影响
++
++消费方能够依据生成当前文档显示的同一次解析进行导航。坐标仅对传入的源码和完整渲染有效。导航生命周期、取消和要定位的标题形式仍由消费方负责。
++
++原子组件测试覆盖启用后的源坐标、CRLF、UTF-16、setext，以及流式或默认渲染时省略属性。Markdown 插件的官方 Slot 装配测试覆盖链接与缩进标题、重复文字、围栏、数学和重排后的脚注。这些自动化检查不证明真实浏览器中的视觉滚动效果。
+diff --git a/packages/client/ui-primitives/README.i18n.yaml b/packages/client/ui-primitives/README.i18n.yaml
+index 4bda8cc5f7..3dda5e9975 100644
+--- a/packages/client/ui-primitives/README.i18n.yaml
++++ b/packages/client/ui-primitives/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-primitives/README.md
+-README.md: 18b136c78539d8ba6da3b17239112967faf63602
+-README.zh.md: f91435e44a5ca79b245fde3dd025a732d35e54e9
++README.md: 975f16d82fd7381e68a84bd870dddaeab6a935c0
++README.zh.md: 1c874031f7591481707e7570472f942225d6d842
+diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
+index 18b136c785..975f16d82f 100644
+--- a/packages/client/ui-primitives/README.md
++++ b/packages/client/ui-primitives/README.md
+@@ -71,6 +71,8 @@ The catalog above lists what each export is for; this section covers the behavio
+ `MarkdownText` renders untrusted GFM and TeX math, blocks unsafe links and images, and can turn resolved file mentions into explicit controls. When the owner passes a `pathImages` vocabulary, image destinations that are local media paths rewrite to displayable URLs on settled renders only (the same streaming gate as file mentions); without a vocabulary, local destinations remain inert alt text. A load or decode failure replaces the image with its authored alt text, or the original destination when alt is empty. Changing the image source permits a fresh load. While a reply streams, it freezes completed blocks, advances a top-level open fence by completed lines, and highlights that fence from saved Shiki grammar state. Completed token lines enter fixed-size React groups, so later chunks reconcile only the growing group; an unchanged fence retains that DOM when the final full parse resolves cross-document syntax. `TerminalBlock`, `ReadBlock`, `DiffBlock`, `SearchBlock`, and `WebBlock` render the matching tool-result intent with copy controls, overflow handling, and ANSI processing where applicable. `JsonTree` and `JsonBlock` inspect JSON values read-only, while `projectUserText` projects sent user text into inline plain runs and reference chips for the message bubble and queue rows.
+ 
+ 
++For source navigation, `MarkdownText` accepts `headingSource`. Settled ATX and setext headings then expose `data-md-source-line` (1-based) and `data-md-source-offset` (0-based UTF-16 offset into the original `text`). Positions belong to the actual parsed headings, including headings inside containers and footnotes; inline formatting does not affect their identity. Streaming output and generated footnote chrome omit these attributes. The option defaults to false.
++
+ ### Localizing copy
+ 
+ The atoms cannot read the application locale, so every piece of user-facing copy arrives through required label props. `HoverCard`, `TerminalBlock`, `JsonTree`, `CodeBlock`, `MarkdownText`, `JsonBlock`, `ConnectionIndicator`, `Modal`, `DiffBlock`, `ReadBlock`, `SearchBlock`, and `WebBlock` accept complete localized labels. The package owns no language fallback; omission fails typechecking, and each feature maps its typed `t` seat into the primitive's label interface.
+diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
+index f91435e44a..1c874031f7 100644
+--- a/packages/client/ui-primitives/README.zh.md
++++ b/packages/client/ui-primitives/README.zh.md
+@@ -71,6 +71,8 @@ kind: "package-library"
+ `MarkdownText` 渲染不可信的 GFM 与 TeX 公式、阻止不安全的链接与图片，并可把已解析的文件提及转换为显式控件。当 owner 传入 `pathImages` 词表时，本地媒体路径的图片目标只在落定渲染阶段重写为可展示 URL（与 file mentions 相同的流式门）；不传词表时本地目标保持惰性 alt 文本。加载或解码失败后，图片替换为作者的 alt 文本；alt 为空时显示原始目标路径。图片源变化后可重新加载。回复流式输出时，它冻结已完成的块、按已完成行推进顶层未闭合 fence，并从保存的 Shiki grammar state 为该 fence 增量高亮。已完成的 token 行进入固定大小的 React 分组，后续分片只 reconcile 正在增长的分组；最终全量解析解决跨文档语法时，未变化的 fence 会保留该 DOM。`TerminalBlock`、`ReadBlock`、`DiffBlock`、`SearchBlock` 与 `WebBlock` 把对应的工具结果意图渲染为带复制控件、溢出处理及适用时 ANSI 处理的卡片。`JsonTree` 与 `JsonBlock` 以只读方式检查 JSON 值；`projectUserText` 把已发送的用户文本投影为行内普通文本段与引用 chip，供消息气泡和排队行使用。
+ 
+ 
++源位置导航可启用 `MarkdownText` 的 `headingSource`。渲染结束后的 ATX 与 setext 标题会暴露 `data-md-source-line`（从 1 开始的行号）和 `data-md-source-offset`（原始 `text` 中从 0 开始的 UTF-16 偏移）。位置来自实际解析的标题，包含容器与脚注中的标题；行内格式不影响其身份。流式输出与自动生成的脚注控件不带这些属性。该选项默认为 false。
++
+ ### 本地化文案
+ 
+ 这些原子组件无法读取应用 locale，因此每段面向用户的文案都必须通过 label prop 提供。`HoverCard`、`TerminalBlock`、`JsonTree`、`CodeBlock`、`MarkdownText`、`JsonBlock`、`ConnectionIndicator`、`Modal`、`DiffBlock`、`ReadBlock`、`SearchBlock` 与 `WebBlock` 接收完整的本地化 label。本包不拥有语言回退；遗漏会导致类型检查失败，各功能会把带类型的 `t` 席位映射到 primitive 的 label 接口。
+diff --git a/packages/client/ui-primitives/src/markdown/MarkdownText.tsx b/packages/client/ui-primitives/src/markdown/MarkdownText.tsx
+index 121c6ff49b..2213ce0639 100644
+--- a/packages/client/ui-primitives/src/markdown/MarkdownText.tsx
++++ b/packages/client/ui-primitives/src/markdown/MarkdownText.tsx
+@@ -31,12 +31,14 @@ function renderSettled(
+   labels: MarkdownLabels,
+   fileMentions: MarkdownFileMentions | undefined,
+   pathImages: MarkdownPathImages | undefined,
++  headingSource: boolean,
+ ): ReactNode[] {
+   const root = parseGfmWithMath(text)
+   const targets = createReferenceTargets()
+   collectReferenceTargets(root.children, targets)
+   const context: MarkdownRenderContext = {
+     streaming: false,
++    headingSource,
+     labels,
+     fileMentions,
+     pathImages,
+@@ -162,27 +164,32 @@ class StreamingRenderer {
+  * must not bake in handlers that could go stale.
+  * @returns A GFM document with TeX math rendered through KaTeX; raw HTML,
+  * relative links, and unsafe protocols are disabled, while absolute HTTP(S)
+- * images render directly.
++ * images render directly. `headingSource` adds `data-md-source-line` (1-based)
++ * and `data-md-source-offset` (0-based UTF-16) to settled source headings;
++ * streaming headings and generated footnote chrome omit these attributes.
+  */
+-export const MarkdownText = memo(function MarkdownText({ text, streaming = false, labels, fileMentions, pathImages }: {
++export const MarkdownText = memo(function MarkdownText({
++  text, streaming = false, labels, fileMentions, pathImages, headingSource = false,
++}: {
+   text: string
+   streaming?: boolean
+   labels: MarkdownLabels
+   fileMentions?: MarkdownFileMentions | undefined
+   pathImages?: MarkdownPathImages | undefined
++  headingSource?: boolean
+ }) {
+   const streamRef = useRef<StreamingRenderer | null>(null)
+   const streamLabelsRef = useRef<MarkdownLabels>(labels)
+   const children = useMemo(() => {
+     if (!streaming) {
+       streamRef.current = null
+-      return renderSettled(text, labels, fileMentions, pathImages)
++      return renderSettled(text, labels, fileMentions, pathImages, headingSource)
+     }
+     if (streamRef.current === null || streamLabelsRef.current !== labels) {
+       streamRef.current = new StreamingRenderer(labels)
+       streamLabelsRef.current = labels
+     }
+     return streamRef.current.render(text)
+-  }, [text, streaming, labels, fileMentions, pathImages])
++  }, [text, streaming, labels, fileMentions, pathImages, headingSource])
+   return <div className={css.markdown}>{children}</div>
+ })
+diff --git a/packages/client/ui-primitives/src/markdown/render.tsx b/packages/client/ui-primitives/src/markdown/render.tsx
+index 4d7805553b..4e5d70c6ec 100644
+--- a/packages/client/ui-primitives/src/markdown/render.tsx
++++ b/packages/client/ui-primitives/src/markdown/render.tsx
+@@ -176,6 +176,8 @@ export interface MarkdownFileMentions {
+ export interface MarkdownRenderContext {
+   /** Streaming arm: fences highlight incrementally as they grow; TeX (including ```math fences) stays literal until the settled pass. */
+   readonly streaming: boolean
++  /** Settled headings expose positions in the original Markdown source when requested. */
++  readonly headingSource?: boolean
+   /** Localized fence copy-button labels. */
+   readonly labels: MarkdownLabels
+   /** Inside a blockquote's children: tables there always fill the quote's width. */
+@@ -268,7 +270,11 @@ function renderNode(node: Md.RootContent, key: Key, context: MarkdownRenderConte
+     case 'paragraph':
+       return <p key={key}>{renderChildren(node.children, context)}</p>
+     case 'heading':
+-      return createElement(`h${node.depth}`, { key }, ...renderChildren(node.children, context))
++      return createElement(`h${node.depth}`, {
++        key,
++        'data-md-source-line': context.headingSource ? node.position?.start.line : undefined,
++        'data-md-source-offset': context.headingSource ? node.position?.start.offset : undefined,
++      }, ...renderChildren(node.children, context))
+     case 'blockquote':
+       return (
+         <blockquote key={key}>
+diff --git a/packages/client/ui-primitives/tests/markdown.client.spec.tsx b/packages/client/ui-primitives/tests/markdown.client.spec.tsx
+index a16d0464cb..c4651d2823 100644
+--- a/packages/client/ui-primitives/tests/markdown.client.spec.tsx
++++ b/packages/client/ui-primitives/tests/markdown.client.spec.tsx
+@@ -8,6 +8,20 @@ import { mathCompatibility } from '../src/markdown/mathCompatibility.ts'
+ afterEach(cleanup)
+ 
+ describe('MarkdownText', () => {
++  it('exposes original heading positions only for opted-in settled rendering', () => {
++    const text = '🙂\r\n\r\n   ## [Title](https://example.com)\r\n\r\nUnderlined\r\n---\r\n'
++    const view = render(<MarkdownText text={text} headingSource />)
++    const title = screen.getByRole('heading', { name: 'Title' })
++    expect(title.getAttribute('data-md-source-line')).toBe('3')
++    expect(title.getAttribute('data-md-source-offset')).toBe('9')
++    expect(screen.getByRole('heading', { name: 'Underlined' }).getAttribute('data-md-source-line')).toBe('5')
++
++    view.rerender(<MarkdownText text={text} headingSource streaming />)
++    expect(view.container.querySelector('[data-md-source-line], [data-md-source-offset]')).toBeNull()
++    view.rerender(<MarkdownText text={text} />)
++    expect(view.container.querySelector('[data-md-source-line], [data-md-source-offset]')).toBeNull()
++  })
++
+   it('renders CommonMark and GFM elements as semantic DOM', () => {
+     const markdown = [
+       '# Heading',
+diff --git a/packages/client/ui-sidebar-right/tests/service.client.spec.ts b/packages/client/ui-sidebar-right/tests/service.client.spec.ts
+index 55e4c45993..0f0f1e175a 100644
+--- a/packages/client/ui-sidebar-right/tests/service.client.spec.ts
++++ b/packages/client/ui-sidebar-right/tests/service.client.spec.ts
+@@ -92,7 +92,7 @@ describe('SidebarRightController — opening', () => {
+     })
+     controller.close(tabId)
+     release()
+-    await new Promise<void>(resolve => queueMicrotask(resolve))
++    await new Promise<void>((resolve) => { queueMicrotask(resolve) })
+     expect(titles()).toContain('draft.md')
+     await vi.waitFor(() => {
+       controller.close(tabId)

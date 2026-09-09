@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'does not replay an old source-line target'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 29 skipped (30)
+   Start at  18:31:45
+   Duration  1.57s (transform 720ms, setup 0ms, import 1.10s, tests 182ms, environment 225ms)
+

@@ -5,6 +5,7 @@
  * open a small picker list.
  */
 import { useMemo, useState } from 'react'
+import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { ownedDeliverables, previewableOf } from './message-files.ts'
 import { basename } from './preview-state.ts'
@@ -13,7 +14,7 @@ import { DocumentIcon } from './DocumentIcon.tsx'
 /** Panel admission for one conversation session. */
 export interface PreviewActionInjected {
   /** Open the preview panel for a markdown document of this session. */
-  openPreview(path: string): void
+  openPreview(path: string, cwd?: string): void
 }
 
 /** Full composed action props: the owner message id plus the locale seat. */
@@ -27,7 +28,8 @@ export type PreviewActionProps =
  * @param props - the durable message id, preview admission, and locale seat.
  * @returns the action button with its picker, or null without markdown.
  */
-export function PreviewAction({ messageId, useChat, openPreview, t }: PreviewActionProps) {
+export function PreviewAction({ messageId, sessionId, useSessions, useChat, openPreview, t }: PreviewActionProps) {
+  const cwd = useSessions(snapshot => snapshot.byId[sessionId]?.cwd)
   // The selector rides the snapshot's structural sharing: identity changes
   // only when the owning turn's deliverables data actually changes.
   const owned = useChat(snapshot => ownedDeliverables(snapshot, messageId))
@@ -37,30 +39,30 @@ export function PreviewAction({ messageId, useChat, openPreview, t }: PreviewAct
   const first = files[0] as string
   return (
     <span className="dsh-md-preview-anchor">
-      <button
-        type="button" className="dsh-md-preview-doc"
+      <Button
+        size="sm" className="dsh-md-preview-doc"
         title={t('action.label')}
         onClick={() => {
-          if (files.length === 1) openPreview(first)
+          if (files.length === 1) openPreview(first, cwd)
           else setOpen(value => !value)
         }}
       >
         <DocumentIcon />
         {t('action.label')}
-      </button>
+      </Button>
       {open && files.length > 1 && (
         <span className="dsh-md-preview-list" role="menu">
           {files.map((path) => (
-            <button
-              key={path} type="button" role="menuitem"
+            <Button
+              key={path} size="sm" role="menuitem"
               title={t('action.open', { name: path })}
               onClick={() => {
                 setOpen(false)
-                openPreview(path)
+                openPreview(path, cwd)
               }}
             >
               {basename(path)}
-            </button>
+            </Button>
           ))}
         </span>
       )}

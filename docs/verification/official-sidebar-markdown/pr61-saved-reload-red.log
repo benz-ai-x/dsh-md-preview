@@ -1,0 +1,39 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'edits the full original'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (32 tests | 1 failed | 31 skipped) 188ms
+     × edits the full original and saves with its fingerprint before confirming the preview 187ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > edits the full original and saves with its fingerprint before confirming the preview
+AssertionError: expected <p role="status"></p> to be null
+
+- Expected:
+null
+
++ Received:
+<p
+  role="status"
+>
+  Saved
+</p>
+
+ ❯ tests/sidebar-markdown.spec.tsx:128:61
+    126|     expect(reads).toHaveLength(2)
+    127|     await act(async () => { view.view.getByRole('button', { name: 'Rel…
+    128|     expect(view.view.queryByText('Saved', { exact: true })).toBeNull()
+       |                                                             ^
+    129|   })
+    130|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 31 skipped (32)
+   Start at  18:37:33
+   Duration  1.60s (transform 745ms, setup 0ms, import 1.13s, tests 188ms, environment 218ms)
+
+[ELIFECYCLE] Test failed. See above for more details.
