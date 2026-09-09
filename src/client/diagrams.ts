@@ -76,8 +76,9 @@ export interface DiagramLabels {
  * @param content - the document source backing the rendered container.
  * @param labels - the fallback caption.
  */
-export async function enhanceDiagrams(root: ParentNode, content: string, labels: DiagramLabels): Promise<void> {
+export async function enhanceDiagrams(root: ParentNode, content: string, labels: DiagramLabels, signal?: AbortSignal): Promise<void> {
   for (const block of findDiagramBlocks(root, fenceLanguages(content))) {
+    if (signal?.aborted) return
     if (block.hasAttribute('data-md-preview-diagram')) continue
     block.setAttribute('data-md-preview-diagram', 'pending')
     const pre = block.querySelector('pre')
@@ -87,6 +88,7 @@ export async function enhanceDiagrams(root: ParentNode, content: string, labels:
     try {
       svg = (await (await loadSurface()).render(`dsh-md-preview-diagram-${idCounter++}`, source)).svg
     } catch {
+      if (signal?.aborted) return
       block.setAttribute('data-md-preview-diagram', 'failed')
       const note = document.createElement('div')
       note.className = 'dsh-md-preview-diagram-error'
@@ -94,6 +96,7 @@ export async function enhanceDiagrams(root: ParentNode, content: string, labels:
       block.append(note)
       continue
     }
+    if (signal?.aborted) return
     const host = document.createElement('div')
     host.className = 'dsh-md-preview-diagram'
     // Mermaid's own SVG output; securityLevel strict sanitizes its labels.

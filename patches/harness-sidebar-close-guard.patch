@@ -1,0 +1,663 @@
+From 737e95c657a95fd04b12269313902f9b5ca2f6ca Mon Sep 17 00:00:00 2001
+From: benz-ai-x <317748583+benz-ai-x@users.noreply.github.com>
+Date: Wed, 9 Sep 2026 15:35:32 +0800
+Subject: [PATCH] feat(ui-sidebar-right): guard tab removal before layout
+ commits
+
+---
+ ...9-07-sidebar-responsive-tab-info.i18n.yaml |   4 +-
+ .../2026-09-07-sidebar-responsive-tab-info.md |   4 +
+ ...26-09-07-sidebar-responsive-tab-info.zh.md |   4 +
+ docs/subsystems/slots.i18n.yaml               |   4 +-
+ docs/subsystems/slots.md                      |   4 +
+ docs/subsystems/slots.zh.md                   |   4 +
+ .../client/ui-sidebar-right/README.i18n.yaml  |   4 +-
+ packages/client/ui-sidebar-right/README.md    |   4 +
+ packages/client/ui-sidebar-right/README.zh.md |   4 +
+ .../ui-sidebar-right/src/client/index.ts      |  18 +-
+ .../ui-sidebar-right/src/client/service.ts    | 112 +++++++++++++
+ .../ui-sidebar-right/src/client/stores.ts     |  57 ++++++-
+ .../tests/seat.client.spec.tsx                |  55 ++++++
+ .../tests/service.client.spec.ts              | 157 +++++++++++++++++-
+ 14 files changed, 418 insertions(+), 17 deletions(-)
+
+diff --git a/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.i18n.yaml b/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.i18n.yaml
+index 0a04d3712e..08ae0c8008 100644
+--- a/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.i18n.yaml
++++ b/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.md
+-2026-09-07-sidebar-responsive-tab-info.md: ade20148cccd2233224417f762e65492828943bb
+-2026-09-07-sidebar-responsive-tab-info.zh.md: 0903e4ff06ca187fcc1fd0e9d8de63f70d5cc427
++2026-09-07-sidebar-responsive-tab-info.md: 6b8e844f67805ad629690dc5f168f8af6a484504
++2026-09-07-sidebar-responsive-tab-info.zh.md: 2b59f3843b76032354814f548ac537a8f4044886
+diff --git a/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.md b/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.md
+index ade20148cc..6b8e844f67 100644
+--- a/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.md
++++ b/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.md
+@@ -18,6 +18,8 @@ Fullscreen uses the same mounted content tree and covers the viewport while reta
+ 
+ This decision supersedes the flat owner-props choice in [tab types and navigation](2026-09-05-sidebar-tab-types-and-navigation.md) and the no-concession, overlay presentation and product pane limit in [docking infrastructure](../feature/2026-09-04-right-sidebar-docking-infrastructure.md). Their registration, record-lifetime, state ownership and engine-selection rationale remain active.
+ 
++Editable tab owners register a cancellable removal decision for the record lifetime. The Sidebar store executor asks before committing any candidate that removes records, including replacements and container settlement. A pending decision leaves the committed layout untouched; permission replans against current state. One pending removal per Session prevents repeated close gestures from exchanging user intentions. Releasing an owner or unloading the provider cancels decisions, so the provider can finish disposal without waiting for a UI response. The owner retains drafts across body remounts and owns browser reload warnings.
++
+ ## Alternatives considered
+ 
+ **Flat information props or three separate hooks.** A single nested read groups the three ownership levels and allows additional fields without proliferating props or readers.
+@@ -26,6 +28,8 @@ This decision supersedes the flat owner-props choice in [tab types and navigatio
+ 
+ **A separate fullscreen content tree.** Remounting would interrupt tab-local state. The same element changes presentation instead.
+ 
++**Intercepting close buttons or guarding only the navigation service.** Menu, floating, occurrence and layout actions can bypass those paths. The store executor sees every actual removal before a record or its signal changes.
++
+ ## Consequences
+ 
+ Tab extensions use a framework-injected reader and keep their own store actions separate from `tab.actions`. Layout, seat and docking tests cover width concessions, explicit reopening, body/title visibility, tab lifetimes, horizontal drop zones and divider limits; browser tests exercise the assembled application. Compact mobile controls and layout persistence remain outside this decision.
+diff --git a/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.zh.md b/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.zh.md
+index 0903e4ff06..2b59f3843b 100644
+--- a/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.zh.md
++++ b/.agents/notes/implemented/architecture/2026-09-07-sidebar-responsive-tab-info.zh.md
+@@ -18,6 +18,8 @@ Slot 框架注入一个 `useTabInfo()`，返回嵌套的 `sidebar`、`panel` 与
+ 
+ 本决策取代[标签类型与导航](2026-09-05-sidebar-tab-types-and-navigation.zh.md)的平铺 owner props 选择，以及[停靠基础设施](../feature/2026-09-04-right-sidebar-docking-infrastructure.zh.md)中的无让步、覆盖模式和产品窗格上限。它们的注册、记录生命周期、状态所有权与引擎选型理由继续有效。
+ 
++可编辑标签的所有者为记录生命周期注册可取消的删除判断。Sidebar 存储执行器在提交任何会删除记录的候选布局前询问，包括替换与容器收尾。待决判断保持已提交布局不变，得到允许后按当前状态重新规划。每个 Session 仅保留一个待决删除请求，避免重复关闭手势交换用户意图。所有者释放或提供方卸载会取消判断，使提供方无需等待 UI 答复即可完成 dispose（资源释放）。所有者在正文重新挂载期间保留草稿，并负责浏览器重载提示。
++
+ ## 考虑过的替代方案
+ 
+ **平铺信息 props 或三个独立 hook。** 一个嵌套读取接口按三个所有权层级分组，允许增加字段而不增加 props 或读取接口。
+@@ -26,6 +28,8 @@ Slot 框架注入一个 `useTabInfo()`，返回嵌套的 `sidebar`、`panel` 与
+ 
+ **独立的全屏内容树。** 重新挂载会打断标签局部状态。因此由同一元素改变呈现方式。
+ 
++**拦截关闭按钮或仅守卫导航服务。** 菜单、浮窗、记录自身及布局动作都可能绕过这些路径。存储执行器在记录及其 signal 变化之前看到每次实际删除。
++
+ ## 后果
+ 
+ 标签扩展使用框架注入的读取接口，自身 store actions 与 `tab.actions` 保持分离。布局、seat 与停靠测试覆盖列宽让步、显式重开、正文与标题可见性、标签生命周期、水平放置区与分割比例；浏览器测试覆盖组装后的应用。紧凑移动端控件与布局持久化不属于本决策。
+diff --git a/docs/subsystems/slots.i18n.yaml b/docs/subsystems/slots.i18n.yaml
+index 49925a9aa5..dcf1400966 100644
+--- a/docs/subsystems/slots.i18n.yaml
++++ b/docs/subsystems/slots.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write docs/subsystems/slots.md
+-slots.md: 136607b035c4a40c8ab96d6bf933e6b5c8a925bf
+-slots.zh.md: b3a54048f5df20ad3ef271aea868ce15d5e18bce
++slots.md: 0f3cc5552c8806fed5b0f84539f4b83b9e88e2d2
++slots.zh.md: 22b63a477714499e6ed9ab161fc5dfb7b3901b8b
+diff --git a/docs/subsystems/slots.md b/docs/subsystems/slots.md
+index 136607b035..0f3cc5552c 100644
+--- a/docs/subsystems/slots.md
++++ b/docs/subsystems/slots.md
+@@ -103,6 +103,10 @@ The owner of a slot may put an `inject` face in the child declaration when every
+ 
+ Use owner props for values already known at one render occurrence, registration `inject` for one entry's callbacks and private observables, slot-level `inject` for a capability controlled by the slot owner, and a declared store for mutable view state shared across entries or preserved across remounts. React nodes compose through child slots, not through injected values.
+ 
++## Editable right-Sidebar tabs
++
++The `sidebar.right.pane.tab` occupant reads its record through `useTabInfo()`. Its plugin registers `ctx.sidebarRight.beforeClose(sessionId, tabId, guard)` and holds the returned disposer until its owner or record ends. `SidebarRightCloseGuard` accepts a `SidebarRightCloseRequest` with an `AbortSignal` named `signal`, and returns `boolean | Promise<boolean>`; only `true` allows removal. The store waits before publishing a destructive operation, and cancellation, an exception, or a rejected promise retains the layout. Hiding a Sidebar or switching a tab or Session does not request removal. The [right-Sidebar package](../../packages/client/ui-sidebar-right/README.md#the-tab-domain) defines ownership, concurrency and forced-unload semantics.
++
+ ## Current hierarchy
+ 
+ The hierarchy below is the shipped declaration tree. A child exists only while the named parent entry is mounted; optional feature entries can therefore make a subtree appear or disappear as one lifecycle unit.
+diff --git a/docs/subsystems/slots.zh.md b/docs/subsystems/slots.zh.md
+index b3a54048f5..22b63a4777 100644
+--- a/docs/subsystems/slots.zh.md
++++ b/docs/subsystems/slots.zh.md
+@@ -103,6 +103,10 @@ Renderer 还会根据声明的 store 创建 `useStore`，并根据声明的 loca
+ 
+ 一次渲染时 owner 已知的值走 owner props；单个 entry 的 callback 与私有 observable 走注册项 `inject`；由 slot owner 控制、所有 occupant 共享的能力走 slot 级 `inject`；需要跨 entry 共享或跨重新挂载保留的可变视图状态走声明的 store。React node 通过 child slot 组合，不通过注入值传递。
+ 
++## 可编辑的右侧 Sidebar 标签
++
++`sidebar.right.pane.tab` 的占用组件通过 `useTabInfo()` 读取记录。其插件注册 `ctx.sidebarRight.beforeClose(sessionId, tabId, guard)`，并保留返回的释放回调，直到所有者或记录结束。`SidebarRightCloseGuard` 接收 `SidebarRightCloseRequest`，其中 `signal` 为 `AbortSignal`，返回 `boolean | Promise<boolean>`；只有 `true` 允许删除。存储在发布删除操作前等待判断，取消、异常或 Promise 拒绝均保留布局。隐藏 Sidebar、切换标签或 Session 不请求删除。[右侧 Sidebar 包](../../packages/client/ui-sidebar-right/README.zh.md#the-tab-domain)定义所有权、并发与强制卸载语义。
++
+ ## 当前层级
+ 
+ 下图是当前发布组合的声明树。只有具名 parent entry 已挂载时，其 child 才存在；因此可选功能 entry 可以作为一个生命周期单元让整棵子树出现或消失。
+diff --git a/packages/client/ui-sidebar-right/README.i18n.yaml b/packages/client/ui-sidebar-right/README.i18n.yaml
+index 8d11c28b28..89c086258c 100644
+--- a/packages/client/ui-sidebar-right/README.i18n.yaml
++++ b/packages/client/ui-sidebar-right/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-sidebar-right/README.md
+-README.md: feb75c6184098f54961ca161b4dc5ca5d0c7fc78
+-README.zh.md: 03c841dfdaac970e938cf934e7f09d151268be8b
++README.md: 60a65a7b1e631cb4a176548f4b2321bcc1ddd7bc
++README.zh.md: b0150391bc744a97ddeb8705f254a6c1dc98b736
+diff --git a/packages/client/ui-sidebar-right/README.md b/packages/client/ui-sidebar-right/README.md
+index feb75c6184..60a65a7b1e 100644
+--- a/packages/client/ui-sidebar-right/README.md
++++ b/packages/client/ui-sidebar-right/README.md
+@@ -87,6 +87,10 @@ Two more seats extend what is already there: `sidebar.right.tab.guide` (chain) r
+ <a id="the-tab-domain"></a>
+ ## The Tab domain
+ 
++An editable tab registers `ctx.sidebarRight.beforeClose(sessionId, tabId, guard)` for its record lifetime. The owner returns `true` to allow removal or `false` to retain the record; a promise defers the whole operation, and an exception or rejection retains it. This covers strip and menu close, floating close, replacement, and every store operation that removes records. Each Session accepts its first pending removal and ignores later removal requests until it settles; navigation and hiding remain available. The executor applies an allowed intent to the latest layout without overwriting changes made while waiting.
++
++The guard receives `{ signal }`; `beforeClose` returns an idempotent registration disposer. Releasing or replacing the owner, removing the record, or unloading the provider cancels outstanding decisions. Keep the registration when a body unmounts for a tab or Session switch. Provider unload aborts all occurrences and waits for its own work to settle without waiting for an owner dialog; an extension owns its draft cleanup and the browser's reload warning. Guards do not persist drafts or block forced unload.
++
+ The Tab domain retains navigation, an abort signal, and bound actions per (Session, tab id). A private assembly callback adopts each Session's store and reconciles records on its commits. Only record removal or plugin unload aborts the signal; closing the sidebar and switching Sessions retain records, while undo restores a new occurrence. `useTabInfo()` composes framework-bound store and navigation hooks without manual component subscriptions or render-time record creation. `tab.actions` always target their own Session; `tab.visible` distinguishes bodies from titles, and floating tabs remain visible when the sidebar closes. `adopt` is absent from the public controller.
+ 
+ <a id="the-guide"></a>
+diff --git a/packages/client/ui-sidebar-right/README.zh.md b/packages/client/ui-sidebar-right/README.zh.md
+index 03c841dfda..b0150391bc 100644
+--- a/packages/client/ui-sidebar-right/README.zh.md
++++ b/packages/client/ui-sidebar-right/README.zh.md
+@@ -87,6 +87,10 @@ tab 类型分两阶段注册，随包发布的引导类型走的正是别的包
+ <a id="the-tab-domain"></a>
+ ## Tab 域
+ 
++可编辑标签通过 `ctx.sidebarRight.beforeClose(sessionId, tabId, guard)` 在记录生命周期内注册守卫。所有者返回 `true` 允许删除，返回 `false` 保留记录；Promise 推迟整个操作，抛出异常或拒绝 Promise 会保留记录。此规则覆盖标签条与菜单关闭、浮窗关闭、替换，以及存储中所有删除记录的操作。每个 Session 保留第一个待决删除请求，在它结束前忽略后续删除请求；导航和隐藏仍可使用。执行器把已允许的意图应用到最新布局，保留等待期间的其他变化。
++
++守卫接收 `{ signal }`，注册入口返回幂等的释放回调。所有者释放或被替换、记录被删除、提供方卸载时，待决判断会被取消。正文因切换标签或 Session 而卸载时应保留注册。提供方卸载会中止所有记录并等待自有工作停稳，不等待所有者的对话框；扩展负责草稿清理和浏览器重载提示。守卫不持久化草稿，也不阻止强制卸载。
++
+ Tab域按（Session，Tab id）保留导航、中止信号与绑定动作；私有装配回调收养各会话的store，并在每次提交时对齐记录。记录消失或插件卸载才中止signal，收起和切会话不销毁记录；undo恢复的是新occurrence。`useTabInfo()` 组合框架绑定的store与导航hook，不在组件中手写订阅或在渲染时创建记录。`tab.actions` 始终作用于自己的会话；`tab.visible` 区分正文与标题，浮窗不受整栏收起影响。`adopt` 不在公开控制器上。
+ 
+ <a id="the-guide"></a>
+diff --git a/packages/client/ui-sidebar-right/src/client/index.ts b/packages/client/ui-sidebar-right/src/client/index.ts
+index 0971b9d21c..1c33b1a53c 100644
+--- a/packages/client/ui-sidebar-right/src/client/index.ts
++++ b/packages/client/ui-sidebar-right/src/client/index.ts
+@@ -46,7 +46,7 @@ export type { ExpandButtonProps } from './shell/ExpandButton.tsx'
+ export type { SidebarRightState, SurfaceState } from './stores.ts'
+ export type {
+   ISidebarRight, SidebarRightBinding, SidebarRightOpenResourceOptions, SidebarRightOpenTabOptions,
+-  SidebarRightPlacement, SurfaceActions,
++  SidebarRightPlacement, SurfaceActions, SidebarRightCloseGuard, SidebarRightCloseRequest,
+ } from './service.ts'
+ export type {
+   SidebarRightGuideBox, SidebarRightGuideEntry, SidebarRightTabClaim, SidebarRightTabDefinition,
+@@ -105,19 +105,19 @@ export function apply(ctx: ClientContext): void {
+   const disposeRegistry = ctx.reflect.provide('sidebarRightTabs', tabs)
+   const disposeService = ctx.reflect.provide('sidebarRight', controller)
+   // Registered first, so it tears down last: the faces outlive every seat and
+-  // type that reaches for them. provide()'s disposer settles asynchronously;
+-  // teardown is synchronous fire-and-forget, matching ui-layout's root entry.
+-  // Unloading aborts every tab occurrence, which releases every pin.
+-  ctx.effect(() => () => {
+-    controller.tabDomain.dispose()
+-    void disposeService()
+-    void disposeRegistry()
++  // type that reaches for them. Unloading cancels decisions, aborts occurrences
++  // and releases pins before awaiting service disposal.
++  ctx.effect(() => async () => {
++    await controller.dispose()
++    await disposeService()
++    await disposeRegistry()
+   }, 'ui-sidebar-right: service faces')
+ 
+   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar-right: dictionaries')
+ 
+   ctx.effect(() => {
+-    const handle = createSidebarRightStore(() => t('tab.guide.title'))
++    const handle = createSidebarRightStore(() => t('tab.guide.title'),
++      (sessionId, removed, settled) => { controller.authorizeRemoval(sessionId, removed, settled) })
+     // The runtime mints one instance of this handle per session (the scope key
+     // is the session id) and caches it per key. Each is adopted as it is minted,
+     // so a tab's own action reaches its session's store while another session
+diff --git a/packages/client/ui-sidebar-right/src/client/service.ts b/packages/client/ui-sidebar-right/src/client/service.ts
+index 25e702b612..17a7b6c88d 100644
+--- a/packages/client/ui-sidebar-right/src/client/service.ts
++++ b/packages/client/ui-sidebar-right/src/client/service.ts
+@@ -38,6 +38,22 @@ import type { SidebarRightState, SurfaceState } from './stores.ts'
+ import type { createSidebarRightStore } from './stores.ts'
+ import { TabDomain, type PinResource } from './tab-domain.ts'
+ 
++/** One removal request, cancelled if the owner releases its registration. */
++export interface SidebarRightCloseRequest {
++  /** Aborted when this registration or its tab occurrence is released. */
++  readonly signal: AbortSignal
++}
++
++/** A tab owner's decision before an operation removes its record. */
++export type SidebarRightCloseGuard = (request: SidebarRightCloseRequest) => boolean | Promise<boolean>
++
++/** An owner's registration and the removal requests it is answering. */
++interface CloseGuardRegistration {
++  readonly guard: SidebarRightCloseGuard
++  readonly requests: Set<AbortController>
++  readonly release: () => void
++}
++
+ /** The seat's bound action set. */
+ export type SurfaceActions = BoundActions<ReturnType<typeof createSidebarRightStore>>
+ 
+@@ -161,6 +177,27 @@ export interface ISidebarRight {
+    * @param tabId - the tab to close.
+    */
+   close(tabId: TabId): void
++  /**
++   * Register a tab owner's decision before its record is removed.
++   *
++   * One owner guards each occurrence. Registering a new owner releases the
++   * previous one and cancels its pending decision. A synchronous true permits
++   * immediate removal; false, a throw, or a rejection keeps the whole layout.
++   * Asynchronous decisions keep the record and its lifetime alive. The store
++   * retains only the first pending removal per session; later removal requests
++   * are ignored until it settles. Navigation and hiding remain available.
++   *
++   * Keep the registration for the record lifetime, including while its body is
++   * unmounted. Release it with its owning plugin; record removal and provider
++   * unload also release it. Pending requests receive cancellation, and late
++   * permission cannot remove a successor. Forced unload never awaits a dialog.
++   * @param sessionId - the record's owning session, including an off-screen one.
++   * @param tabId - the open record to protect.
++   * @param guard - return true to allow removal, false to keep the record.
++   * @returns an idempotent release callback.
++   * @throws if the record has no live occurrence or the provider has unloaded.
++   */
++  beforeClose(sessionId: SessionId, tabId: TabId, guard: SidebarRightCloseGuard): () => void
+   /**
+    * The active tab of the active pane.
+    * @returns the record, or `undefined` when no seat is mounted.
+@@ -203,6 +240,81 @@ export interface ISidebarRight {
+ /** Cross-plugin right-Sidebar face (ctx.sidebarRight). */
+ export class SidebarRightController implements ISidebarRight {
+   private binding: SidebarRightBinding | undefined
++  private readonly closeGuards = new Map<string, CloseGuardRegistration>()
++  private disposed = false
++  private readonly removalTasks = new Set<Promise<void>>()
++
++  /** Register an owner's removal decision; see `ISidebarRight.beforeClose`. */
++  beforeClose(sessionId: SessionId, tabId: TabId, guard: SidebarRightCloseGuard): () => void {
++    if (this.disposed) throw new Error('sidebarRight: controller is disposed')
++    const key = JSON.stringify([sessionId, tabId])
++    const lifetime = this.tabDomain.occurrence(sessionId, { id: tabId }).signal
++    const requests = new Set<AbortController>()
++    const release = (): void => {
++      lifetime.removeEventListener('abort', release)
++      if (this.closeGuards.get(key) === registration) this.closeGuards.delete(key)
++      for (const request of requests) request.abort()
++      requests.clear()
++    }
++    const registration: CloseGuardRegistration = { guard, requests, release }
++    this.closeGuards.get(key)?.release()
++    this.closeGuards.set(key, registration)
++    lifetime.addEventListener('abort', release, { once: true })
++    return release
++  }
++
++  /**
++   * Decide a removal and invoke its commit callback while the owner is current.
++   * @internal The store executor's entry, not an extension operation.
++   * @param sessionId - the store's owning session.
++   * @param removed - records the proposed action removes.
++   * @param settled - called once with permission, including cancellation or failure.
++   */
++  authorizeRemoval(sessionId: string, removed: readonly TabId[], settled: (allowed: boolean) => void): void {
++    if (this.disposed) { settled(false); return }
++    const guards = removed.flatMap((tabId) => {
++      const key = JSON.stringify([sessionId, tabId])
++      const registration = this.closeGuards.get(key)
++      return registration === undefined ? [] : [{ key, registration }]
++    })
++    if (guards.length === 0) { settled(true); return }
++    const results = guards.map(({ registration: { guard, requests } }) => {
++      const request = new AbortController()
++      requests.add(request)
++      let answer: boolean | Promise<boolean>
++      try { answer = guard({ signal: request.signal }) }
++      catch { requests.delete(request); return false }
++      if (typeof answer === 'boolean') { requests.delete(request); return !request.signal.aborted && answer }
++      let cancel: () => void
++      return new Promise<boolean>((resolve) => {
++        cancel = (): void => { resolve(false) }
++        request.signal.addEventListener('abort', cancel, { once: true })
++        if (request.signal.aborted) resolve(false)
++        void answer.then((allowed) => { resolve(!request.signal.aborted && allowed) }, () => { resolve(false) })
++      }).finally(() => { request.signal.removeEventListener('abort', cancel); requests.delete(request) })
++    })
++    const finish = (answers: readonly boolean[]): void => {
++      settled(!this.disposed && answers.every(Boolean)
++        && guards.every(({ key, registration }) => this.closeGuards.get(key) === registration))
++    }
++    if (results.every(result => typeof result === 'boolean')) { finish(results); return }
++    const task = Promise.all(results.map(result => Promise.resolve(result)))
++      .then(finish).finally(() => { this.removalTasks.delete(task) })
++    this.removalTasks.add(task)
++  }
++
++  /**
++   * Cancel pending removal decisions, abort occurrences, and settle owned work.
++   * @internal Called by the provider's effect lifetime.
++   * @returns completion of controller-owned work, independent of owner dialogs.
++   */
++  async dispose(): Promise<void> {
++    this.disposed = true
++    for (const registration of this.closeGuards.values()) registration.release()
++    this.tabDomain.dispose()
++    this.binding = undefined
++    await Promise.allSettled(this.removalTasks)
++  }
+ 
+   /**
+    * The Tab domain this controller navigates into; synced from each adopted
+diff --git a/packages/client/ui-sidebar-right/src/client/stores.ts b/packages/client/ui-sidebar-right/src/client/stores.ts
+index 2301388974..7b52189e21 100644
+--- a/packages/client/ui-sidebar-right/src/client/stores.ts
++++ b/packages/client/ui-sidebar-right/src/client/stores.ts
+@@ -218,12 +218,14 @@ function stepped(surface: SurfaceState, step: HistoryStepper): SurfaceState {
+  * whenever one is created, which can be long after the store was built and in a
+  * language the user has since changed to.
+  * @param seedTitle - the guide type's display name, read at each mint.
++ * @param authorizeRemoval - the controller's removal decision; omitted for a standalone unguarded store.
+  * @returns the handle (spec, type, identity, and factory in one).
+  */
+ export function createSidebarRightStore(
+   seedTitle: () => string,
++  authorizeRemoval?: (sessionId: string, removed: readonly TabId[], settled: (allowed: boolean) => void) => void,
+ ): EngineStoreHandle<SidebarRightState, SidebarRightActions> {
+-  return defineStore({
++  const handle: EngineStoreHandle<SidebarRightState, SidebarRightActions> = defineStore({
+     init: (): SidebarRightState => ({ bySession: {} }),
+     actions: {
+       // Materialize a session's surface without changing it, so the first read
+@@ -350,4 +352,57 @@ export function createSidebarRightStore(
+       },
+     },
+   })
++  if (authorizeRemoval === undefined) return handle
++  // The executor computes a complete candidate before asking any owner. Nothing
++  // is published, including navigation callbacks, until permission. It replans
++  // against the latest layout so focus, new tabs and presentation changes made
++  // while a dialog is open survive the eventual removal.
++  return {
++    ...handle,
++    create(scopeKey) {
++      const instance = handle.create(scopeKey)
++      const actions = { ...instance.actions }
++      let pending = false
++      for (const name of Object.keys(actions) as Array<keyof SidebarRightActions>) {
++        const mutate = handle.spec.actions[name] as (draft: SidebarRightState, ...args: unknown[]) => void
++        const execute = (...args: unknown[]): void => {
++          const sessionId = args[0] as string
++          const propose = () => {
++            const before = instance.getSnapshot()
++            const next: SidebarRightState = { bySession: before.bySession }
++            const settled: Array<() => void> = []
++            const deferred = args.map((arg) => {
++              if (typeof arg !== 'function') return arg
++              const callback = arg as (...values: unknown[]) => void
++              return (...values: unknown[]) => { settled.push(() => { callback(...values) }) }
++            })
++            mutate(next, ...deferred)
++            const removed = Object.values(before.bySession[sessionId]?.layout.tabs ?? {})
++              .filter(tab => next.bySession[sessionId]?.layout.tabs[tab.id] === undefined)
++              .map(tab => tab.id)
++            return { next, settled, removed }
++          }
++          const proposal = propose()
++          const commit = (next = proposal): void => {
++            instance.store.set(next.next)
++            for (const callback of next.settled) callback()
++          }
++          if (proposal.removed.length === 0) { commit(); return }
++          if (pending) return
++          pending = true
++          const finish = (allowed: boolean): void => {
++            try {
++              if (!allowed) return
++              const latest = propose()
++              if (latest.removed.length === proposal.removed.length
++                && latest.removed.every(tabId => proposal.removed.includes(tabId))) commit(latest)
++            } finally { pending = false }
++          }
++          authorizeRemoval(sessionId, proposal.removed, finish)
++        }
++        Object.assign(actions, { [name]: execute })
++      }
++      return { ...instance, actions }
++    },
++  }
+ }
+diff --git a/packages/client/ui-sidebar-right/tests/seat.client.spec.tsx b/packages/client/ui-sidebar-right/tests/seat.client.spec.tsx
+index adf00ef762..8b02e13a9d 100644
+--- a/packages/client/ui-sidebar-right/tests/seat.client.spec.tsx
++++ b/packages/client/ui-sidebar-right/tests/seat.client.spec.tsx
+@@ -115,6 +115,61 @@ function element(container: HTMLElement, selector: string): HTMLElement {
+ }
+ 
+ describe('RightbarSeat presentation', () => {
++  it.each(['menu', 'float', 'occurrence', 'resource replacement', 'page replacement'] as const)(
++    'keeps the record and its content when the owner rejects %s', async (path) => {
++      const h = await mountSeat()
++      const tab = h.open('draft.md')
++      const info = h.bodies.get(tab.id)!
++      let requests = 0
++      h.controller.beforeClose(SESSION, tab.id, () => { requests += 1; return false })
++      if (path === 'menu') {
++        fireEvent.contextMenu(element(h.view.container, `[data-dockkit-tab="${tab.id}"]`))
++        fireEvent.click(element(document.body, '[data-dockkit-menu-close]'))
++      } else if (path === 'float') {
++        act(() => { h.controller.float(tab.id) })
++        fireEvent.click(element(document.body, '[data-dockkit-float-close]'))
++      } else {
++        act(() => {
++          if (path === 'occurrence') info.tab.actions.close()
++          else if (path === 'resource replacement') info.tab.actions.openResource(
++            'dsh-resource://file/session/s-test/other.md', { replaceTab: true })
++          else info.tab.actions.openTab('guide', { replaceTab: true })
++        })
++      }
++      expect(requests).toBe(1)
++      expect(info.tab.signal.aborted).toBe(false)
++      expect(h.layout().tabs[tab.id]?.title).toBe('draft.md')
++      expect(document.body.querySelector(`[data-tab-body="${tab.id}"]`)).not.toBeNull()
++    },
++  )
++
++  it('waits for the native close button guard and cancels it when the provider unloads', async () => {
++    const h = await mountSeat()
++    const tab = h.open('draft.md')
++    const lifetime = h.bodies.get(tab.id)!.tab.signal
++    let signal: AbortSignal | undefined
++    let allow!: (value: boolean) => void
++    h.controller.beforeClose(SESSION, tab.id, (request) => {
++      signal = request.signal
++      return new Promise<boolean>((resolve) => { allow = resolve })
++    })
++    fireEvent.click(element(h.view.container, `[data-dockkit-tab-close="${tab.id}"]`))
++    expect(signal?.aborted).toBe(false)
++    expect(lifetime.aborted).toBe(false)
++    await act(async () => { await h.feature.dispose() })
++    expect(signal?.aborted).toBe(true)
++    expect(lifetime.aborted).toBe(true)
++    const retired = h.instance.getSnapshot()
++    expect(() => h.controller.beforeClose(SESSION, tab.id, () => true)).toThrow('controller is disposed')
++    // These are the framework-provided actions captured by the native close
++    // control. An already retained callback cannot mutate a retired store.
++    act(() => { h.actions.closeTab(SESSION, tab.id) })
++    expect(h.instance.getSnapshot()).toBe(retired)
++    await act(async () => { allow(true); await Promise.resolve() })
++    expect(h.instance.getSnapshot()).toBe(retired)
++    expect(h.runtime.ctx.get('sidebarRight')).toBeUndefined()
++  })
++
+   it('keeps the panel mounted while collapsed and releases the frame on unmount', async () => {
+     const h = await mountSeat()
+     const panel = element(h.view.container, '[data-sidebar-right-panel]')
+diff --git a/packages/client/ui-sidebar-right/tests/service.client.spec.ts b/packages/client/ui-sidebar-right/tests/service.client.spec.ts
+index 6e1c4025e7..55e4c45993 100644
+--- a/packages/client/ui-sidebar-right/tests/service.client.spec.ts
++++ b/packages/client/ui-sidebar-right/tests/service.client.spec.ts
+@@ -48,7 +48,8 @@ function harness() {
+   })
+   const pin = vi.fn<(address: string, signal: AbortSignal) => void>()
+   const { controller, adopt } = createSidebarRightController(tabs, pin)
+-  const instance = createSidebarRightStore(() => 'seed').create()
++  const instance = createSidebarRightStore(() => 'seed',
++    (sessionId, removed, settled) => { controller.authorizeRemoval(sessionId, removed, settled) }).create()
+   const layout = (): LayoutState => {
+     const surface = instance.getSnapshot().bySession[SESSION]
+     if (surface === undefined) throw new Error('expected a surface')
+@@ -78,6 +79,160 @@ function harness() {
+ }
+ 
+ describe('SidebarRightController — opening', () => {
++  it('retains records when an owner withdraws during its own asynchronous decision', async () => {
++    const { controller, publish, tabOf, titles } = harness()
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/draft.md')
++    publish()
++    const tabId = tabOf('draft.md')
++    const release = controller.beforeClose(SESSION, tabId, ({ signal }) => {
++      release()
++      expect(signal.aborted).toBe(true)
++      return Promise.resolve(true)
++    })
++    controller.close(tabId)
++    release()
++    await new Promise<void>(resolve => queueMicrotask(resolve))
++    expect(titles()).toContain('draft.md')
++    await vi.waitFor(() => {
++      controller.close(tabId)
++      expect(titles()).not.toContain('draft.md')
++    })
++  })
++
++  it('cancels destructive replay when navigation changes the records it would remove', async () => {
++    const { controller, publish, tabOf, titles } = harness()
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/draft.md')
++    publish()
++    let allow!: (value: boolean) => void
++    controller.beforeClose(SESSION, tabOf('draft.md'), () => new Promise<boolean>((resolve) => { allow = resolve }))
++    // The replay entry is test-only; it still cannot apply a decision to a
++    // different record after a normal open advances the recorded layout.
++    controller._undo()
++    controller.openResource('dsh-resource://file/session/s-test/later.md')
++    publish()
++    allow(true)
++    await new Promise<void>(resolve => setTimeout(resolve, 0))
++    expect(titles()).toContain('draft.md')
++    expect(titles()).toContain('later.md')
++  })
++
++  it.each(['throw', 'reject'])('keeps the tab and releases a failed %s decision for a later request', async (failure) => {
++    const { controller, publish, tabOf, titles } = harness()
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/draft.md')
++    publish()
++    const tabId = tabOf('draft.md')
++    let attempts = 0
++    controller.beforeClose(SESSION, tabId, () => {
++      attempts += 1
++      if (attempts > 1) return true
++      if (failure === 'throw') throw new Error('owner failed')
++      return Promise.reject(new Error('owner failed'))
++    })
++    expect(() => { controller.close(tabId) }).not.toThrow()
++    expect(titles()).toContain('draft.md')
++    await vi.waitFor(() => {
++      controller.close(tabId)
++      expect(titles()).not.toContain('draft.md')
++    })
++  })
++
++  it('cancels an owner\'s pending decision on release and ignores its late permission', async () => {
++    const { controller, adopt, instance, publish, tabOf, titles } = harness()
++    adopt(SESSION, instance)
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/draft.md')
++    publish()
++    const tabId = tabOf('draft.md')
++    let answer!: (allowed: boolean) => void
++    let requestSignal: AbortSignal | undefined
++    const release = controller.beforeClose(SESSION, tabId, ({ signal }) => {
++      requestSignal = signal
++      return new Promise<boolean>((resolve) => { answer = resolve })
++    })
++    controller.close(tabId)
++    expect(requestSignal?.aborted).toBe(false)
++    release()
++    expect(requestSignal?.aborted).toBe(true)
++    let successorPrompts = 0
++    controller.beforeClose(SESSION, tabId, () => { successorPrompts += 1; return false })
++    answer(true)
++    await vi.waitFor(() => {
++      controller.close(tabId)
++      expect(successorPrompts).toBe(1)
++    })
++    expect(titles()).toContain('draft.md')
++  })
++
++  it('retains the first pending removal while later navigation and hiding remain intact', async () => {
++    const { controller, adopt, instance, publish, tabOf, titles, layout } = harness()
++    adopt(SESSION, instance)
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/draft.md')
++    publish()
++    const tabId = tabOf('draft.md')
++    let answer!: (allowed: boolean) => void
++    let prompts = 0
++    controller.beforeClose(SESSION, tabId, () => {
++      prompts += 1
++      return new Promise<boolean>((resolve) => { answer = resolve })
++    })
++    controller.close(tabId)
++    controller.close(tabId)
++    controller.openResource('dsh-resource://file/session/s-test/replacement.md', { replaceTab: tabId })
++    expect(prompts).toBe(1)
++    controller.openResource('dsh-resource://file/session/s-test/later.md')
++    publish()
++    controller.toggleExpanded()
++    answer(true)
++    await vi.waitFor(() => { expect(titles()).not.toContain('draft.md') })
++    expect(titles()).toContain('later.md')
++    expect(titles()).not.toContain('replacement.md')
++    expect(layout().expanded).toBe(false)
++  })
++
++  it('removes a clean guarded tab synchronously and keeps a rejected replacement atomic', () => {
++    const { controller, publish, tabOf, titles, entries } = harness()
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/clean.md')
++    publish()
++    const clean = tabOf('clean.md')
++    controller.beforeClose(SESSION, clean, () => true)
++    controller.close(clean)
++    expect(titles()).not.toContain('clean.md')
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/draft.md')
++    publish()
++    const draft = tabOf('draft.md')
++    controller.beforeClose(SESSION, draft, () => false)
++    const before = entries()
++    controller.openResource('dsh-resource://file/session/s-test/other.md', { replaceTab: draft })
++    expect(titles()).toContain('draft.md')
++    expect(titles()).not.toContain('other.md')
++    expect(entries()).toBe(before)
++  })
++
++  it('keeps a guarded tab alive until its owner allows removal', async () => {
++    const { controller, adopt, instance, publish, tabOf, titles } = harness()
++    adopt(SESSION, instance)
++    publish()
++    controller.openResource('dsh-resource://file/session/s-test/draft.md')
++    publish()
++    const tabId = tabOf('draft.md')
++    const occurrence = controller.tabDomain.occurrence(SESSION, { id: tabId })
++    let answer!: (allowed: boolean) => void
++    controller.beforeClose(SESSION, tabId, () => new Promise<boolean>((resolve) => { answer = resolve }))
++
++    controller.close(tabId)
++    expect(titles()).toContain('draft.md')
++    expect(occurrence.signal.aborted).toBe(false)
++    answer(true)
++    await vi.waitFor(() => { expect(titles()).not.toContain('draft.md') })
++    expect(occurrence.signal.aborted).toBe(true)
++  })
++
+   it('refuses every write while no seat is mounted', () => {
+     const { controller } = harness()
+     expect(() => { controller.openResource('dsh-resource://file/session/s-test/a.txt') }).toThrow('no session surface is mounted')
+-- 
+2.50.1 (Apple Git-155)
+

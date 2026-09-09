@@ -5,9 +5,9 @@ import { TYPERT_REMOTE } from '../typert/remote-client.ts'
 import { mountMdPreview } from './mount.ts'
 
 export { inject } from './mount.ts'
-export type { MdChipsInjected } from './MdChips.tsx'
+export type { MarkdownTabInjected } from './MarkdownTab.tsx'
 export type { PreviewActionInjected } from './PreviewAction.tsx'
-export type { PreviewOverlayInjected } from './PreviewOverlay.tsx'
+export type { MarkdownLeaveDialogInjected } from './MarkdownLeaveDialog.tsx'
 
 /**
  * Mount the MdPreview Remote contribution and its browser UI.

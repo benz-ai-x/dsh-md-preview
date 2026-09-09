@@ -6,6 +6,29 @@ import { Config } from '../src/config.ts'
 import { makeService, markdownFile, SESSION } from './host-harness.ts'
 
 describe('MdPreviewService.read specifics', () => {
+  it('rejects a body whose file version changed during the full read', async () => {
+    const file = markdownFile('# Before\n', 'v1')
+    const { service, fs } = await makeService({ files: new Map([['/workspace/project/guide.md', file]]) })
+    const read = fs.readText
+    fs.readText = async (...args) => {
+      const content = await read(...args)
+      file.content = '# After\n'
+      file.version = 'v2'
+      return content
+    }
+    await expect(service.read(SESSION as never, 'guide.md', new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/conflict' })
+  })
+
+  it('enforces UTF-8 bytes after reading even when the earlier size was smaller', async () => {
+    const { service } = await makeService({
+      config: Config({ maxBytes: 4 }),
+      files: new Map([['/workspace/project/guide.md', { ...markdownFile('你好'), size: 1 }]]),
+    })
+    await expect(service.read(SESSION as never, 'guide.md', new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/too-large' })
+  })
+
   it('reads a plain-text file under the preview union (editing stays markdown)', async () => {
     const { service } = await makeService({
       files: new Map([['/workspace/project/notes.txt', markdownFile('plain text\n')]]),

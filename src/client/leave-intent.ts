@@ -1,28 +1,18 @@
-/**
- * The common leave-intent entry (#21): one seat through which every way out
- * of the current preview session is requested — the panel's close button,
- * Esc, the 「工作区文档」 collapse, the segmented switch back to the view
- * face, and every external open (produced-file chips, the preview-documents
- * action, tree rows). The seat holds the FIRST intent while the unsaved
- * guard asks; later requests are dropped, never silently swapped in. It is
- * UI-local viewing state only — no file or session facts live here, and it
- * owns no resources beyond the snapshot store.
- */
+/** One record's destructive intents share a first-request decision seat. */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { MdPreviewTarget } from './preview-state.ts'
 
 /** One requested way out of the current preview session. */
 export type MdPreviewLeaveIntent =
   | { readonly kind: 'close' }
   | { readonly kind: 'switchFace' }
-  | { readonly kind: 'open'; readonly target: MdPreviewTarget }
+  | { readonly kind: 'reload' }
 
 /** The leave-intent seat shared by every entry and the guarding panel. */
 export interface LeaveIntentSeat {
   /**
    * Request one leave. Ignored while an earlier intent still waits behind
    * the guard — the pending target cannot be silently replaced.
-   * @param intent - the requested close, face switch, or open.
+   * @param intent - the requested close, face switch, or reload.
    */
   request(intent: MdPreviewLeaveIntent): void
   /** Drop the pending intent (「继续编辑」, or after execution). */
@@ -34,7 +24,7 @@ export interface LeaveIntentSeat {
 }
 
 /**
- * Create the leave-intent seat for one plugin mount.
+ * Create the leave-intent seat for one live document record.
  * @returns the seat to inject into the entries and the preview panel.
  */
 export function createLeaveIntentSeat(): LeaveIntentSeat {
@@ -49,5 +39,36 @@ export function createLeaveIntentSeat(): LeaveIntentSeat {
     },
     subscribe: store.subscribe,
     getSnapshot: store.getSnapshot,
+  }
+}
+
+/** A record-owned decision: every destructive intent shares the first pending request. */
+export function createLeaveDecision(needsConfirmation: () => boolean, publish: (intent: MdPreviewLeaveIntent | null) => void) {
+  const seat = createLeaveIntentSeat()
+  let pending: { settle: (allow: boolean) => void } | undefined
+  let disposed = false
+  return {
+    request(intent: MdPreviewLeaveIntent, signal: AbortSignal): boolean | Promise<boolean> {
+      if (disposed || signal.aborted || pending !== undefined) return false
+      if (!needsConfirmation()) return true
+      seat.request(intent)
+      return new Promise<boolean>((resolve) => {
+        const abort = (): void => { settle(false) }
+        const settle = (allow: boolean): void => {
+          if (pending?.settle !== settle) return
+          pending = undefined
+          signal.removeEventListener('abort', abort)
+          seat.clear()
+          publish(null)
+          resolve(allow && !disposed && !signal.aborted)
+        }
+        pending = { settle }
+        signal.addEventListener('abort', abort, { once: true })
+        publish(seat.getSnapshot())
+        if (signal.aborted) settle(false)
+      })
+    },
+    decide(allow: boolean): void { pending?.settle(allow) },
+    dispose(): void { disposed = true; pending?.settle(false) },
   }
 }

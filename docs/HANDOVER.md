@@ -1,7 +1,15 @@
 # 交接文档 — dsh-md-preview
 
-更新：2026-09-08。面向接手开发、验证和发布的维护者。当前待办以
+更新：2026-09-09。面向接手开发、验证和发布的维护者。当前待办以
 [TODO](../TODO.md) 为准；本文件记录持久流程与有日期的环境事实。
+
+## 当前开发候选（2026-09-09）
+
+`feat/official-sidebar-markdown` 的 `0.11.0-alpha.1` 迁移候选使用官方右栏；
+固定 Harness 补丁提交 `737e95c657a95fd04b12269313902f9b5ca2f6ca`。
+`DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-md-guard`，原检出和用户实例未修改。
+官方 npm 的 0.1.5-alpha.1 尚无关闭守卫，不可直接宣称兼容。当前自动化185项通过，
+真实浏览器和同归档验收状态见 [本轮 TDD](verification/official-sidebar-markdown/TDD.md)。
 
 ## 当前发布与验收
 
@@ -27,7 +35,7 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
 | 仓库约束与开发前置 | [AGENTS.md](../AGENTS.md)；`CLAUDE.md` 引用它 |
 | 行为、权威、失败码、状态归属与交付 | [PROJECT_CONTRACT.md](agent/PROJECT_CONTRACT.md) |
 | 领域术语 | [CONTEXT.md](../CONTEXT.md) |
-| 已决设计 | [ADR 目录](adr/)，0001–0004：FsVersion、写入沙箱、运行时 peer、面板停靠 |
+| 已决设计 | [ADR 目录](adr/)，0001–0004：既有实现边界；[0005](adr/0005-networked-html-preview-isolated-from-harness.md)、[0006](adr/0006-text-preview-independent-of-language-recognition.md)：HTML 联网隔离与文本准入的待实现设计 |
 | 当前状态与待办 | [TODO.md](../TODO.md) |
 | Issue 约定 | [issue-tracker.md](agents/issue-tracker.md) |
 | 浏览交互的证据基线 | [工作区浏览 UX](research/workspace-browser-ux.md) |
@@ -36,21 +44,15 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
 
 ## 架构速览
 
-- **Host**：`src/index.ts` 注册 `src/remote.ts` 中的 `MdPreviewService`，四个 RPC 为
-  `read/write/list/search`。权威链从会话 cwd 开始，经 resolve 与 containment 检查；
-  read 使用可预览扩展名并集，write 使用可编辑集合，search 只遍历名称。运行时 peer
-  仅 `@deepseek-ai/dsh-typert-protocol`（ADR-0003）。
-- **Client**：`lib/client.js` 使用仓库自有 lazy-CJS factory 协议；`mount.ts` 挂载
-  Remote 并注册四个 Slot：overlay、turnTail、assistant-actions、session header utilities。
-  CodeMirror 与 Mermaid 构建期内联；v0.10.0 client 约 3.95 MB（minified），发布归档
-  约 1.11 MB。Mermaid 按需求值。不要沿用引入 Mermaid 前的 426 KB 数字。
-- **状态与布局**：`preview-session.ts` 是读、编辑、保存的纯状态机，
-  `use-preview-session.ts` 承接副作用；`leave-intent.ts` 统一离开请求与未保存守卫。
-  面板、树、大纲、阅读记录与宽度偏好只持有 UI 局部 viewing state。停靠适配隔离在
-  `panel-dock.ts` / `use-panel-dock.ts`，兼容与释放边界见 ADR-0004。
-- **测试面**：Host 权威与取消、状态机、编辑/浏览交互、真实 SlotRegistry 与
-  AppFrame 装配、停靠及贡献释放、打包产物。Host fake 的 `FsTarget` 必须是
-  `{ targetKey, displayPath }`。jsdom 组合测试模拟几何，不提供真实浏览器排版证据。
+- Host `MdPreviewService` 保留显式会话的 `read/write/list/search`；精确读取、版本比较、
+  Markdown 写入限制、取消与公开文件观察见项目契约。Remote 手工描述符与 codec 保持同步。
+- Client `mount.ts` 先挂 Remote，再注册官方 Markdown tab type/body、root 未保存 Modal
+  和消息级预览动作。CodeMirror/Mermaid 内联，自有 lazy-CJS factory 及平台模块表保持不变。
+- `markdown-documents.ts` 按存活标签记录持有正文、草稿与编辑器 memento；`preview-session.ts`
+  是纯状态机，`leave-intent.ts` 统一破坏性请求。独立 overlay/frame 适配已删除，见 ADR-0007。
+- 未接入的搜索/阅读与偏好 helper 保留供后置任务复用，不删除旧持久记录。
+- 自动化测试通过真实官方服务和 Slot 装配验证行为；不把 jsdom 当成视觉验收。
+  完整构建先清除生成目录，防止已删除源码的声明被归档。
 
 ## 开发前置
 
@@ -97,9 +99,78 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
 可能提示本地构建陈旧。需要重新检查本地输出时运行 `pnpm build`；这不会改变已生成的
 归档。发布重试直接使用原已验证归档，不必为 mtime 重新打包。
 
+## 本机环境事实（2026-09-09）
+
+### 官方右栏审查与拆票后的复核
+
+- 当前插件仓库为 `/Users/pc2026/DSH-Space/dsh-md-preview`，main `ae58cd4`。
+  用户指定的同级 Harness 为 `/Users/pc2026/DSH-Space/deepseek-harness`，
+  `0.1.5-alpha.1` / `5dda764ed3aa172535a7967b06ff95d9cbfe536a`，审查时工作树干净。
+- 当前进程继承的 `DSH_HARNESS_ROOT` 仍指向失效的
+  `/Users/pc2026/Dev-Space/deepseek-harness`，不带覆盖的 strict 退出 1（源码缺失）。
+  显式使用下方命令，源码构建入口和新鲜度检查通过，实际退出 1，仅版本、commit、
+  文档摘要 3 项与旧 lock 不同。当前问题不能再描述为新检出不存在或 35 项失败。
+
+  ```sh
+  DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness pnpm context:check:strict
+  ```
+
+- [兼容初审](research/harness-0.1.5-alpha.1-compatibility-audit.md) 已完成；
+  用户要求采用官方右栏，整理 Issue 准备开发。当前规格与执行入口分别为
+  [#38](https://github.com/benz-ai-x/dsh-md-preview/issues/38) 和
+  [#54](https://github.com/benz-ai-x/dsh-md-preview/issues/54)，
+  旧 #39 提交和历史证据保留。具体队列见 [TODO](../TODO.md#官方右边栏迁移与清理)。
+- 同日用户进一步收窄优先级：先让已有 Markdown 预览/编辑在新 DSH 可用。
+  首阶段为 #54 → #55 → #56 → #59 → #60；#57/#58 在 #60 实际验收后推进，
+  #39 及多格式随后按依赖处理。后置需求和数据保留，首阶段不等待搜索或阅读记录迁移。
+- 本轮没有改变 lock、依赖、环境变量或源码链接，没有恢复旧流水线、重启/升级实例或发布。
+  浏览器和同归档验收由新票跟踪，不将旧路径下的通过记录当作新版证据。
+
+### 当日较早的暂停快照
+
+以下保留目录再次移动前后的实测现场；最新位置与开发方向以上方复核为准。
+
+- **收尾路径变化**：下述独立旧基线和普通 Harness 目录在检查之后均已不存在；新位置未确认。最新旧基线路径 strict 退出 1，报固定源码缺失。以下版本及通过结果保留为路径失效前的实测快照，恢复前重新定位检出；本次未重建环境。
+- 用户已要求暂停开发并先保存交接，当前入口为 [HANDOFF](../HANDOFF.md)。
+  #39 位于独立 `dsh-md-preview-batch-1-readonly-text` worktree，提交 `2491a52`
+  已推送，未合入 main；原工作区的既有改动保留。
+- 固定对照检出为 `/Users/pc2026/Dev-Space/deepseek-harness-md-preview-baseline`，
+  `0.1.2-rc.1` / `a66e4702047846cdaa10c66c9d3df3951f5ea70d`，已完成 lib/web 构建。
+  显式设置 `DSH_HARNESS_ROOT` 到该处，原工作区和功能 worktree 的 strict 均 123/123 通过；
+  #39 完整 verify 的 338 项测试通过，见 [本轮证据](verification/batch-1-readonly-text/WALKTHROUGH.md)。
+- 默认 `DSH_HARNESS_ROOT` 指向 `/Users/pc2026/Dev-Space/deepseek-harness`，交接时已为
+  `0.1.5-alpha.1` / `5dda764ed3aa172535a7967b06ff95d9cbfe536a`。该检出相对旧 lock 的
+  strict 退出 1，版本、commit、文档摘要 3 项不匹配；兼容性尚未评估。
+  下方 alpha.2 与路径移动记录仅保留其当时事实。
+- 本次未修改 lock、依赖或执行 `context:link`。独立临时 3291 服务已停止；
+  用户原有 3185 实例本次未重启、未升级。恢复前重新核对实际实例与目标基线。
+
 ## 本机环境事实（2026-09-08）
 
-- `dsh` 不在本机 PATH；CLI 入口为
+- **目录恢复后的复核**：插件仓库现回到
+  `/Users/pc2026/Dev-Space/dsh-md-preview`，`DSH-Space` 下的插件路径已不可用，
+  在当前工作目录启动命令正常。默认 Harness 检出仍为 `0.1.3-alpha.2`，
+  `pnpm context:check:strict` 退出 1，共 35 项失败（版本、commit、文档摘要及
+  32 项构建入口）。同级 `deepseek-harness-baseline-0.1.2-rc.1` 的 Git worktree
+  元数据入口仍无法解析，`git rev-parse HEAD` 退出 128。插件依赖仍为 Registry
+  版本，本次未修改 lock、依赖或 worktree 元数据。以下移动记录保留当时状态。
+- **目录移动后的复核**：插件仓库现位于
+  `/Users/pc2026/DSH-Space/dsh-md-preview`，原 `Dev-Space` 路径已不存在，已有改动保留。
+  `DSH_HARNESS_ROOT` 仍指向旧路径，因此本次 `pnpm context:check:strict` 退出 1，
+  报告 1 项失败：找不到固定基线源码。同级 `deepseek-harness` 仍为下述
+  `0.1.3-alpha.2` 检出且缺少 32 项构建入口；同级
+  `deepseek-harness-baseline-0.1.2-rc.1` 的 32 项入口存在，但其 `.git` 仍引用
+  旧目录，`git rev-parse HEAD` 失败，尚未恢复固定基线检查。插件仍使用 Registry
+  依赖，本次未修改依赖、lock 或 Git worktree 元数据。下文旧 CLI 路径仅为历史记录。
+- **目录移动前的访谈复核**：`DSH_HARNESS_ROOT` 指向
+  `/Users/pc2026/Dev-Space/deepseek-harness`，其检出已为 `0.1.3-alpha.2`、commit
+  `c389f96bf3a9b6807cb71ed6bdad5849be0df6d8`，与插件 lock 的 `0.1.2-rc.1` 不一致。
+  该检出的受检包缺少 main/types 构建入口；`pnpm context:check:strict` 实际退出 1，
+  共 35 项失败（版本、commit、文档摘要及 32 项构建入口）。插件开发依赖仍为
+  Registry 固定版本。本次保留失败结果，未修改 lock 或依赖；恢复固定源码与构建
+  状态后需重验，先前发布验证不能替代当前基线检查。
+- 以下 CLI 与实例信息是 **v0.10.0 发布时记录**，后续操作前重新核对。
+  `dsh` 不在本机 PATH；CLI 入口为
   `node /Users/pc2026/Dev-Space/deepseek-harness/apps/cli/lib/bin.js`。
   基线为 `0.1.2-rc.1`，commit 以仓库 lock 为准。
 - 当前人工验收使用 `DSH_HOME=/Users/pc2026/.dsh`、profile `r3-accept`、端口 3185、

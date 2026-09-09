@@ -34,6 +34,8 @@ export interface FakeFsOptions {
   resolveFailure?: ReadonlySet<string>
   writeFailure?: ReadonlySet<string>
   listFailure?: ReadonlySet<string>
+  /** Final-component aliases; resolution follows them while lstat reports the link. */
+  symlinks?: ReadonlyMap<string, string>
 }
 
 /**
@@ -57,22 +59,30 @@ export function fakeFs(options: FakeFsOptions = {}) {
       if (opts?.signal?.aborted) throw new DOMException('aborted', 'AbortError')
       if (options.resolveFailure?.has(path)) throw new Error(`no such path ${path}`)
       const absolute = path.startsWith('/') ? joinPath('', path) : joinPath(opts?.cwd ?? root, path)
-      return { targetKey: absolute, displayPath: absolute } as never
+      return { targetKey: options.symlinks?.get(absolute) ?? absolute, displayPath: absolute } as never
     },
-    contains: (parent: { displayPath: string }, child: { displayPath: string }) =>
-      parent.displayPath === child.displayPath || child.displayPath.startsWith(`${parent.displayPath}/`),
-    stat: async (target: { displayPath: string }, signal?: AbortSignal) => {
+    contains: (parent: { targetKey: string }, child: { targetKey: string }) =>
+      parent.targetKey === child.targetKey || child.targetKey.startsWith(`${parent.targetKey}/`),
+    lstat: async (path: string, opts?: { cwd?: string }, signal?: AbortSignal) => {
+      signal?.throwIfAborted()
+      const absolute = path.startsWith('/') ? joinPath('', path) : joinPath(opts?.cwd ?? root, path)
+      if (options.symlinks?.has(absolute)) return { type: 'symlink' as const }
+      const file = files.get(absolute)
+      return file === undefined ? undefined : { type: file.type }
+    },
+    processPath: (target: { displayPath: string }) => target.displayPath,
+    stat: async (target: { targetKey: string; displayPath: string }, signal?: AbortSignal) => {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
-      const file = files.get(target.displayPath)
+      const file = files.get(target.targetKey)
       if (file === undefined) return undefined
       return { version: file.version, type: file.type, size: file.size ?? file.content?.length } as never
     },
-    readText: async (target: { displayPath: string }, signal?: AbortSignal) => {
+    readText: async (target: { targetKey: string; displayPath: string }, signal?: AbortSignal) => {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
-      return files.get(target.displayPath)?.content ?? ''
+      return files.get(target.targetKey)?.content ?? ''
     },
     writeText: async (
-      target: { displayPath: string },
+      target: { targetKey: string; displayPath: string },
       content: string,
       expected?: { kind: 'replaceIfVersion'; version: string },
       signal?: AbortSignal,
@@ -82,7 +92,7 @@ export function fakeFs(options: FakeFsOptions = {}) {
       if (options.writeFailure?.has(target.displayPath)) {
         throw new FsError(`io failure ${target.displayPath}`, 'FS_IO_ERROR')
       }
-      const file = files.get(target.displayPath)
+      const file = files.get(target.targetKey)
       if (file === undefined) throw new FsError(`missing ${target.displayPath}`, 'FS_NOT_FOUND')
       if (expected !== undefined && file.version !== expected.version) {
         throw new FsError(`stale version for ${target.displayPath}`, 'FS_STALE_VERSION')
@@ -128,7 +138,7 @@ export async function makeService(
   // null spells "session without a workspace"; the default is the workspace root.
   ctx.provide('sessions', fakeSessions(options.cwd === null ? undefined : (options.cwd ?? WORKSPACE)))
   const service = new MdPreviewService(ctx, options.config ?? Config({}))
-  return { service, fs }
+  return { service, fs, ctx }
 }
 
 /** One previewable file with a known fingerprint, safe to mutate per case. */
