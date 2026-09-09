@@ -4,7 +4,7 @@
 
 在 **DeepSeek Harness 官方右边栏标签页**中预览和编辑 Markdown。
 
-当前分支为 **0.11.0-alpha.3 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
+当前分支为 **0.11.0-alpha.4 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
 [dsh-reference.lock.json](dsh-reference.lock.json) 固定的公共关闭守卫补丁。
 官方 npm 同版本尚无该接口，候选插件会拒绝激活。已发布的
 [v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
@@ -17,7 +17,7 @@
 
 ```sh
 dsh --profile markdown-accept --from-default-profile web --dump-config
-dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.3.tgz --save-exact
+dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.4.tgz --save-exact
 dsh --profile markdown-accept --dump-config
 dsh --profile markdown-accept --no-open
 ```
@@ -45,9 +45,11 @@ dsh plugin --profile markdown-accept remove @benz-ai-x/dsh-md-preview
   浏览器刷新在支持时触发原生离开提醒。
 - 保存冲突保留草稿，提供重新加载与显式“强制覆盖”。保存已成功但重读失败会明确区分，
   可重试读取；已观察到的版本差异会提示，直到本标签主动重新加载。
+  本标签的重新加载在未保存守卫放行、正文重读结束后，也会更新官方文件元数据。
   其他查看器刷新共享元数据不会清除这个提示，也不会自动覆盖草稿。
 
-带 `line` 的原生导航在预览中滚动到所属 ATX 章节；“源码第 N 行”进入编辑器精确定位。
+带 `line` 的原生导航在预览中滚动到所属 ATX 章节；每次点击“源码第 N 行”都会进入编辑器精确定位，
+保留正在编辑的草稿与撤销历史。
 每个导航目标在每种面孔只定位一次，切换预览/编辑不重放旧行号；再次导航时使用新的行目标。
 
 ## 快捷键

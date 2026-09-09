@@ -25,7 +25,9 @@ Successful write and read completion shows a Saved status; entering the next edi
 session or explicitly reloading clears that confirmation.
 
 A native `line` navigation reveals the enclosing ATX heading in Preview. Source Line
-opens the exact source line in Edit; each navigation revision is applied once per face.
+opens the exact source line in Edit on every explicit click, including within an active
+draft. Native navigation revisions are applied once per face; ordinary face switches
+do not replay a consumed revision. Explicit source-line selection preserves draft and history.
 Oversized Markdown offers an explicitly read-only native text tab. Its limits remain
 owned by the official viewer. Failed reads/writes retain stable codes and recovery.
 
@@ -77,6 +79,9 @@ This is not an OS-wide watcher. External metadata changes only prompt a reload, 
 silently replace an open body's draft.
 The current tab compares observed metadata versions with its own read fingerprint.
 A shared metadata reload clearing `changed` does not acknowledge this tab's old body.
+An accepted Reload requests the public metadata restat after its body read settles,
+so an older metadata frame cannot leave a permanent warning on freshly read content.
+Keep editing and record removal cancel that request; later observed changes still prompt.
 
 Stable `md-preview/` failures: `bad-request`, `unknown-session`, `no-workspace`,
 `unsupported-extension`, `forbidden`, `not-found`, `too-large`, `conflict`, `unavailable`.

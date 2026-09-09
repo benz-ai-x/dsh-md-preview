@@ -124,19 +124,24 @@ export function createMarkdownDocuments(read: MarkdownDocumentApi['read'], write
       const record = records.get(key)
       if (record !== undefined && !snapshot.getSnapshot()[key]?.saving) update(record, { type: 'EDIT', draft })
     },
-    leave(key: string, kind: 'switchFace' | 'reload'): void {
+    leave(key: string, intent: { kind: 'switchFace' } | { kind: 'reload'; reloadMetadata: () => void }): void {
       const record = records.get(key)
       if (record === undefined || snapshot.getSnapshot()[key]?.saving
         || snapshot.getSnapshot()[key]?.content.state === 'loading') return
       const settle = (allowed: boolean): void => {
         if (!allowed || disposed || record.controller.signal.aborted) return
         update(record, { type: 'CANCEL_EDIT' })
-        if (kind === 'reload') {
+        if (intent.kind === 'reload') {
           update(record, { type: 'TOAST_EXPIRED' })
-          own(load(record))
+          own(load(record).then(() => {
+            // Restat after the body read so pre-existing metadata cannot keep
+            // reporting that freshly read content as stale. The provider owns
+            // this work; a removed record must not request it for a successor.
+            if (!disposed && !record.controller.signal.aborted && records.get(key) === record) intent.reloadMetadata()
+          }))
         }
       }
-      const decision = record.leave.request({ kind }, record.controller.signal)
+      const decision = record.leave.request(intent, record.controller.signal)
       if (typeof decision === 'boolean') settle(decision)
       else own(decision.then(settle))
     },

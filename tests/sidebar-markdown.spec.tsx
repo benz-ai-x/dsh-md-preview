@@ -407,6 +407,71 @@ describe('Markdown in the official right sidebar', () => {
     expect(view.container.querySelector('.cm-editor')).toBeNull()
   })
 
+  it('clears stale metadata after reloading a file changed by an external editor', async () => {
+    const { runtime, view, metadata, files } = await mountSidebar()
+    const address = sessionFileAddress(SESSION, 'guide.md')
+    await act(async () => { runtime.ctx.sidebarRight.openResource(address) })
+    const source = metadata(address)
+    await act(async () => {
+      source.set({
+        ...source.getSnapshot(), status: 'live',
+        value: { absolutePath: '/workspace/a/guide.md', version: 'v1', changed: false },
+        // The public resource reload restats the file; an external editor does
+        // not emit fs/observed and therefore does not update this stream itself.
+        reload() {
+          source.set({ ...source.getSnapshot(), value: {
+            absolutePath: '/workspace/a/guide.md', version: files.get(`${SESSION}/guide.md`)!.fingerprint, changed: false,
+          } })
+        },
+      })
+    })
+    files.set(`${SESSION}/guide.md`, { content: '# Latest from external editor\n', fingerprint: 'v2' })
+    await act(async () => { view.view.getByRole('button', { name: 'Reload', exact: true }).click() })
+    expect(view.view.getByRole('heading', { name: 'Latest from external editor' })).toBeTruthy()
+    expect(view.view.queryByText('The file changed elsewhere', { exact: false })).toBeNull()
+
+    await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+    const editor = EditorView.findFromDOM(view.container.querySelector('.cm-editor') as HTMLElement)!
+    await act(async () => { editor.dispatch({ changes: { from: 0, insert: 'unsaved ' } }) })
+    files.set(`${SESSION}/guide.md`, { content: '# Another external edit\n', fingerprint: 'v3' })
+    await act(async () => { view.view.getByRole('button', { name: 'Reload', exact: true }).click() })
+    const dialogButton = (name: string) => [...document.querySelectorAll('[role="dialog"] button')].find(button => button.textContent === name) as HTMLButtonElement
+    expect(view.view.queryByText('The file changed elsewhere', { exact: false })).toBeNull()
+    await act(async () => { dialogButton('Keep editing').click() })
+    expect(editor.state.sliceDoc()).toBe('unsaved # Latest from external editor\n')
+    expect(view.view.queryByText('The file changed elsewhere', { exact: false })).toBeNull()
+    await act(async () => { view.view.getByRole('button', { name: 'Reload', exact: true }).click() })
+    await act(async () => { dialogButton('Discard changes').click() })
+    expect(view.view.getByRole('heading', { name: 'Another external edit' })).toBeTruthy()
+    expect(view.view.queryByText('The file changed elsewhere', { exact: false })).toBeNull()
+
+    await act(async () => {
+      source.set({ ...source.getSnapshot(), value: { absolutePath: '/workspace/a/guide.md', version: 'v4', changed: true } })
+    })
+    expect(view.view.getByRole('status').textContent).toBe('The file changed elsewhere')
+    expect(view.view.getByRole('heading', { name: 'Another external edit' })).toBeTruthy()
+  })
+
+  it('does not restat a resource after its reloading tab is closed', async () => {
+    const { runtime, view, metadata, remote } = await mountSidebar()
+    const address = sessionFileAddress(SESSION, 'guide.md')
+    await act(async () => { runtime.ctx.sidebarRight.openResource(address) })
+    const metadataRequests: string[] = []
+    const source = metadata(address)
+    await act(async () => {
+      source.set({ ...source.getSnapshot(), reload: () => { metadataRequests.push(address) } })
+    })
+    let finish!: () => void
+    const pending = new Promise<void>(resolve => { finish = resolve })
+    const read = remote.read
+    remote.read = async (...args) => { await pending; return read(...args) }
+    await act(async () => { view.view.getByRole('button', { name: 'Reload', exact: true }).click() })
+    try {
+      await act(async () => { runtime.ctx.sidebarRight.close(runtime.ctx.sidebarRight.active()!.id) })
+    } finally { await act(async () => { finish() }) }
+    expect(metadataRequests).toEqual([])
+  })
+
   it('announces a newer first metadata version without replacing the loaded draft', async () => {
     const { runtime, view, metadata, files } = await mountSidebar()
     const address = sessionFileAddress(SESSION, 'guide.md')
@@ -462,6 +527,29 @@ describe('Markdown in the official right sidebar', () => {
     expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(1)
     await act(async () => { runtime.ctx.sidebarRight.openResource(address, { params: { line: 3 } }) })
     expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(3)
+  })
+
+  it('locates the source line again when explicitly requested after returning to preview', async () => {
+    const { runtime, view, files } = await mountSidebar()
+    const address = sessionFileAddress(SESSION, 'guide.md')
+    files.set(`${SESSION}/guide.md`, { content: '# First\n\nIntroduction\n\n## Second\nTarget\n', fingerprint: 'line-v1' })
+    await act(async () => { runtime.ctx.sidebarRight.openResource(address, { params: { line: 6 } }) })
+    await act(async () => { view.view.getByRole('button', { name: 'Source line 6' }).click() })
+    const editor = () => EditorView.findFromDOM(view.container.querySelector('.cm-editor') as HTMLElement)!
+    expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(6)
+    await act(async () => { editor().dispatch({ selection: { anchor: 0 } }) })
+    await act(async () => { view.view.getByRole('button', { name: 'Preview', exact: true }).click() })
+    await act(async () => { view.view.getByRole('button', { name: 'Source line 6' }).click() })
+    expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(6)
+
+    await act(async () => { editor().dispatch({ changes: { from: 0, insert: 'draft ' }, selection: { anchor: 0 } }) })
+    await act(async () => { view.view.getByRole('button', { name: 'Source line 6' }).click() })
+    expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(6)
+    expect(editor().state.sliceDoc()).toBe('draft # First\n\nIntroduction\n\n## Second\nTarget\n')
+    await act(async () => { view.view.getByRole('button', { name: 'Undo', exact: true }).click() })
+    expect(editor().state.sliceDoc()).toBe('# First\n\nIntroduction\n\n## Second\nTarget\n')
+    await act(async () => { view.view.getByRole('button', { name: 'Redo', exact: true }).click() })
+    expect(editor().state.sliceDoc()).toBe('draft # First\n\nIntroduction\n\n## Second\nTarget\n')
   })
 
   it('exposes the requested source line from preview and locates it when editing starts', async () => {

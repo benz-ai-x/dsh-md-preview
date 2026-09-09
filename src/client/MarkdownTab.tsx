@@ -32,12 +32,17 @@ export interface MarkdownTabInjected {
 export type MarkdownTabProps = PropsRuntime<'sidebar.right.pane.tab'>
   & PropsLocale<'md-preview'> & InjectFace<MarkdownTabInjected>
 
+function selectSourceLine(view: EditorView, line: number): void {
+  view.dispatch({ selection: { anchor: view.state.doc.line(Math.min(line, view.state.doc.lines)).from }, scrollIntoView: true })
+}
+
 export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, attach, enterEdit, edit, save, rememberEditor, restoreEditor, renderDiagrams, leave, takeNavigation, openNativeText, t }: MarkdownTabProps) {
   const { tab } = useTabInfo()
   const metadata = useResource<'file'>(tab.contentId)
   const key = documentKey(sessionId, tab.id)
   const state = useDocuments(snapshot => snapshot[key])
   const editor = useRef<EditorView | null>(null)
+  const requestedSourceLine = useRef<number | undefined>(undefined)
   const rendered = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<EditorStatus | null>(null)
   useEffect(() => {
@@ -61,8 +66,7 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
       || typeof line !== 'number' || !Number.isInteger(line) || line < 1) return
     if (!takeNavigation(key, tab.navigation.revision, state.face)) return
     if (state.face === 'edit' && editor.current !== null) {
-      const view = editor.current
-      view.dispatch({ selection: { anchor: view.state.doc.line(Math.min(line, view.state.doc.lines)).from }, scrollIntoView: true })
+      selectSourceLine(editor.current, line)
     } else {
       // Rendered Markdown has no one-to-one source-line layout. Reveal its
       // enclosing section; the source-line action gives an exact editor jump.
@@ -82,12 +86,20 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
     <div className="dsh-md-tab-toolbar">
       <span title={parseFileAddress(tab.contentId)?.path}>{parseFileAddress(tab.contentId)?.path}</span>
       {state?.content.state === 'ready' && typeof line === 'number' && Number.isInteger(line) && line > 0
-        && <Button size="sm" disabled={state.saving} onClick={() => enterEdit(key)}>{t('panel.sourceLine', { line })}</Button>}
-      <Button size="sm" disabled={state?.saving || state?.content.state === 'loading'} onClick={() => leave(key, 'reload')}>{t('panel.conflict.reload')}</Button>
+        && <Button size="sm" disabled={state.saving} onClick={() => {
+          if (editor.current !== null) {
+            selectSourceLine(editor.current, line)
+            editor.current.focus()
+          } else {
+            requestedSourceLine.current = line
+            enterEdit(key)
+          }
+        }}>{t('panel.sourceLine', { line })}</Button>}
+      <Button size="sm" disabled={state?.saving || state?.content.state === 'loading'} onClick={() => leave(key, { kind: 'reload', reloadMetadata: metadata.reload })}>{t('panel.conflict.reload')}</Button>
       {state?.content.state === 'ready' && (state.face === 'view'
         ? <Button size="sm" onClick={() => enterEdit(key)}>{t('panel.edit')}</Button>
         : <>
-          <Button size="sm" disabled={state.saving} onClick={() => leave(key, 'switchFace')}>{t('panel.view')}</Button>
+          <Button size="sm" disabled={state.saving} onClick={() => leave(key, { kind: 'switchFace' })}>{t('panel.view')}</Button>
           <Button size="sm" onClick={() => { if (editor.current) openSearchPanel(editor.current) }}>{t('panel.find')}</Button>
           <Button size="sm" disabled={!status?.canUndo || state.saving} onClick={() => { if (editor.current) undo(editor.current) }}>{t('panel.undo')}</Button>
           <Button size="sm" disabled={!status?.canRedo || state.saving} onClick={() => { if (editor.current) redo(editor.current) }}>{t('panel.redo')}</Button>
@@ -116,7 +128,15 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
         ? <MarkdownEditor initialValue={state.content.file.content} restoreMemento={() => restoreEditor(key)}
             readOnly={state.saving}
             searchPhrases={searchPhrases}
-            onMemento={value => rememberEditor(key, value)} onView={value => { editor.current = value }} onStatus={setStatus}
+            onMemento={value => rememberEditor(key, value)} onView={value => {
+              editor.current = value
+              if (value !== null && requestedSourceLine.current !== undefined) {
+                const requested = requestedSourceLine.current
+                requestedSourceLine.current = undefined
+                selectSourceLine(value, requested)
+                value.focus()
+              }
+            }} onStatus={setStatus}
             onChange={draft => edit(key, draft)} onSave={() => save(key, false)} />
         : <div className="dsh-md-tab-document" ref={rendered}><MarkdownText text={state.content.file.content} labels={labels} /></div>
       : <p role="status">{state?.content.state === 'failed' ? `${t('panel.error')} · ${state.content.code}` : t('panel.loading')}</p>}
