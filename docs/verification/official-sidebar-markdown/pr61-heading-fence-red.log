@@ -1,0 +1,39 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'ignores headings inside indented code fences'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (38 tests | 1 failed | 37 skipped) 97ms
+     × ignores headings inside indented code fences when locating the requested section 96ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > ignores headings inside indented code fences when locating the requested section
+AssertionError: expected [] to deeply equal [ <h2></h2> ]
+
+- Expected
++ Received
+
+- [
+-   <h2>
+-     Section
+-   </h2>,
+- ]
++ []
+
+ ❯ tests/sidebar-markdown.spec.tsx:609:23
+    607|       })
+    608|       await act(async () => { runtime.ctx.sidebarRight.openResource(se…
+    609|       expect(scrolls).toEqual([view.view.getByRole('heading', { name: …
+       |                       ^
+    610|     } finally {
+    611|       if (previous) Object.defineProperty(Element.prototype, 'scrollIn…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 37 skipped (38)
+   Start at  19:42:09
+   Duration  1.44s (transform 706ms, setup 0ms, import 1.07s, tests 97ms, environment 213ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

@@ -3,8 +3,11 @@
 日期：2026-09-09。范围：#54 → #55 → #56 → #59 → #60。
 用户已授权按这些 Issue 与 `tdd` 技能实施；搜索、独立大纲/持久阅读及其他格式后置。
 
+最新标题源位置修复与插件 alpha.5 的验证见 [PR61-HEADINGS.md](PR61-HEADINGS.md)。
+当前 Harness 补丁提交为 `a28c5a8`；下文各轮基线与证据保留为历史。
+
 后续状态：PR #61 对 `dcf546e` 的复查提出3个独立问题，已按 TDD 修复并升级为 alpha.3；
-该轮验证见 [PR61-FIXES.md](PR61-FIXES.md)。后续两项复审修复与插件 alpha.4 的当前证据见
+该轮验证见 [PR61-FIXES.md](PR61-FIXES.md)。后续两项复审修复与插件 alpha.4 的该轮证据见
 [PR61-FOLLOWUP.md](PR61-FOLLOWUP.md)。下文 alpha.1/alpha.2 的归档与结果保留为历史。
 
 ## 测试边界

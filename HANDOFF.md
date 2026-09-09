@@ -1,6 +1,25 @@
 # HANDOFF — dsh-md-preview
 
-## 当前交接：2026-09-09，PR #61 后续两项修复与最新 Harness 核对
+## 当前交接：2026-09-09，PR #61 标题定位修复
+
+用户要求修复剩余的链接/缩进标题定位 P2。修复代码提交 `18b43c0`，插件候选 `0.11.0-alpha.5`。
+预览定位使用平台渲染标题的源坐标，覆盖重复标题、setext、围栏、数学与脚注重排。
+新增 Harness 公共 `MarkdownText.headingSource` 选项；固定本地补丁提交为 `a28c5a8`，
+仍以最新已核对的官方 `0.1.5-alpha.1` / `5dda764` 为基础。两份补丁在 `patches/`，均未上游发布。
+
+完整 verify 退出0：138项strict、16文件201测试、类型检查、构建与6项产物检查。
+同一 alpha.5 归档完成干净 profile 安装、配置组合/覆盖、正常启动、普通导入、资源HTTP200、
+移除后HTTP404，并确认实际 Web 资源包含源坐标能力；两个测试服务均退出0。
+Harness GUI、相关组件与关闭服务测试、完整回放、文档及 lint 通过；详情和计数边界见
+[本轮验证](docs/verification/official-sidebar-markdown/PR61-HEADINGS.md)。
+
+仍在 `feat/official-sidebar-markdown` / [草稿 PR #61](https://github.com/benz-ai-x/dsh-md-preview/pull/61)。
+#60 真实浏览器矩阵未完成，未合并或发布，相关 Issue 保持打开。
+继续页面验收前重新核对3196现场并安装本次 alpha.5；此前 alpha.2 不是当前候选。
+显式设置 `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-md-guard`。
+原 Harness 检出、用户实例以及已有技能/流水线改动保留。
+
+## 2026-09-09 较早快照：PR #61 后续两项修复与最新 Harness 核对
 
 用户要求继续修复重载后的元数据误报和显式源行重复定位，并明确要求使用最新 Harness。
 GitHub 最新 Release、master 与用户原检出均已核实为 `0.1.5-alpha.1` / `5dda764`；
