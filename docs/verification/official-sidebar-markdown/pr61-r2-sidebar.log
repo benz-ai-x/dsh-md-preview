@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  35 passed (35)
+   Start at  19:04:11
+   Duration  3.03s (transform 732ms, setup 0ms, import 1.12s, tests 1.62s, environment 233ms)
+

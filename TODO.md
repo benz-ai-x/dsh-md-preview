@@ -8,15 +8,17 @@
 
 - **开发方向**：用户已授权按 TDD 开发 #54 → #55 → #56 → #59 → #60，只迁移已有
   Markdown 预览/编辑并清理冲突接线。分支 `feat/official-sidebar-markdown`，候选
-  `0.11.0-alpha.3`；搜索、独立大纲/持久阅读、通用文本及其他格式后置。
+  插件版本 `0.11.0-alpha.4`；搜索、独立大纲/持久阅读、通用文本及其他格式后置。
 - **实现与自动化**：#54 基线升级、#55 公共关闭守卫、#56 原生 Markdown、#59 旧接线清理
-  已实施。PR #61 复查的导航重放、保存确认缺失、变化提示遗漏已按 TDD 修复。
-  完整 verify 退出0：138项strict、16文件193测试、类型检查、双端构建、6项产物检查。
-  本次证据见 [PR #61 修复记录](docs/verification/official-sidebar-markdown/PR61-FIXES.md)。
-  #60 真实浏览器及同归档安装验收继续，不能把自动化通过标为正式发布或人工验收。
+  已实施。PR #61 前轮3项问题及后续重载元数据误报、显式源行重复定位均已修复。
+  完整 verify 退出0：138项strict、16文件196测试、类型检查、双端构建、6项产物检查。
+  插件 alpha.4 同归档安装/移除通过；本次证据见
+  [PR #61 后续修复记录](docs/verification/official-sidebar-markdown/PR61-FOLLOWUP.md)。
+  #60 真实浏览器验收继续，不能把自动化通过标为正式发布或人工验收。
 - **固定基线**：Harness `0.1.5-alpha.1` 加本地补丁提交 `737e95c657a95fd04b12269313902f9b5ca2f6ca`。
   独立检出 `../deepseek-harness-md-guard`，命令显式覆盖旧全局 `DSH_HARNESS_ROOT`。
   官方 npm 同版本尚未包含补丁；原 Harness 检出与用户运行实例不变。
+  同日重新核对官方发布、master 和用户原检出：最新 Harness 均为 `0.1.5-alpha.1` / `5dda764`。
   见 [TDD证据](docs/verification/official-sidebar-markdown/TDD.md) 与
   [兼容初审](docs/research/harness-0.1.5-alpha.1-compatibility-audit.md)。
 - **#39历史保留**：旧分支 `feat/batch-1-readonly-text` 未合入，`2491a52` 的338测试与7/7旧AC

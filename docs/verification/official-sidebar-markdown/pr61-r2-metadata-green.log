@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'clears stale metadata after reloading'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 32 skipped (33)
+   Start at  19:00:05
+   Duration  1.59s (transform 780ms, setup 0ms, import 1.19s, tests 114ms, environment 221ms)
+

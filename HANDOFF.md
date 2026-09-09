@@ -1,6 +1,24 @@
 # HANDOFF — dsh-md-preview
 
-## 当前交接：2026-09-09，修复 PR #61 的3项复查问题
+## 当前交接：2026-09-09，PR #61 后续两项修复与最新 Harness 核对
+
+用户要求继续修复重载后的元数据误报和显式源行重复定位，并明确要求使用最新 Harness。
+GitHub 最新 Release、master 与用户原检出均已核实为 `0.1.5-alpha.1` / `5dda764`；
+插件版本单独为 `0.11.0-alpha.4`。关闭守卫仍依赖 #55 的本地补丁 `737e95c`。
+
+修复代码提交 `da3d522`。两个失败用例分别 RED→GREEN，完整 verify 退出0：
+138项strict、16文件196测试、类型检查、构建和6项产物检查通过。
+插件 alpha.4 同一归档完成干净 profile 安装、配置组合/覆盖、正常启动、普通导入、
+资源HTTP200、移除后HTTP404；两个测试服务已退出0。
+详见 [本轮修复与验收记录](docs/verification/official-sidebar-markdown/PR61-FOLLOWUP.md)。
+
+仍在 `feat/official-sidebar-markdown` / [草稿 PR #61](https://github.com/benz-ai-x/dsh-md-preview/pull/61)。
+#60 真实浏览器矩阵未完成，未合并或发布，相关 Issue 保持打开。
+此前3196实例为插件 alpha.2；未来验收前先核对现场并安装 alpha.4 同一归档。
+命令显式设置 `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-md-guard`；
+本轮未修改 Harness、lock、用户实例或已有技能/流水线改动。
+
+## 2026-09-09 较早快照：修复 PR #61 的3项复查问题
 
 用户要求修复旧导航重放、保存确认缺失和变化提示遗漏。修复代码提交 `dff7f62`，
 开发候选升级为 `0.11.0-alpha.3`；公开 Slot 装配逐项 RED→GREEN，完整 verify 退出0：

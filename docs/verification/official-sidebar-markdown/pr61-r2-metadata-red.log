@@ -1,0 +1,40 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'clears stale metadata after reloading'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (33 tests | 1 failed | 32 skipped) 107ms
+     × clears stale metadata after reloading a file changed by an external editor 106ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > clears stale metadata after reloading a file changed by an external editor
+AssertionError: expected <p role="status" …(1)></p> to be null
+
+- Expected:
+null
+
++ Received:
+<p
+  class="dsh-md-tab-notice"
+  role="status"
+>
+  The file changed elsewhere
+</p>
+
+ ❯ tests/sidebar-markdown.spec.tsx:431:83
+    429|     await act(async () => { view.view.getByRole('button', { name: 'Rel…
+    430|     expect(view.view.getByRole('heading', { name: 'Latest from externa…
+    431|     expect(view.view.queryByText('The file changed elsewhere', { exact…
+       |                                                                                   ^
+    432|   })
+    433|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 32 skipped (33)
+   Start at  18:59:28
+   Duration  1.80s (transform 812ms, setup 0ms, import 1.27s, tests 107ms, environment 349ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

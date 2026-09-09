@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'locates the source line again|does not replay an old source-line target'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 32 skipped (34)
+   Start at  19:02:39
+   Duration  1.96s (transform 823ms, setup 0ms, import 1.30s, tests 241ms, environment 356ms)
+

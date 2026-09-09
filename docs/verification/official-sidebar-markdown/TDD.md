@@ -4,7 +4,8 @@
 用户已授权按这些 Issue 与 `tdd` 技能实施；搜索、独立大纲/持久阅读及其他格式后置。
 
 后续状态：PR #61 对 `dcf546e` 的复查提出3个独立问题，已按 TDD 修复并升级为 alpha.3；
-新验证见 [PR61-FIXES.md](PR61-FIXES.md)。下文 alpha.1/alpha.2 的归档与结果保留为历史。
+该轮验证见 [PR61-FIXES.md](PR61-FIXES.md)。后续两项复审修复与插件 alpha.4 的当前证据见
+[PR61-FOLLOWUP.md](PR61-FOLLOWUP.md)。下文 alpha.1/alpha.2 的归档与结果保留为历史。
 
 ## 测试边界
 

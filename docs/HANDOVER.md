@@ -5,13 +5,16 @@
 
 ## 当前开发候选（2026-09-09）
 
-`feat/official-sidebar-markdown` 的 `0.11.0-alpha.3` 迁移候选使用官方右栏；
+`feat/official-sidebar-markdown` 的插件 `0.11.0-alpha.4` 迁移候选使用官方右栏；
 固定 Harness 补丁提交 `737e95c657a95fd04b12269313902f9b5ca2f6ca`。
 `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-md-guard`，原检出和用户实例未修改。
-官方 npm 的 0.1.5-alpha.1 尚无关闭守卫，不可直接宣称兼容。PR #61 复查的3项问题已修复，
-当前自动化193项通过。alpha.3 的归档与实际验收状态见
-[修复记录](verification/official-sidebar-markdown/PR61-FIXES.md)；
-alpha.2 安装证据保留于 [此前 TDD](verification/official-sidebar-markdown/TDD.md)，不沿用为新包结果。
+用户要求最新 Harness 后重新核对官方发布、远程 master 与原检出，均为
+`0.1.5-alpha.1` / `5dda764`；npm `alpha` 为该版，`latest` 标签仍是旧的 `0.1.2-rc.1`。
+官方 npm 的 0.1.5-alpha.1 尚无关闭守卫，不可直接宣称未打补丁即可兼容。
+PR #61 前轮3项及本轮2项复查问题已修复，当前自动化196项通过。
+插件 alpha.4 的同归档安装/移除及实际验收边界见
+[后续修复记录](verification/official-sidebar-markdown/PR61-FOLLOWUP.md)；
+alpha.3 证据保留于 [前轮修复](verification/official-sidebar-markdown/PR61-FIXES.md)，不沿用为新包结果。
 
 ## 当前发布与验收
 

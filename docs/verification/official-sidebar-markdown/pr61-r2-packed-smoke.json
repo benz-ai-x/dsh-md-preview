@@ -1,0 +1,79 @@
+{
+  "version": "0.11.0-alpha.4",
+  "sourceCommit": "da3d52255d42a54ef09c4ba5f794344f0d1d934b",
+  "node": "v26.4.0",
+  "pnpm": "11.17.0",
+  "baseline": "0.1.5-alpha.1+737e95c657a95fd04b12269313902f9b5ca2f6ca",
+  "profile": "/tmp/mdpreview-0110a4-smoke-cwnwIh/profiles/web",
+  "archiveSha256": "10783794d47bf8d51b5abdf08376eda26707d63e1edf3b81934333e5740cee86",
+  "shutdown": [
+    {
+      "code": 0,
+      "signal": null
+    },
+    {
+      "code": 0,
+      "signal": null
+    }
+  ],
+  "archive": {
+    "fileCount": 35,
+    "cleanManifest": true,
+    "exportsPresent": true,
+    "noSourceMaps": true,
+    "lazyFactory": true,
+    "clientSha256": "9517c28150e18d1dbef2910262b6c372c5f44f4af4e31ccc7799ff1daebe9bae"
+  },
+  "configuration": {
+    "composed": true,
+    "override": {
+      "maxBytes": 4096,
+      "allowedExtensions": [
+        ".md"
+      ],
+      "previewExtensions": [
+        ".markdown"
+      ],
+      "searchMaxResults": 3,
+      "searchMaxDirectories": 4,
+      "searchConcurrency": 2
+    }
+  },
+  "installedMatchesArchive": true,
+  "lockSha256": "73617bb4aeb8114f18fbca9be837a0f96831e1283bfa13c4466427b0e71fb9aa",
+  "port": 52215,
+  "boot": {
+    "status": 200,
+    "entries": 54,
+    "bytes": 3891322,
+    "servedSha256": "51ba14b23aea0bb9f80f815df8ccc5218dd563ca9511f9162dd0c054c8d244b4",
+    "url": "/plugins/??@benz-ai-x/dsh-md-preview/client.js&rev=0d59f1fd40757646-48",
+    "releaseMarkers": true
+  },
+  "imports": {
+    "host": [
+      "Config",
+      "DEFAULT_ALLOWED_EXTENSIONS",
+      "DEFAULT_MAX_BYTES",
+      "DEFAULT_PREVIEW_EXTENSIONS",
+      "DEFAULT_SEARCH_CONCURRENCY",
+      "DEFAULT_SEARCH_MAX_DIRECTORIES",
+      "DEFAULT_SEARCH_MAX_RESULTS",
+      "MD_PREVIEW_FAILURE_CODES",
+      "MdPreviewService",
+      "apply",
+      "inject",
+      "isAllowedExtension",
+      "name"
+    ],
+    "remote": [
+      "TYPERT_REMOTE",
+      "default"
+    ]
+  },
+  "removal": {
+    "entries": 53,
+    "priorBundleStatus": 404,
+    "absent": true
+  }
+}
