@@ -1,0 +1,39 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'clears an earlier save confirmation'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (31 tests | 1 failed | 30 skipped) 192ms
+     × clears an earlier save confirmation when a new draft is discarded 191ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > clears an earlier save confirmation when a new draft is discarded
+AssertionError: expected <p role="status"></p> to be null
+
+- Expected:
+null
+
++ Received:
+<p
+  role="status"
+>
+  Saved
+</p>
+
+ ❯ tests/sidebar-markdown.spec.tsx:144:61
+    142|     const discard = [...document.querySelectorAll('button')].find(butt…
+    143|     await act(async () => { discard.click() })
+    144|     expect(view.view.queryByText('Saved', { exact: true })).toBeNull()
+       |                                                             ^
+    145|     expect(view.container.textContent).not.toContain('discarded ')
+    146|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 30 skipped (31)
+   Start at  18:34:16
+   Duration  1.60s (transform 734ms, setup 0ms, import 1.12s, tests 192ms, environment 220ms)
+
+[ELIFECYCLE] Test failed. See above for more details.

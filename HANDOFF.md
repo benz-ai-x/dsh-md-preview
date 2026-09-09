@@ -1,6 +1,20 @@
 # HANDOFF — dsh-md-preview
 
-## 当前交接：2026-09-09，按 TDD 开发 Markdown 核心迁移
+## 当前交接：2026-09-09，修复 PR #61 的3项复查问题
+
+用户要求修复旧导航重放、保存确认缺失和变化提示遗漏。修复代码提交 `dff7f62`，
+开发候选升级为 `0.11.0-alpha.3`；公开 Slot 装配逐项 RED→GREEN，完整 verify 退出0：
+138项strict、16文件193测试、类型检查、双端构建、6项产物检查全部通过。
+同一 alpha.3 tarball 的干净 profile 安装、配置组合/覆盖、普通导入、启动、资源服务和移除通过，
+两个测试服务退出0；详见 [修复与验收记录](docs/verification/official-sidebar-markdown/PR61-FIXES.md)。
+
+修改仍在 `feat/official-sidebar-markdown` / [草稿 PR #61](https://github.com/benz-ai-x/dsh-md-preview/pull/61)。
+#60 真实浏览器验收仍待连接恢复，未合并或发布，相关 Issue 保持打开。
+原3196验收实例仍是 alpha.2；继续页面验收前安装本次 alpha.3 归档。
+命令仍需显式设置 `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-md-guard`。
+用户既有技能、Agent 和流水线文件改动保留。
+
+## 2026-09-09 较早快照：按 TDD 开发 Markdown 核心迁移
 
 用户已明确授权开发 #54、#55、#56、#59、#60。插件开发分支为
 `feat/official-sidebar-markdown`，保留了开始前已有的文档、技能和流水线文件改动。

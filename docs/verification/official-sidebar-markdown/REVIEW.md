@@ -1,5 +1,8 @@
 # 迁移交付前复核
 
+本页是最初迁移实现的复核记录。PR #61 在 `dcf546e` 上的后续两轴审查及3项独立问题的修复，
+见 [PR61-FIXES.md](PR61-FIXES.md)；两轮发现和验证分别保留。
+
 基点：ae58cd4d3cfeec7b745f692cda502f66916e58ad；初始实现：7f55e85ca8b0156ac3303736cbe4944cbc7a09ae。
 两路 reviewer 按 code-review 技能独立只读检查，修复后回读限定diff。
 

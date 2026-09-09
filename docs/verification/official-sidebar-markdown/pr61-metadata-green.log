@@ -1,0 +1,10 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'announces a newer first metadata version|announces a Host-observed version change'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 30 skipped (32)
+   Start at  18:36:05
+   Duration  1.61s (transform 744ms, setup 0ms, import 1.14s, tests 191ms, environment 218ms)
+

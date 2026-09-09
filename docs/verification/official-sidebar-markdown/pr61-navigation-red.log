@@ -1,0 +1,35 @@
+$ vitest run tests/sidebar-markdown.spec.tsx -t 'does not replay an old source-line target'
+
+ RUN  v4.1.11 /Users/pc2026/DSH-Space/dsh-md-preview
+
+ ❯ tests/sidebar-markdown.spec.tsx (30 tests | 1 failed | 29 skipped) 182ms
+     × does not replay an old source-line target when returning to the editor 181ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sidebar-markdown.spec.tsx > Markdown in the official right sidebar > does not replay an old source-line target when returning to the editor
+AssertionError: expected 6 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 6
+
+ ❯ tests/sidebar-markdown.spec.tsx:416:82
+    414|     await act(async () => { view.view.getByRole('button', { name: 'Pre…
+    415|     await act(async () => { view.view.getByRole('button', { name: 'Edi…
+    416|     expect(editor().state.doc.lineAt(editor().state.selection.main.hea…
+       |                                                                                  ^
+    417|     await act(async () => { runtime.ctx.sidebarRight.openResource(addr…
+    418|     expect(editor().state.doc.lineAt(editor().state.selection.main.hea…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 29 skipped (30)
+   Start at  18:31:23
+   Duration  1.87s (transform 799ms, setup 0ms, import 1.26s, tests 182ms, environment 350ms)
+
+[ELIFECYCLE] Test failed. See above for more details.
