@@ -6,6 +6,44 @@ import { Config } from '../src/config.ts'
 import { makeService, markdownFile, SESSION, WORKSPACE } from './host-harness.ts'
 
 describe('MdPreviewService.write specifics', () => {
+  it('enforces the write limit in UTF-8 bytes for an editable Markdown document', async () => {
+    const { service } = await makeService({
+      config: Config({ maxBytes: 3 }),
+      files: new Map([['/workspace/project/README.md', markdownFile('old')]]),
+    })
+    await expect(service.write(SESSION as never, 'README.md', 'éé', 'v1', false, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/too-large' })
+    await expect(service.read(SESSION as never, 'README.md', new AbortController().signal))
+      .resolves.toMatchObject({ content: 'old', kind: 'markdown', editable: true })
+  })
+
+  it('does not let a Markdown-named alias make its resolved text target editable', async () => {
+    const { service, fs } = await makeService({
+      files: new Map([['/workspace/project/notes.txt', markdownFile('original')]]),
+    })
+    const resolve = fs.resolve
+    fs.resolve = (path, options) => resolve(path === 'alias.md' ? 'notes.txt' : path, options)
+    await expect(service.read(SESSION as never, 'alias.md', new AbortController().signal))
+      .resolves.toMatchObject({ kind: 'text', editable: false })
+    await expect(service.write(SESSION as never, 'alias.md', 'changed', undefined, true, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/unsupported-extension' })
+    expect(fs.writes).toEqual([])
+  })
+
+  it('cannot grant new text write access through configuration or force', async () => {
+    const { service, fs } = await makeService({
+      config: Config({ allowedExtensions: ['.md', '.txt', '.unknown'] }),
+      files: new Map([['/workspace/project/notes.txt', markdownFile('unchanged')]]),
+    })
+    await expect(service.read(SESSION as never, 'notes.txt', new AbortController().signal))
+      .resolves.toMatchObject({ kind: 'text', editable: false })
+    await expect(service.write(SESSION as never, 'notes.txt', 'edited', undefined, true, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'md-preview/unsupported-extension' })
+    await expect(service.read(SESSION as never, 'notes.txt', new AbortController().signal))
+      .resolves.toMatchObject({ content: 'unchanged' })
+    expect(fs.writes).toHaveLength(0)
+  })
+
   it('persists guarded content and returns the new fingerprint', async () => {
     const { service, fs } = await makeService({
       files: new Map([['/workspace/project/README.md', markdownFile()]]),

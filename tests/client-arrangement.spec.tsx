@@ -49,7 +49,7 @@ async function renderArrange(storage = createMemoryStorage()): Promise<ArrangeHa
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
   const preferences = createPanelPreferenceStore(storage)
-  const readResult: MdPreviewFile = { path: 'doc.md', content: '# Report\n\n## Target\n\nbody text', fingerprint: 'v1' }
+  const readResult: MdPreviewFile = { path: 'doc.md', content: '# Report\n\n## Target\n\nbody text', kind: 'markdown', editable: true, fingerprint: 'v1' }
   const harness: ArrangeHarness = {
     container: document.createElement('div'),
     store,

@@ -15,7 +15,7 @@ import { IconChevronRightOutline14, IconCloseOutline16, IconRefreshOutline16, Ic
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { MdPreviewEntry, MdPreviewListResult, MdPreviewSearchResult } from '../protocol.ts'
-import { basename } from './preview-state.ts'
+import { basename, isPreviewable } from './preview-state.ts'
 import { DocumentIcon } from './DocumentIcon.tsx'
 import { documentParent, workspaceDisplayPath } from './document-path.ts'
 
@@ -339,7 +339,7 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
         const path = current.dataset.path ?? ''
         if (path.length === 0) return
         if (isBranch) toggle(path)
-        else onOpenFile(path)
+        else if (current.getAttribute('aria-disabled') !== 'true') onOpenFile(path)
         break
       }
     }
@@ -377,6 +377,7 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
   const renderEntries = (entries: readonly MdPreviewEntry[], level: number) => {
     return entries.map(entry => {
     const state = dirs.get(entry.path)
+    const canPreview = entry.type === 'file' && isPreviewable(entry.name) && isPreviewable(entry.path)
     const isCurrent = currentPath !== null && entry.path === currentPath
     // A collapsed directory whose subtree holds the current target inherits
     // the selection, so the location reads even before it opens.
@@ -394,6 +395,7 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
         aria-expanded={entry.type === 'directory' ? state !== undefined : undefined}
         aria-selected={isCurrent || inherits ? 'true' : undefined}
         aria-current={isCurrent ? 'true' : undefined}
+        aria-disabled={entry.type !== 'directory' && !canPreview ? 'true' : undefined}
         data-current={isCurrent || undefined}
         data-kind={entry.type === 'directory' ? 'directory' : (entry.type === OTHER_TYPE ? 'file' : fileKind(entry.name))}
         className={entry.type === 'directory' ? 'dsh-md-preview-treeitem dsh-md-preview-treebranch' : 'dsh-md-preview-treeitem dsh-md-preview-treeleaf'}
@@ -402,7 +404,7 @@ export function WorkspaceBrowser({ sessionId, active, list, search, onOpenFile, 
       >
         <div
           className="dsh-md-preview-treerow"
-          onClick={entry.type === 'file'
+          onClick={canPreview
             ? () => { setFocusPath(entry.path); onOpenFile(entry.path) }
             : () => { setFocusPath(entry.path) }}
         >

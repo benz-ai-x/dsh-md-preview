@@ -4,6 +4,10 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 /** One rendered-preview payload: the requested path, its full text, and freshness. */
 export interface MdPreviewFile {
+  /** Host-selected presentation; language recognition never grants a read or edit. */
+  readonly kind: 'markdown' | 'text'
+  /** Host's edit eligibility, independent of the presentation category. */
+  readonly editable: boolean
   /** The path exactly as requested by the caller (tool-produced spelling). */
   readonly path: string
   /** The complete file content, capped by the configured byte limit. */
@@ -74,6 +78,8 @@ export const MD_PREVIEW_FAILURE_CODES = [
   'md-preview/unknown-session',
   'md-preview/no-workspace',
   'md-preview/unsupported-extension',
+  'md-preview/not-text',
+  'md-preview/not-regular-file',
   'md-preview/forbidden',
   'md-preview/not-found',
   'md-preview/too-large',
@@ -92,8 +98,12 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'md-preview/unknown-session': {}
     /** The Session carries no working directory to root the read. */
     'md-preview/no-workspace': {}
-    /** The target is not a previewable markdown document. */
+    /** The target's format is excluded from this preview capability. */
     'md-preview/unsupported-extension': {}
+    /** The fs provider rejected binary content or invalid UTF-8 text. */
+    'md-preview/not-text': {}
+    /** The target is a directory or special file, not a regular file. */
+    'md-preview/not-regular-file': {}
     /** The resolved path escapes the session workspace. */
     'md-preview/forbidden': {}
     /** Nothing exists at the requested path. */

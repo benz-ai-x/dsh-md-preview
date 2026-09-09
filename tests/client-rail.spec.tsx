@@ -62,7 +62,7 @@ async function renderRail(script: Map<string, ListScript>, content?: string): Pr
       close={() => { store.set(null) }}
       read={((sessionId: string, path: string) => {
         harness.reads.push({ path })
-        return Promise.resolve({ ok: true as const, value: { path, content: content ?? `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+        return Promise.resolve({ ok: true as const, value: { path, content: content ?? `# ${path}`, kind: 'markdown', editable: true, fingerprint: 'v1' } satisfies MdPreviewFile })
       }) as never}
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={list as never}

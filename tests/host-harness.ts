@@ -71,6 +71,10 @@ export function fakeFs(options: FakeFsOptions = {}) {
       if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
       return files.get(target.displayPath)?.content ?? ''
     },
+    streamText: async (target: { displayPath: string }, signal?: AbortSignal): Promise<AsyncIterable<string>> => (async function* () {
+      if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
+      yield files.get(target.displayPath)?.content ?? ''
+    })(),
     writeText: async (
       target: { displayPath: string },
       content: string,

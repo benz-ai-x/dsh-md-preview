@@ -90,7 +90,7 @@ describe('client registration lifecycle', () => {
     // The active locale is environment-derived (jsdom defaults to en), so
     // accept either dictionary: binding proves the namespace registered.
     const title = ctx.locale.bind('md-preview')('panel.title')
-    expect(['Markdown 预览', 'Markdown preview']).toContain(title)
+    expect(['文档预览', 'Document preview']).toContain(title)
     await fiber.dispose()
     expect(remote.unmounted).toEqual([TYPERT_REMOTE])
     expect(entryFor(ctx, 'shell.overlay', PreviewOverlay)).toBeUndefined()
@@ -159,11 +159,11 @@ describe('selectMdTurnFiles', () => {
       { seq: 2, path: 'src/index.ts' },
       { seq: 3, path: 'notes.markdown' },
     ]))
-    expect(matched?.previewable).toEqual(['README.md', 'notes.markdown'])
-    expect(matched?.other).toEqual(['src/index.ts'])
+    expect(matched?.previewable).toEqual(['README.md', 'src/index.ts', 'notes.markdown'])
+    expect(matched?.other).toEqual([])
   })
-  it('declines turns without markdown and without vocabulary', () => {
-    expect(selectMdTurnFiles(ownerFor([{ seq: 1, path: 'a.ts' }]))).toBeNull()
+  it('declines turns without text candidates and without vocabulary', () => {
+    expect(selectMdTurnFiles(ownerFor([{ seq: 1, path: 'a.docx' }]))).toBeNull()
     expect(selectMdTurnFiles({ ...ownerFor([]), turn: { ...turnWith([]) } })).toBeNull()
   })
   it('applies the closing-seq cutoff', () => {
@@ -257,7 +257,7 @@ describe('latestTurnPreviewable (#31)', () => {
         { seq: 3, path: 'note.txt' },
       ], tail: { seq: 9, closingSeq: 8 } },
     ])
-    expect(latestTurnPreviewable(mixed as never)).toEqual(['doc.md'])
+    expect(latestTurnPreviewable(mixed as never)).toEqual(['doc.md', 'run.ts', 'note.txt'])
     expect(latestTurnPreviewable(chatSnapshotOf([]) as never)).toEqual([])
     expect(latestTurnPreviewable({ timeline: { turnOrder: [7], turns: new Map() } } as never)).toEqual([])
   })

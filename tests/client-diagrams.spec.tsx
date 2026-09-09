@@ -45,7 +45,7 @@ const DOC = [
 async function renderDiagrams(content: string): Promise<HTMLElement> {
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
-  const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path: 'doc.md', content, fingerprint: 'v1' } }
+  const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path: 'doc.md', content, kind: 'markdown', editable: true, fingerprint: 'v1' } }
   const container = document.createElement('div')
   document.body.appendChild(container)
   const usePreviewTarget = (selector: (state: unknown) => unknown) =>

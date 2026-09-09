@@ -27,7 +27,7 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
 | 仓库约束与开发前置 | [AGENTS.md](../AGENTS.md)；`CLAUDE.md` 引用它 |
 | 行为、权威、失败码、状态归属与交付 | [PROJECT_CONTRACT.md](agent/PROJECT_CONTRACT.md) |
 | 领域术语 | [CONTEXT.md](../CONTEXT.md) |
-| 已决设计 | [ADR 目录](adr/)，0001–0004：既有实现边界；[0005](adr/0005-networked-html-preview-isolated-from-harness.md)、[0006](adr/0006-text-preview-independent-of-language-recognition.md)：HTML 联网隔离与文本准入的待实现设计 |
+| 已决设计 | [ADR 目录](adr/)，0001–0004：既有实现边界；[0005](adr/0005-networked-html-preview-isolated-from-harness.md)：HTML 待实现设计；[0006](adr/0006-text-preview-independent-of-language-recognition.md)：基本文本准入已实现，格式化与分段读取待后续票 |
 | 当前状态与待办 | [TODO.md](../TODO.md) |
 | Issue 约定 | [issue-tracker.md](agents/issue-tracker.md) |
 | 浏览交互的证据基线 | [工作区浏览 UX](research/workspace-browser-ux.md) |
@@ -38,7 +38,8 @@ A/B 图标已实现，顶栏对齐等 F-03–F-08 仍是候选建议。自动化
 
 - **Host**：`src/index.ts` 注册 `src/remote.ts` 中的 `MdPreviewService`，四个 RPC 为
   `read/write/list/search`。权威链从会话 cwd 开始，经 resolve 与 containment 检查；
-  read 使用可预览扩展名并集，write 使用可编辑集合，search 只遍历名称。运行时 peer
+  read 使用文件服务文本流并限制保留字节，响应携带文档类别与编辑资格；write 仅允许
+  配置与 `.md`/`.markdown` 的交集，search 只遍历名称并排除已知不可预览类别。运行时 peer
   仅 `@deepseek-ai/dsh-typert-protocol`（ADR-0003）。
 - **Client**：`lib/client.js` 使用仓库自有 lazy-CJS factory 协议；`mount.ts` 挂载
   Remote 并注册四个 Slot：overlay、turnTail、assistant-actions、session header utilities。

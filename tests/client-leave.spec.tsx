@@ -67,7 +67,7 @@ async function renderLeave(content = '# Guide\n\nbody'): Promise<LeaveHarness> {
       close={() => { store.set(null) }}
       read={((sessionId: string, path: string) => {
         harness.reads.push({ sessionId, path })
-        return Promise.resolve({ ok: true as const, value: { path, content, fingerprint: 'v1' } satisfies MdPreviewFile })
+        return Promise.resolve({ ok: true as const, value: { path, content, kind: 'markdown', editable: true, fingerprint: 'v1' } satisfies MdPreviewFile })
       }) as never}
       write={((sessionId: string, path: string, draft: string) => {
         harness.writes.push({ path, content: draft })

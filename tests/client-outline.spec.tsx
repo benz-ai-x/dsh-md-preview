@@ -110,7 +110,7 @@ interface OutlineHarness {
 async function renderOutlinePanel(content: string): Promise<OutlineHarness> {
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
-  const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path: 'doc.md', content, fingerprint: 'v1' } }
+  const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path: 'doc.md', content, kind: 'markdown', editable: true, fingerprint: 'v1' } }
   const harness: OutlineHarness = {
     container: document.createElement('div'),
     view: null,

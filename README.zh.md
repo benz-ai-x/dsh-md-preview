@@ -2,12 +2,14 @@
 
 # @benz-ai-x/dsh-md-preview
 
-在 DeepSeek Harness 对话旁阅读、编辑工作区文档。打开助手产出的 Markdown、浏览会话工作区，或从上次阅读的位置继续。
+在 DeepSeek Harness 对话旁阅读、编辑工作区文档。打开助手产出的文档、浏览会话工作区，或从上次阅读的位置继续。
 
 [![npm](https://img.shields.io/npm/v/@benz-ai-x/dsh-md-preview)](https://www.npmjs.com/package/@benz-ai-x/dsh-md-preview)
 [![GitHub](https://img.shields.io/badge/repo-benz--ai--x%2Fdsh--md--preview-24292e?logo=github)](https://github.com/benz-ai-x/dsh-md-preview)
 
 当前发布：**[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)**，发布于 2026-09-08。要求固定的 Harness **0.1.2-rc.1** 基线及 web profile。
+
+未发布源码改动（[#39](https://github.com/benz-ai-x/dsh-md-preview/issues/39)）已加入 UTF-8 文本只读预览、既有文档入口和显式内容刷新。下方带版本的安装命令安装 v0.10.0，新增能力尚待发布。
 
 ## 安装或升级
 
@@ -27,6 +29,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
 ## 主要能力
 
 - **预览与编辑**：渲染 Markdown、GFM 表格、代码高亮、TeX 和 Mermaid；使用 CodeMirror 编辑已有 Markdown 文档并保存回工作区。
+- **文本阅读**：UTF-8 文本、程序源码、`Dockerfile`、`Makefile` 与未知扩展名按只读原文显示；主动刷新取得外部改动。
 - **对话旁阅读**：宽屏时文档侧边栏预留独立空间，记忆手动宽度；窄屏或最大化时覆盖展开。原生导航与工具详情保留各自操作。
 - **查找文档**：浏览工作区树，按文档名称搜索未展开的目录，使用当前回合产出、最近阅读和继续阅读入口。
 - **阅读连续**：重新打开先读取最新内容，再恢复已记录的阅读位置；浏览器存储可用时，记忆面板宽度、导航宽度与导航选择。
@@ -38,21 +41,26 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
 | 入口或控件 | 行为 |
 | --- | --- |
 | 「Session 日志」旁的回形针 | 面板关闭时打开工作区浏览；面板打开时关闭当前面板 |
-| 回合下方的 Markdown chip | 打开该产出文档 |
-| 消息操作区的「预览文档」 | 列出该消息所属回合产出的 Markdown 文档 |
+| 回合下方的文本或 Markdown chip | 打开该产出文档 |
+| 消息操作区的「预览文档」 | 列出该消息所属回合产出的文本候选 |
 | 面板内的文件夹图标 | 宽面板开合工作区导航；窄面板进入浏览脸 |
 | 大纲 | 跳转标题并高亮当前阅读位置 |
 | 预览 / 编辑 | 在可编辑文档的查看脸与编辑脸之间切换 |
+| 刷新内容 | 在查看脸重新读取当前文档；失败后可重试 |
 | 全屏显示 / 还原 | 最大化到应用内容区域，再回到记忆的宽度 |
 | × | 经过未保存守卫关闭面板，焦点返回回形针入口 |
 
-回形针打开的是**工作区文档**，目前不支持用户上传的附件。非 Markdown 产出文件 chip 保持 Harness 交给桌面应用打开的行为；工作区浏览默认还支持将 `.txt` 显示为纯文本。
+回形针打开的是**工作区文档**，目前不支持用户上传的附件。文本候选包括无扩展名文件与未知扩展名；Office、HTML、PDF、图片、音视频及常见二进制容器不进入本次文本预览，其产出 chip 保持 Harness 交给桌面应用打开的行为，工作区对应条目不能打开预览。候选仍须经过 Host 授权并成功读取为 UTF-8 文本。
+
+新增文本只读，本次 JSON、XML、JSONL 显示原始源码。语法高亮、折叠、结构格式化及大文本分段读取由 [Spec #38](https://github.com/benz-ai-x/dsh-md-preview/issues/38) 的 #40–#44 继续实施；HTML、图片、音视频及 PDF 预览由 #45–#49 跟进。Office 预览已排除。默认完整读取上限仍为 1 MiB，二进制或非法 UTF-8 由 Host 返回 `md-preview/not-text`。
 
 应用可用宽度至少为 1056px 时，文档侧边栏独立停靠；更窄或最大化时覆盖展开。初始宽度取半个视口、最多 720px，记忆 360–1200px 的手动拖宽偏好，并按可用空间收缩。拖动左边缘调整宽度，双击边缘切换最大化。面板宽度至少 640px 时，可在正文旁展开「文件 / 大纲」导航；更窄时使用浏览脸或大纲弹层。直接打开文档默认优先正文，已有手动导航偏好时优先采用偏好。
 
 编辑时点击保存按钮或按 Cmd/Ctrl-S。若要放弃草稿，先请求切回预览、打开其他文档或关闭，再在提示中选择**放弃修改**；选择**继续编辑**会保留草稿。当前没有独立的“取消编辑”按钮。保存只写回已有文件，确认成功后返回预览。
 
-工作区搜索按文档**名称**进行不区分大小写的匹配，不读取正文；遍历不完整时明确说明原因，清空查询恢复树的展开状态。「最近阅读」来自已记录的阅读位置，因此只打开而没有滚动的文档可能不会出现在其中。
+工作区搜索按文档**名称**进行不区分大小写的匹配，不读取正文；遍历不完整时明确说明原因，清空查询恢复树的展开状态。每次成功打开都会记录文档身份与阅读时间，包括未滚动的文档。「最近阅读」与「继续阅读」打开新的预览会话时会重新读取，Markdown 继续恢复已有阅读位置。阅读记录和偏好不保存正文、草稿或指纹。
+
+同一次预览期间，文件外部变化或重复选择当前目标不会重载正文。在查看脸点击**刷新内容**或按 **Alt-R** 重新读取。编辑期间不提供内容刷新，离开编辑仍经过未保存守卫。
 
 ## 快捷键
 
@@ -61,6 +69,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
 | 快捷键 | 行为 |
 | --- | --- |
 | Mod-S | 保存 |
+| Alt-R | 在查看脸刷新当前文档内容 |
 | Mod-F | 编辑器内查找 |
 | Mod-Z / Mod-Shift-Z | 撤销 / 重做 |
 | Mod-B / Mod-I / Mod-K | 将选区包裹为粗体、斜体或链接 |
@@ -78,7 +87,6 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
   config:
     maxBytes: 1048576
     allowedExtensions: ['.md', '.markdown']
-    previewExtensions: ['.md', '.markdown', '.txt']
     searchMaxResults: 200
     searchMaxDirectories: 2000
     searchConcurrency: 8
@@ -89,13 +97,13 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
 | 字段 | 默认值 | 含义 |
 | --- | --- | --- |
 | `maxBytes` | `1048576` | 单文件读取、写入的字节上限 |
-| `allowedExtensions` | `[".md", ".markdown"]` | 允许编辑的扩展名 |
-| `previewExtensions` | `[".md", ".markdown", ".txt"]` | 可预览扩展名；不在可编辑集合内的成员为只读 |
+| `allowedExtensions` | `[".md", ".markdown"]` | 编辑白名单，与已支持的 Markdown 扩展名取交集 |
+| `previewExtensions` | `[".md", ".markdown", ".txt"]` | 已弃用的兼容字段；接受旧配置，但不再限制或扩大文本准入 |
 | `searchMaxResults` | `200` | 一次工作区搜索最多返回的匹配数 |
 | `searchMaxDirectories` | `2000` | 一次工作区搜索最多遍历的目录数 |
 | `searchConcurrency` | `8` | 每批遍历并行读取的目录数 |
 
-路径以会话工作区为边界；保存需要读取时取得的指纹或明确的强制覆盖选择。配置默认值以 schema 为准，可编辑扩展名也会纳入可预览并集。
+路径以会话工作区为边界；保存需要读取时取得的指纹或明确的强制覆盖选择。配置默认值以 schema 为准。`allowedExtensions: []` 关闭 Markdown 编辑，仍保留渲染预览；加入 `.txt` 或其他文本扩展名不会使其可编辑。写入时，请求名称与解析后的目标均须为配置允许的 `.md` 或 `.markdown`。旧 profile 可保留 `previewExtensions`，但它不再作为访问白名单；每次打开均由 Host 验证实际文件、工作区范围、字节限额及文件服务的文本读取结果。
 
 ## 失败码
 
@@ -104,7 +112,9 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
 | `md-preview/bad-request` | 输入非法，例如保存时既没有指纹也没有指定强制覆盖 |
 | `md-preview/unknown-session` | 会话不存在 |
 | `md-preview/no-workspace` | 会话没有工作目录 |
-| `md-preview/unsupported-extension` | 不支持该文档扩展名 |
+| `md-preview/unsupported-extension` | 文件类别不进入预览，或目标不具备编辑资格 |
+| `md-preview/not-text` | 文件服务拒绝二进制内容或非法 UTF-8 |
+| `md-preview/not-regular-file` | 目标为目录或特殊文件 |
 | `md-preview/forbidden` | 工作区范围或文件系统访问检查未通过 |
 | `md-preview/not-found` | 目标不存在 |
 | `md-preview/too-large` | 读取或写入超过 `maxBytes` |

@@ -3,27 +3,33 @@
 Pinned DSH baseline: `dsh-reference.lock.json` (commit
 `a66e4702047846cdaa10c66c9d3df3951f5ea70d`, version `0.1.2-rc.1`).
 
-This contract describes the existing implementation. Accepted designs for
+This contract describes the existing implementation. The accepted design for
 [networked HTML preview](../adr/0005-networked-html-preview-isolated-from-harness.md)
-and [text admission independent of language recognition](../adr/0006-text-preview-independent-of-language-recognition.md)
-are not implemented yet; their scope is captured in
+remains pending. Basic [text admission independent of language recognition](../adr/0006-text-preview-independent-of-language-recognition.md)
+is implemented in #39; structured formatting and incremental reading remain pending. Their scope is captured in
 [Spec #38](https://github.com/benz-ai-x/dsh-md-preview/issues/38) and tracked in the
 [implementation TODO](../../TODO.md#多格式预览设计与实施).
 
 ## User-visible outcome
 
-In the DSH web GUI's conversation view, markdown documents that a turn
+In the DSH web GUI's conversation view, text candidates that a turn
 produced become clickable in two additive places:
 
-1. the produced-files chip row under the closing assistant message — markdown
-   chips open a rendered preview, other chips keep the shipped
+1. the produced-files chip row under the closing assistant message — text
+   chips request a preview, other chips keep the shipped
    open-on-desktop behavior;
 2. a per-message "预览文档" action in the assistant action row, listing that
-   turn's markdown documents.
+   turn's text candidates.
 
 Either entry opens a right-docked preview panel beside the conversation that
-renders the document (GFM, fenced code with highlighting, TeX) through the
-platform `MarkdownText` primitive. The panel is closable, width-draggable,
+renders Host-classified Markdown (GFM, fenced code with highlighting, TeX)
+through the platform `MarkdownText` primitive, and other UTF-8 text as literal
+read-only content. `kind` (`markdown` / `text`) selects presentation;
+`editable` independently controls edit eligibility. Unknown extensions and
+extensionless names such as Dockerfile and Makefile are text candidates.
+Office and reserved HTML/PDF/media/binary formats keep external-open chips
+and unavailable preview rows. Every candidate still needs a Host read grant.
+The panel is closable, width-draggable,
 and collapsed while no target is set. It docks at the frame's top edge as
 a document sidebar. A platform paperclip icon in the Session Header opens
 workspace browsing when closed and requests panel close when open; the
@@ -52,9 +58,13 @@ leave-intent seat; with a dirty draft the first intent waits behind the
 继续编辑 restores editor focus with draft, cursor, and selection intact;
 放弃修改 writes nothing and executes the held intent exactly once), while a
 clean draft executes at once. Re-opening the document already showing is a
-no-op that resets nothing — identity is the session plus the path the host
-resolved on the opening read, and the client never guesses symlink
-equivalences. Esc serves the open popover, then the editor's own find
+no-op that resets nothing — identity is the session plus the requested
+workspace path, and the client never guesses symlink
+equivalences. In the View Face, the header's Refresh content button and
+Alt-R explicitly re-read the current target. External file changes and
+repeated selection never auto-reload it. Refresh supersedes any pending
+read, exposes loading and a stable failure with Retry, and is unavailable
+while editing. Esc serves the open popover, then the editor's own find
 panel, and only then requests the close; it never confirms a discard.
 Editing targets
 existing files only — no creation. The edit face carries a CodeMirror search
@@ -198,7 +208,7 @@ One published package `@benz-ai-x/dsh-md-preview`, Cordis plugin name
   `lib/typert/remote-client.js`, also exported as `./remote`), then registers
   four Slot contributions: `shell.overlay` (list, id `md-preview-panel`, the
   docked panel), `conversation.chat.turnTail` (chain, priority -100, claims
-  markdown-bearing turns), and `conversation.chat.assistant-actions`
+  turns with text candidates), and `conversation.chat.assistant-actions`
   (list, id `md-preview`), and `conversation.session.header.utilities`
   (list, id `md-preview-docs`, the sidebar toggle). CodeMirror 6 (curated extension set — line
   numbers, history, the search panel, and the GFM grammar assembled directly
@@ -238,9 +248,19 @@ Service dependencies:
 ## Authority and failure codes
 
 The Host owns the read and write decisions. Paths are resolved against the
-session's workspace `cwd`, must stay inside it (`ctx.fs.contains`), carry an
-allowed extension, and stay under `maxBytes` (which caps both the read size
-and the written content length). Writes additionally target an existing
+session's workspace `cwd`, must stay inside it (`ctx.fs.contains`), identify
+an existing regular file, and stay under `maxBytes` in UTF-8 bytes. Read
+candidates exclude known Office and reserved formats; unknown extensions and
+extensionless files proceed to the fs provider's fatal UTF-8 and binary
+validation. `streamText` owns decoding and binary detection, while the Host
+retains at most `maxBytes`, stops consumption and closes the iterator on
+overflow, including when a file grows after stat or its size is unknown.
+`FS_NOT_TEXT` maps to one `md-preview/not-text` failure for both binary and
+invalid UTF-8 content; provider messages are never parsed to guess a subtype.
+The Host chooses `kind` from the resolved target. Only `.md` and `.markdown`
+are eligible for editing, and both the requested and resolved names must
+also pass `allowedExtensions`; `editable` reports that decision even when a
+Markdown document is configured read-only. Writes target an existing
 regular file and carry either the backing read's fingerprint (the fs
 service's opaque `FsVersion` from `stat`, passed back through
 `writeText`'s `replaceIfVersion` guard) or an explicit `force`. The write
@@ -252,6 +272,7 @@ not the session workspace, and `FS_SANDBOX_DENIED` maps to
 failure codes (declared in `RemoteErrorDetailsMap`, thrown as `RemoteError`):
 `md-preview/bad-request`, `md-preview/unknown-session`,
 `md-preview/no-workspace`, `md-preview/unsupported-extension`,
+`md-preview/not-text`, `md-preview/not-regular-file`,
 `md-preview/forbidden`, `md-preview/not-found`, `md-preview/too-large`,
 `md-preview/conflict` (stale fingerprint without force; the fs layer's
 `FS_STALE_VERSION` mapped verbatim), `md-preview/unavailable`. Caller
@@ -268,8 +289,11 @@ widen the walk, no file body is ever read, and the walk carries bounds —
 `searchMaxResults` matches returned (default 200; measured basis: real DSH
 agent workspaces hold tens to low hundreds of documents and shallow trees, so
 the defaults only bind pathological workspaces). First-version matching is a
-case-insensitive substring test on entry names, restricted to the previewable
-extension union. The answer carries `complete` plus `limits` —
+case-insensitive substring test on entry names, restricted to name-only text
+candidates (including unknown and extensionless names). Directory metadata
+that identifies a reserved format or an outside target excludes it without
+reading a body. A search result is never authorization for a later read.
+The answer carries `complete` plus `limits` —
 `directory-failure` when a listing failed, `traversal-limit` /
 `result-limit` when a bound stopped the walk — and the client renders
 "no results" only from a complete answer.
@@ -285,8 +309,13 @@ contexts.
   Remote (no client cache), and every successful save re-reads before
   returning to the rendered view. A manual retry re-runs the read for the
   same target. Re-setting the preview target to the document already
-  showing (same session, same resolved path) resets nothing — no re-read, no
+  showing (same session, same requested path) resets nothing — no re-read, no
   new edit session, no reading-position loss.
+- Every accepted successful read records its identity and current recency,
+  even without a scroll; an existing Markdown position is retained. Only
+  accepted results can update the record, so failures and cancelled or late
+  responses never create an entry. Reopening from Recent or Continue reading
+  re-reads through the same guarded open path.
 - The preview target (`{sessionId, path} | null`), the editor draft, the
   pending leave intent, and the
   conflict prompts are UI-local viewing state; the draft never
@@ -294,7 +323,7 @@ contexts.
   panel's dragged width persists across opens (360–1200px, further clamped
   to the live viewport); without a manual width it derives from half the
   viewport up to 720px. The target itself resets per open. The reading
-  record (positions only, keyed by session and workspace path) is likewise
+  record (identity, recency and position, keyed by session and workspace path) is likewise
   UI-local viewing state persisted through browser storage with version,
   validity checks, and bounded cleanup. Session data, turn membership,
   and deliverables vocabulary stay in their owning services.
@@ -325,7 +354,12 @@ contexts.
 `[".md", ".markdown", ".txt"]`), and the workspace search bounds
 `searchMaxResults` (default 200), `searchMaxDirectories` (default 2000),
 `searchConcurrency` (default 8) — validated by the schemastery `Config`
-twin during load; defaults live in the schema.
+twin during load; defaults live in the schema. `allowedExtensions` intersects
+the fixed Markdown editing vocabulary: an empty array disables edits without
+changing rendering, and adding text extensions cannot grant write access.
+`previewExtensions` is deprecated and accepted for old profile compatibility;
+it no longer restricts or widens text admission. Existing profiles do not
+need that field in new configuration examples.
 
 ## Delivery
 
@@ -383,7 +417,8 @@ The operational sequence and current release evidence are linked from
 - Workspace search matches document **names** (case-insensitive substring,
   first-version semantics): directory names never match, and same-name
   results are told apart only by the rendered workspace-relative path.
-- Documents read without ever scrolling leave no reading record (the record
-  is position facts, not an access log), so they never appear in 「最近阅读」;
-  a dead record holds the 「继续阅读」 seat until a later read replaces it
-  (opening it then lands on the normal failure state with the way back).
+- A dead record holds the 「继续阅读」 seat until a later successful read
+  replaces it (opening it lands on the normal failure state with the way back).
+- Text previews in #39 display original source, including JSON/XML/JSONL.
+  Syntax highlighting, folding, formatting and incremental reading remain
+  with #40–#44. HTML/PDF/media readers remain with #45–#49; Office is excluded.

@@ -13,18 +13,21 @@
   图片、音视频和 PDF 的只读预览，明确包含 JSON、XML 格式化美化；保留 Markdown
   既有编辑能力，Office 已排除。已确认需求与待定技术选择在规格中分别说明，
   后续工作见[实施待办](#多格式预览设计与实施)。已按用户批准的 6 PR / 4 层规划启动
-  PR-1（#39），进度见 [批次状态](PIPELINE_STATE.yaml)。独立固定基线 strict 已恢复，
-  见[环境复核](docs/HANDOVER.md#本机环境事实2026-09-09)；下述发布和自动化结果仍为历史证据。
+  PR-1（#39），进度见 [批次状态](PIPELINE_STATE.yaml)。只读文本、统一入口、Host
+  文档类别与编辑资格、手动刷新及成功阅读记录已实施；完整 `pnpm test` 通过
+  26 个文件 / 338 项测试。独立固定基线 strict 123/123 通过，
+  见[环境复核](docs/HANDOVER.md#本机环境事实2026-09-09)。真实浏览器验收仍由
+  [#50](https://github.com/benz-ai-x/dsh-md-preview/issues/50) 跟踪，未据自动化勾选。
 - 最新发布：[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
   （2026-09-08）；npm `latest` 与当前源码 package 均为 `0.10.0`。
   归档、GitHub 附件与 npm 下载包摘要一致，见
   [发布验证](docs/verification/releases/v0.10.0/WALKTHROUGH.md)。
-- 本轮文档同步已完成：中英文 README、契约、词汇表、交接与历史记录均对齐
+- v0.10.0 文档同步已完成：中英文 README、契约、词汇表、交接与历史记录均对齐
   v0.10.0；[AGENTS.md](AGENTS.md) 统一维护接手、开发、验证和交付规则，
   [CLAUDE.md](CLAUDE.md) 保留引用与读取说明。本轮 **14 份 Markdown** 统一纳入
   文档同步提交；具体交接见 [HANDOFF.md](HANDOFF.md)。
-- 文档验证：123 项 strict 基线检查通过，Markdown 解析、仓库内链接、命令与配置
-  示例及 `git diff --check` 通过。本轮仅修改文档，未重跑运行时测试、重启服务或新增发布；
+- v0.10.0 后的文档验证：123 项 strict 基线检查通过，Markdown 解析、仓库内链接、命令与配置
+  示例及 `git diff --check` 通过。该次仅修改文档，未重跑运行时测试、重启服务或新增发布；
   下述 290 项测试属于 v0.10.0 发布证据，UX-12 与 F-03–F-08 继续保持待办。
 - [spec #20](https://github.com/benz-ai-x/dsh-md-preview/issues/20) 及
   #21–#32 已关闭，三轮 PR 已合并；交付证据见
@@ -140,6 +143,11 @@
 - [x] **开发前置**：独立的固定 Harness 检出已完成构建，显式设置
       `DSH_HARNESS_ROOT` 后 strict 123/123 通过（退出 0）；原工作区改动保留，
       开发在独立 worktree 进行，见[环境复核](docs/HANDOVER.md#本机环境事实2026-09-09)。
+- [x] **#39 基础文本通路 · 代码与回归**：既有入口可打开普通、无扩展名和未知语言
+      UTF-8 文本；Host 与文件服务负责实际读取授权、文本判定及字节限额，新增文本
+      只读。查看脸支持显式刷新与 Alt-R，最近阅读记录每次成功打开，并沿用共享
+      未保存守卫、取消及迟到结果隔离。Host harness、Remote codec 与完整 Client
+      装配回归通过；JSON/XML/JSONL 当前为原文，后续格式化、高亮与分段能力仍待实施。
 
 ## UI/UX 对齐 Harness
 

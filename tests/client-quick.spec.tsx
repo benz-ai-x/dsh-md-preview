@@ -41,7 +41,7 @@ interface QuickHarness {
   reading: ReturnType<typeof createReadingStore>
   turnOutputs: SnapshotStore<{ sessionId: string; paths: readonly string[] } | null>
   setTurnOutputs(entry: { sessionId: string; paths: readonly string[] } | null): void
-  setTarget: (target: { sessionId: string; path: string } | null) => void
+  setTarget: (target: { sessionId: string; path: string; face?: 'browse' } | null) => void
   rerender: () => Promise<void>
   unmount(): Promise<void>
 }
@@ -51,6 +51,7 @@ async function renderQuick(initial: {
   records?: ReadonlyArray<{ sessionId: string; path: string; at: number }>
   turnOutputs?: { sessionId: string; paths: readonly string[] } | null
   workspaceRoot?: string
+  initialBrowse?: boolean
 }): Promise<QuickHarness> {
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
@@ -84,7 +85,7 @@ async function renderQuick(initial: {
         if (content === undefined) {
           return Promise.resolve({ ok: false as const, error: { code: 'md-preview/not-found', message: `no ${path}` } })
         }
-        return Promise.resolve({ ok: true as const, value: { path, content, fingerprint: 'v1' } satisfies MdPreviewFile })
+        return Promise.resolve({ ok: true as const, value: { path, content, kind: 'markdown', editable: true, fingerprint: 'v1' } satisfies MdPreviewFile })
       }) as never}
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={((sessionId: string, path: string) => Promise.resolve({
@@ -102,7 +103,9 @@ async function renderQuick(initial: {
     />
   )
   document.body.appendChild(harness.container)
-  harness.setTarget({ sessionId: 'session-1', path: 'guide.md' })
+  harness.setTarget(initial.initialBrowse
+    ? { sessionId: 'session-1', path: '', face: 'browse' }
+    : { sessionId: 'session-1', path: 'guide.md' })
   harness.setTurnOutputs(initial.turnOutputs ?? null)
   await harness.rerender()
   await act(async () => { await Promise.resolve() })
@@ -177,7 +180,7 @@ describe('quick entries (#31)', () => {
       // Recency order, own session only; the other session never leaks.
       // (The newest may also appear — the continue-reading entry keeps its
       // own distinct seat, so the recent list stays the honest record.)
-      expect(recentRows.map(row => row.getAttribute('title'))).toEqual(['deep/report.md', 'notes.md'])
+      expect(recentRows.map(row => row.getAttribute('title'))).toEqual(['guide.md', 'deep/report.md', 'notes.md'])
       // Opening a quick row reads the document fresh through the leave path.
       await act(async () => { turnRows[0]!.click() })
       await flush()
@@ -222,9 +225,8 @@ describe('quick entries (#31)', () => {
   })
 
   it('hides each section on its honest empty state and never crosses sessions', async () => {
-    const harness = await renderQuick({ turnOutputs: null })
+    const harness = await renderQuick({ turnOutputs: null, initialBrowse: true })
     try {
-      await enterBrowse(harness)
       expect(quickRows(harness, 'turn')).toEqual([])
       expect(quickRows(harness, 'recent')).toEqual([])
       expect(harness.container.textContent).not.toContain('quick.turn')
@@ -246,8 +248,8 @@ describe('quick entries (#31)', () => {
     try {
       await enterBrowse(harness)
       const rows = quickRows(harness, 'recent')
-      expect(rows.map(row => row.getAttribute('title'))).toEqual(['gone.md'])
-      await act(async () => { rows[0]!.click() })
+      expect(rows.map(row => row.getAttribute('title'))).toEqual(['guide.md', 'gone.md'])
+      await act(async () => { rows.find(row => row.getAttribute('title') === 'gone.md')!.click() })
       await flush()
       expect(harness.container.textContent).toContain('panel.error')
       expect(harness.container.textContent).toContain('md-preview/not-found')

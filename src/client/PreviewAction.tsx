@@ -1,7 +1,7 @@
 /**
  * The per-message preview action, contributed into the additive
  * `conversation.chat.assistant-actions` list. Shows nothing for messages
- * whose turn produced no markdown; one document opens it directly, several
+ * whose turn produced no text candidates; one document opens it directly, several
  * open a small picker list.
  */
 import { useMemo, useState } from 'react'
@@ -12,7 +12,7 @@ import { DocumentIcon } from './DocumentIcon.tsx'
 
 /** Panel admission for one conversation session. */
 export interface PreviewActionInjected {
-  /** Open the preview panel for a markdown document of this session. */
+  /** Request a text preview in this session. */
   openPreview(path: string): void
 }
 
@@ -25,7 +25,7 @@ export type PreviewActionProps =
 /**
  * Render the preview-documents action for one finalized assistant message.
  * @param props - the durable message id, preview admission, and locale seat.
- * @returns the action button with its picker, or null without markdown.
+ * @returns the action button with its picker, or null without text candidates.
  */
 export function PreviewAction({ messageId, useChat, openPreview, t }: PreviewActionProps) {
   // The selector rides the snapshot's structural sharing: identity changes
@@ -45,7 +45,7 @@ export function PreviewAction({ messageId, useChat, openPreview, t }: PreviewAct
           else setOpen(value => !value)
         }}
       >
-        <DocumentIcon />
+        <DocumentIcon kind="file" />
         {t('action.label')}
       </button>
       {open && files.length > 1 && (

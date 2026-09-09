@@ -62,7 +62,7 @@ async function renderPanel(): Promise<PanelHarness> {
       root.render(panelElement())
     }),
     view: null,
-    readResult: { ok: true, value: { path: 'README.md', content: '# Hi', fingerprint: 'v1' } },
+    readResult: { ok: true, value: { path: 'README.md', content: '# Hi', kind: 'markdown', editable: true, fingerprint: 'v1' } },
     writeResult: { ok: true, value: { path: 'README.md', fingerprint: 'v2' } },
   }
   const read = vi.fn(() => {
@@ -289,7 +289,7 @@ async function renderFindPanel(content: string): Promise<PanelHarness> {
     setTarget: target => { store.set(target as never) },
     rerender: () => act(async () => { root.render(panelElement()) }),
     view: null,
-    readResult: { ok: true, value: { path: 'README.md', content, fingerprint: 'v1' } },
+    readResult: { ok: true, value: { path: 'README.md', content, kind: 'markdown', editable: true, fingerprint: 'v1' } },
     writeResult: { ok: true, value: { path: 'README.md', fingerprint: 'v2' } },
   }
   const usePreviewTarget = (selector: (state: unknown) => unknown) =>
@@ -458,7 +458,7 @@ describe('markup keymaps and the key help popover (#16)', () => {
 describe('inline-HTML warning bar (#17)', () => {
   async function renderWith(content: string): Promise<PanelHarness> {
     const harness = await renderPanel()
-    harness.readResult = { ok: true, value: { path: 'README.md', content, fingerprint: 'v1' } }
+    harness.readResult = { ok: true, value: { path: 'README.md', content, kind: 'markdown', editable: true, fingerprint: 'v1' } }
     // Force a re-read of the (mutated) result: a fresh target read.
     harness.setTarget({ sessionId: 'session-1', path: 'README.md' })
     await harness.rerender()
@@ -547,7 +547,7 @@ describe('save feedback and request isolation (#23)', () => {
     expect(harness.container.textContent).toContain('md-preview/unavailable')
     expect(harness.container.querySelector('.dsh-md-preview-body h1')).toBeNull()
     // Read retry succeeds: the fresh content (the written draft) shows.
-    harness.readResult = { ok: true, value: { path: 'README.md', content: '# Hi more', fingerprint: 'v3' } }
+    harness.readResult = { ok: true, value: { path: 'README.md', content: '# Hi more', kind: 'markdown', editable: true, fingerprint: 'v3' } }
     await click(harness, 'panel.retry')
     expect(harness.container.querySelector('.dsh-md-preview-body h1')?.textContent).toBe('Hi more')
     expect(harness.write).toHaveBeenCalledTimes(1)

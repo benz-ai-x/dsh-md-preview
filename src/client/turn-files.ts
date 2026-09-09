@@ -80,7 +80,7 @@ export function latestTurnPreviewable(snapshot: TurnOutputsSnapshot): readonly s
 
 /** Matched value for the turn-tail chain entry. */
 export interface MdTurnFiles {
-  /** Markdown documents this turn produced (open the preview panel). */
+  /** Text candidates this turn produced (request the preview panel). */
   readonly previewable: readonly string[]
   /** Every other produced file (keeps the shipped external-open behavior). */
   readonly other: readonly string[]
@@ -88,10 +88,10 @@ export interface MdTurnFiles {
 
 /**
  * Claim the turn-tail chain only for turns that produced at least one
- * previewable markdown document. Claimed turns render this plugin's chip row
+ * text candidate. Claimed turns render this plugin's chip row
  * (a superset of the shipped one); all other turns stay with ui-deliverables.
  * @param owner - turn-tail owner currency for the closing assistant message.
- * @returns the split paths when the turn produced markdown, otherwise null.
+ * @returns the split paths when the turn produced text candidates, otherwise null.
  */
 export function selectMdTurnFiles(owner: TurnTailOwnerProps): MdTurnFiles | null {
   const paths = producedPaths(owner.turn, owner.seq)

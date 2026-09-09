@@ -75,7 +75,8 @@ export function isDirty(state: PreviewSessionState): boolean {
 
 /** The save-enable policy: something to save (dirty or conflicted), no save in flight. */
 export function canSave(state: PreviewSessionState): boolean {
-  return !state.saving && (isDirty(state) || state.conflicted)
+  return state.content.state === 'ready' && state.content.file.editable
+    && !state.saving && (isDirty(state) || state.conflicted)
 }
 
 /** Leave the edit face, clearing its prompts. */
@@ -107,7 +108,7 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
       // read failure the surface must not dress up as a write failure (#23).
       return { ...state, content: { state: 'failed', code: action.code, message: action.message } }
     case 'ENTER_EDIT':
-      if (state.content.state !== 'ready' || state.face === 'edit') return state
+      if (state.content.state !== 'ready' || !state.content.file.editable || state.face === 'edit') return state
       return {
         ...state,
         face: 'edit',

@@ -14,10 +14,9 @@ import {
 export interface Config {
   /** Largest file size the service will read and return, in bytes. */
   maxBytes: number
-  /** Extensions (lowercased, dot-prefixed) eligible for editing. */
+  /** Editing allowlist (lowercase, dot-prefixed), intersected with .md/.markdown. */
   allowedExtensions: string[]
-  /** Extensions (lowercased, dot-prefixed) eligible for preview (a superset
-   * of the editable set — plain-text members render but never edit). */
+  /** @deprecated Accepted for old profiles; no longer controls text admission. */
   previewExtensions: string[]
   /** Workspace search: most matches one answer returns (result bound). */
   searchMaxResults: number

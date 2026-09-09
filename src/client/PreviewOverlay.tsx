@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { MarkdownText, Tooltip, IconChevronLeftOutline14, IconEllipsisOutline16, IconFolderClose16, IconSearchOutline16, IconQuestionOutline14, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MarkdownText, Tooltip, IconChevronLeftOutline14, IconEllipsisOutline16, IconFolderClose16, IconSearchOutline16, IconQuestionOutline14, IconRefreshOutline16, type MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -18,7 +18,7 @@ import { openSearchPanel } from '@codemirror/search'
 import { redo, undo } from '@codemirror/commands'
 import type { MdPreviewFile, MdPreviewListResult, MdPreviewSearchResult, MdPreviewWriteResult } from '../protocol.ts'
 import type { MdPreviewState, MdPreviewTarget } from './preview-state.ts'
-import { basename, isEditable } from './preview-state.ts'
+import { basename } from './preview-state.ts'
 import { DocumentIcon } from './DocumentIcon.tsx'
 import { documentParent, workspaceDisplayPath } from './document-path.ts'
 import { isDirty } from './preview-session.ts'
@@ -173,7 +173,13 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
   // The platform owns cwd. This selector only formats identity for display;
   // no client path resolution or alternative open/save key is introduced.
   const workspaceRoot = useSessions?.(snapshot => target === null ? undefined : snapshot.byId[target.sessionId]?.cwd)
-  const session = usePanelDocumentSession({ read, write, close }, target)
+  const recordRead = useCallback((sessionId: SessionId, path: string): void => {
+    try {
+      const position = reading?.get(sessionId, path) ?? { anchor: null, index: -1, offsetIntoSection: 0, fraction: 0 }
+      reading?.record(sessionId, path, { ...position, at: Date.now() })
+    } catch { /* Reading records never decide whether opening succeeds. */ }
+  }, [reading])
+  const session = usePanelDocumentSession({ read, write, close, onRead: recordRead }, target)
   const { state, canSave, actions } = session
   // The pending leave intent: the panel is the guard's only owner — external
   // entries (chips, the preview action, the docs capsule, tree rows) request
@@ -353,7 +359,7 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
   }), [t])
 
   const outline = useMemo(
-    () => state.content.state === 'ready' ? extractOutline(state.content.file.content) : [],
+    () => state.content.state === 'ready' && state.content.file.kind === 'markdown' ? extractOutline(state.content.file.content) : [],
     [state.content],
   )
 
@@ -483,7 +489,7 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
   // The diagram pass rides the settled rendered document; a replaced DOM (new
   // read, edit round-trip) simply runs it again over the fresh blocks.
   const renderedFences = useMemo(
-    () => state.content.state === 'ready' ? fenceLanguages(state.content.file.content) : [],
+    () => state.content.state === 'ready' && state.content.file.kind === 'markdown' ? fenceLanguages(state.content.file.content) : [],
     [state.content],
   )
   useEffect(() => {
@@ -568,6 +574,12 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
   // Navigation shortcuts (#12): outline and files, routed by the width —
   // rail tab wide, popover/face swap narrow. Esc dismisses the popover.
   const onPanelKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.altKey && !event.metaKey && !event.ctrlKey && event.key.toLowerCase() === 'r'
+      && face === 'document' && state.face === 'view' && target !== null && target.path !== '') {
+      event.preventDefault()
+      actions.retryRead()
+      return
+    }
     if (event.key === 'Escape') {
       // The current popover closes first, then the editor's own find panel
       // keeps its Esc (CodeMirror's keymap owns it); only then does Esc
@@ -596,7 +608,7 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
       if (widePanel) { collapseRail(false); chooseRailTab('files') }
       else { setBrowserEverOpened(true); setFace('browse') }
     }
-  }, [outlineOpen, keysOpen, moreOpen, state.face, width, leave, collapseRail, chooseRailTab])
+  }, [outlineOpen, keysOpen, moreOpen, state.face, width, leave, collapseRail, chooseRailTab, face, target, actions.retryRead])
 
   const openFromBrowser = useCallback((path: string): void => {
     if (target === null) return
@@ -782,7 +794,7 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
           ) : (
             <>
               <div className="dsh-md-preview-identity">
-                <DocumentIcon />
+                <DocumentIcon kind={state.content.state === 'ready' ? state.content.file.kind : 'file'} />
                 <Tooltip label={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`} side="bottom" delayMs={450} maxWidth={420}>
                   <div className="dsh-md-preview-crumbs" tabIndex={0} title={`${target.path} · ${process.env.MD_PREVIEW_VERSION}`}>
                     {documentParent(workspaceDisplayPath(target.path, workspaceRoot)) !== '.' && (
@@ -832,7 +844,15 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
               </button>
             )
           )}
-          {face === 'document' && state.content.state === 'ready' && isEditable(target.path) && (
+          {face === 'document' && state.face === 'view' && target.path !== '' && (
+            <button
+              type="button" className="dsh-md-preview-icon" aria-label={t('panel.refresh')}
+              title={`${t('panel.refresh')} · Alt-R`} aria-keyshortcuts="Alt+R"
+              aria-busy={state.content.state === 'loading' || undefined}
+              onClick={actions.retryRead}
+            ><IconRefreshOutline16 /></button>
+          )}
+          {face === 'document' && state.content.state === 'ready' && state.content.file.editable && (
             <div className="dsh-md-preview-seg" role="group" aria-label={t('panel.face')}>
               <button
                 type="button" aria-label={t('panel.view')} aria-pressed={state.face === 'view'}
@@ -1052,7 +1072,8 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
               {state.content.state === 'failed' && !state.savedPendingRead && (
                 <div className="dsh-md-preview-state">
                   <div className="dsh-md-preview-error">
-                    {t(state.content.code === 'md-preview/unsupported-extension' ? 'panel.unsupported' : 'panel.error')} · {state.content.code}
+                    {t(state.content.code === 'md-preview/unsupported-extension' ? 'panel.unsupported'
+                      : state.content.code === 'md-preview/not-text' ? 'panel.notText' : 'panel.error')} · {state.content.code}
                   </div>
                   <div>{state.content.message}</div>
                   <button
@@ -1077,7 +1098,8 @@ export function PreviewOverlay({ usePreviewTarget, useSessions, leave, close, se
                 // measure instead of stretching with the panel — one
                 // measure for normal widths, a wider one when maximized.
                 <div className="dsh-md-preview-read">
-                  {isEditable(target.path)
+                  {!state.content.file.editable && <div className="dsh-md-preview-readonly">{t('panel.readonly')}</div>}
+                  {state.content.file.kind === 'markdown'
                     ? <MarkdownText text={state.content.file.content} labels={labels} />
                     : <pre className="dsh-md-preview-plaintext">{state.content.file.content}</pre>}
                 </div>

@@ -51,7 +51,9 @@ const readResult$schema = z.object({
   path: z.string(),
   content: z.string(),
   fingerprint: z.string(),
-})
+  kind: z.enum(['markdown', 'text']),
+  editable: z.boolean(),
+}).refine(file => file.kind === 'markdown' || !file.editable, 'Text previews are read-only')
 const writeContent$schema = z.string()
 const writeFingerprint$schema = z.string().optional()
 const writeForce$schema = z.boolean().optional()

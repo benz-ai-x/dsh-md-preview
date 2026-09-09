@@ -5,7 +5,7 @@ export const NS = 'md-preview'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'panel.title': 'Markdown 预览',
+  'panel.title': '文档预览',
   'panel.close': '关闭文档面板',
   'panel.maximize': '全屏显示',
   'panel.restore': '还原',
@@ -15,6 +15,9 @@ export const zh = {
   'panel.error': '加载失败',
   'panel.unsupported': '不支持预览此文件类型',
   'panel.retry': '重试',
+  'panel.refresh': '刷新内容',
+  'panel.readonly': '只读',
+  'panel.notText': '文件不是可读取的 UTF-8 文本',
   'panel.failBrowse': '返回工作区浏览',
   'panel.edit': '编辑',
   'panel.view': '预览',
@@ -107,7 +110,7 @@ export const zh = {
 
 /** English dictionary (same key set). */
 export const en: Record<MdPreviewKey, string> = {
-  'panel.title': 'Markdown preview',
+  'panel.title': 'Document preview',
   'panel.close': 'Close document panel',
   'panel.maximize': 'Maximize',
   'panel.restore': 'Restore',
@@ -117,6 +120,9 @@ export const en: Record<MdPreviewKey, string> = {
   'panel.error': 'Failed to load',
   'panel.unsupported': 'This file type cannot be previewed',
   'panel.retry': 'Retry',
+  'panel.refresh': 'Refresh content',
+  'panel.readonly': 'Read-only',
+  'panel.notText': 'This file is not readable UTF-8 text',
   'panel.failBrowse': 'Back to workspace browsing',
   'panel.edit': 'Edit',
   'panel.view': 'Preview',

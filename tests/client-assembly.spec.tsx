@@ -20,9 +20,12 @@ import { createSlotRenderer } from '#harness/renderer/scoped-slots'
 import { AppFrame } from '#harness/layout/frame'
 import { createLayoutStore } from '#harness/layout/store'
 import { EditorView } from '@codemirror/view'
-import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { mountMdPreview } from '../src/client/mount.ts'
 import { TYPERT_REMOTE } from '../src/typert/remote-client.ts'
+import type { MdPreviewFile } from '../src/protocol.ts'
+import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import { createMemoryStorage } from '../src/client/reading.ts'
 
 const SESSION = 'session-1'
 
@@ -78,6 +81,9 @@ interface AssemblyBench {
   searches: Array<{ sessionId: string; query: string }>
   writes: Array<{ path: string; content: string }>
   files: Map<string, string>
+  classifications: Map<string, Pick<MdPreviewFile, 'kind' | 'editable'>>
+  holdReads: boolean
+  pendingReads: Array<{ path: string; signal: AbortSignal; resolve(result: RemoteResult<MdPreviewFile>): void }>
   /** Replace the binding's chat facts and notify the session seats. */
   setChatSnapshot(produced: ReadonlyArray<{ seq: number; path: string }>): void
   disposeMount(): Promise<void>
@@ -90,17 +96,23 @@ interface AssemblyBench {
  * the plugin's consumed slots, then the real mountMdPreview. Remote read/
  * write/list record their calls over one mutable file table.
  */
-async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>, nativeFrame = false): Promise<AssemblyBench> {
+async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>, nativeFrame = false, language = 'en'): Promise<AssemblyBench> {
   const ctx = new Context()
   const bench: AssemblyBench = {
     container: document.createElement('div'),
     reads: [],
     searches: [],
     writes: [],
+    holdReads: false,
+    pendingReads: [],
     setChatSnapshot: () => {},
     files: new Map([
       ['guide.md', '# Guide\n\nbody'],
       ['notes.md', '# Notes\n\nbody'],
+    ]),
+    classifications: new Map([
+      ['guide.md', { kind: 'markdown', editable: true }],
+      ['notes.md', { kind: 'markdown', editable: true }],
     ]),
     disposeMount: async () => {},
     unmount: async () => {},
@@ -110,13 +122,17 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>, 
   // of the remote table — the production remote service exposes mounted
   // namespaces the same way, and mount.ts's closures read them off ctx.remote.
   const mdPreview = {
-    read: (sessionId: string, path: string) => {
+    read: (sessionId: string, path: string, signal: AbortSignal) => {
       bench.reads.push({ sessionId, path })
+      if (bench.holdReads) return new Promise<RemoteResult<MdPreviewFile>>(resolve => { bench.pendingReads.push({ path, signal, resolve }) })
       const content = bench.files.get(path)
       if (content === undefined) {
         return Promise.resolve({ ok: false as const, error: { code: 'md-preview/not-found', message: `no ${path}` } })
       }
-      return Promise.resolve({ ok: true as const, value: { path, content, fingerprint: 'v1' } })
+      return Promise.resolve({ ok: true as const, value: {
+        path, content, fingerprint: 'v1',
+        ...(bench.classifications.get(path) ?? { kind: 'text', editable: false }),
+      } })
     },
     write: (sessionId: string, path: string, content: string) => {
       bench.writes.push({ path, content })
@@ -147,6 +163,7 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>, 
   ctx.provide('remote', remoteTable)
   ctx.provide('remote.mdPreview', mdPreview)
   const locale = new LocaleRuntime(ctx)
+  locale.setLocale(language)
   ctx.provide('locale', locale)
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.install(createSlotRenderer())
@@ -220,7 +237,7 @@ async function assemble(produced: ReadonlyArray<{ seq: number; path: string }>, 
   // The chat stand-in: declares the plugin's consumed session slots and
   // renders them with owner shapes matching the shipped chat view.
   const ChatView = (kit: Record<string, unknown>): React.ReactNode => {
-    const owner = { turn: turnDataOf(produced), seq: 100, openFile: () => Promise.resolve() }
+    const owner = { turn: turnDataOf(produced), seq: 7, openFile: () => Promise.resolve() }
     return (
       <div data-testid="chat">
         <div data-testid="chips">{(kit.renderSlotChain as (key: string, owner: unknown) => React.ReactNode)('conversation.chat.turnTail', owner)}</div>
@@ -271,7 +288,278 @@ const buttonByAria = (bench: AssemblyBench, label: string): HTMLButtonElement | 
     || button.getAttribute('title') === label
     || button.textContent?.trim() === label)
 
+beforeEach(() => { vi.stubGlobal('localStorage', createMemoryStorage()) })
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); document.body.replaceChildren() })
+
+describe('read-only text through the full Client and AppFrame (#39)', () => {
+  it.each([
+    ['en', 'Preview notes.unknown', 'Refresh content', 'Read-only', 'This file is not readable UTF-8 text', 'Retry'],
+    ['zh', '预览 notes.unknown', '刷新内容', '只读', '文件不是可读取的 UTF-8 文本', '重试'],
+  ])('provides localized read-only, refresh and text-failure controls in %s', async (language, open, refresh, readonly, failure, retry) => {
+    const bench = await assemble([{ seq: 1, path: 'notes.unknown' }], true, language)
+    bench.files.set('notes.unknown', 'literal source')
+    try {
+      await act(async () => { buttonByAria(bench, open!)!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document')?.textContent).toContain(readonly)
+      const refreshButton = buttonByAria(bench, refresh!)!
+      expect(refreshButton.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
+      bench.holdReads = true
+      await act(async () => { refreshButton.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', altKey: true, bubbles: true })) })
+      await flush()
+      await act(async () => { bench.pendingReads[0]!.resolve({ ok: false, error: { code: 'md-preview/not-text', message: 'fs rejected the content' } } as RemoteResult<MdPreviewFile>) })
+      await flush()
+      expect(bench.container.textContent).toContain(failure)
+      expect(bench.container.textContent).toContain('md-preview/not-text')
+      expect(buttonByAria(bench, retry!)).toBeDefined()
+    } finally { await bench.unmount() }
+  })
+
+  it('keeps text candidates deduplicated and fenced by the owning closing turn in all produced entry points', async () => {
+    const bench = await assemble([
+      { seq: 1, path: 'Dockerfile' },
+      { seq: 2, path: 'Dockerfile' },
+      { seq: 3, path: 'Makefile' },
+      { seq: 4, path: 'report.docx' },
+      { seq: 9, path: 'late.unknown' },
+    ], true)
+    try {
+      expect([...bench.container.querySelectorAll('[data-testid="chips"] button')].map(button => button.getAttribute('title')))
+        .toEqual(['Preview Dockerfile', 'Preview Makefile', 'Open report.docx'])
+      await act(async () => { buttonByAria(bench, 'Preview documents')!.click() })
+      await flush()
+      expect([...bench.container.querySelectorAll('[role="menuitem"]')].map(button => button.textContent))
+        .toEqual(['Dockerfile', 'Makefile'])
+      await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
+      await flush()
+      expect([...bench.container.querySelectorAll('.dsh-md-preview-quick[data-source="turn"] button')].map(button => button.getAttribute('title')))
+        .toEqual(['Dockerfile', 'Makefile'])
+      expect(bench.reads).toEqual([])
+    } finally { await bench.unmount() }
+  })
+
+  it.each(['chip', 'picker', 'tree', 'search', 'turn', 'recent'] as const)('guards the %s entry from Markdown drafts to read-only text', async entry => {
+    const bench = await assemble([{ seq: 1, path: 'guide.md' }, { seq: 2, path: 'Dockerfile' }], true)
+    bench.files.set('Dockerfile', 'FROM selected text')
+    try {
+      // Read the text once so the real reading record supplies its recent entry.
+      await act(async () => { buttonByAria(bench, 'Preview Dockerfile')!.click() })
+      await flush()
+      await act(async () => { buttonByAria(bench, 'Preview guide.md')!.click() })
+      await flush()
+      await act(async () => { buttonByAria(bench, 'Edit')!.click() })
+      await flush()
+      const editor = EditorView.findFromDOM(bench.container.querySelector('.cm-editor') as HTMLElement)!
+      await act(async () => { editor.dispatch({ changes: { from: 0, insert: 'UNSAVED ' } }) })
+      expect(buttonByAria(bench, 'Refresh content')).toBeUndefined()
+      await act(async () => { editor.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', altKey: true, bubbles: true })) })
+      expect(bench.reads).toHaveLength(2)
+      if (['tree', 'search', 'turn', 'recent'].includes(entry)) {
+        await act(async () => { buttonByAria(bench, 'Workspace')!.click() })
+        await flush()
+      }
+      if (entry === 'search') {
+        vi.useFakeTimers()
+        const input = bench.container.querySelector<HTMLInputElement>('.dsh-md-preview-searchinput')!
+        await act(async () => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Dockerfile')
+          input.dispatchEvent(new Event('input', { bubbles: true }))
+        })
+        await act(async () => { vi.advanceTimersByTime(250) })
+        await flush()
+        vi.useRealTimers()
+      }
+      const request = async () => {
+        await act(async () => {
+          if (entry === 'chip') buttonByAria(bench, 'Preview Dockerfile')!.click()
+          else if (entry === 'picker') buttonByAria(bench, 'Preview documents')!.click()
+          else if (entry === 'tree') bench.container.querySelector<HTMLElement>('[role="treeitem"][data-path="Dockerfile"] .dsh-md-preview-treerow')!.click()
+          else if (entry === 'search') bench.container.querySelector<HTMLElement>('[role="option"][data-path="Dockerfile"]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+          else bench.container.querySelector<HTMLButtonElement>(`.dsh-md-preview-quick[data-source="${entry}"] button[title="Dockerfile"]`)!.click()
+        })
+        if (entry === 'picker') {
+          await flush()
+          await act(async () => { bench.container.querySelector<HTMLButtonElement>('[role="menuitem"][title="Preview Dockerfile"]')!.click() })
+        }
+        await flush()
+      }
+      await request()
+      expect(bench.container.textContent).toContain('You have unsaved changes')
+      expect(bench.reads).toHaveLength(2)
+      await act(async () => { buttonByAria(bench, 'Keep editing')!.click() })
+      await flush()
+      expect(editor.state.doc.toString()).toBe('UNSAVED # Guide\n\nbody')
+      expect(editor.hasFocus).toBe(true)
+      await request()
+      await act(async () => { buttonByAria(bench, 'Discard changes')!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('FROM selected text')
+      expect(bench.reads).toHaveLength(3)
+      expect(bench.writes).toEqual([])
+    } finally { vi.useRealTimers(); await bench.unmount() }
+  })
+
+  it.each(['refresh', 'switch', 'close', 'dispose'] as const)('cancels the pending text read on %s and ignores its late result', async next => {
+    const bench = await assemble([{ seq: 1, path: 'Dockerfile' }, { seq: 2, path: 'Makefile' }], true)
+    bench.files.set('Dockerfile', 'FROM initial')
+    bench.files.set('Makefile', 'target: successor')
+    try {
+      await act(async () => { buttonByAria(bench, 'Preview Dockerfile')!.click() })
+      await flush()
+      bench.holdReads = true
+      await act(async () => { buttonByAria(bench, 'Refresh content')!.click() })
+      await flush()
+      const old = bench.pendingReads[0]!
+      expect(old.signal.aborted).toBe(false)
+      await act(async () => {
+        if (next === 'refresh') buttonByAria(bench, 'Refresh content')!.click()
+        else if (next === 'switch') buttonByAria(bench, 'Preview Makefile')!.click()
+        else if (next === 'close') buttonByAria(bench, 'Close document panel')!.click()
+        else await bench.disposeMount()
+      })
+      await flush()
+      expect(old.signal.aborted).toBe(true)
+      await act(async () => { old.resolve({ ok: true, value: { path: old.path, content: 'LATE TEXT', fingerprint: 'old', kind: 'text', editable: false } }) })
+      await flush()
+      expect(bench.container.textContent).not.toContain('LATE TEXT')
+      const successor = bench.pendingReads[1]
+      if (next === 'refresh' || next === 'switch') {
+        expect(successor).toBeDefined()
+        await act(async () => { successor!.resolve({ ok: true, value: { path: successor!.path, content: 'CURRENT TEXT', fingerprint: 'new', kind: 'text', editable: false } }) })
+        await flush()
+        expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('CURRENT TEXT')
+      } else {
+        expect(successor).toBeUndefined()
+        expect(bench.container.querySelector('.dsh-md-preview-panel')).toBeNull()
+      }
+      expect(bench.writes).toEqual([])
+    } finally { await bench.unmount() }
+  })
+
+  it('opens text from keyboard tree navigation while Office rows remain unavailable for preview', async () => {
+    const bench = await assemble([], true)
+    bench.files.set('Dockerfile', 'FROM tree')
+    bench.files.set('report.docx', 'Office')
+    try {
+      await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
+      await flush()
+      const office = bench.container.querySelector<HTMLElement>('[role="treeitem"][data-path="report.docx"]')!
+      expect(office.getAttribute('aria-disabled')).toBe('true')
+      await act(async () => {
+        office.querySelector<HTMLElement>('.dsh-md-preview-treerow')!.click()
+        office.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      })
+      expect(bench.reads).toEqual([])
+      const text = bench.container.querySelector<HTMLElement>('[role="treeitem"][data-path="Dockerfile"]')!
+      await act(async () => {
+        text.focus()
+        text.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('FROM tree')
+      expect(buttonByAria(bench, 'Edit')).toBeUndefined()
+    } finally { await bench.unmount() }
+  })
+
+  it('remembers every successful text open and re-reads from recent and continue-reading entries', async () => {
+    const bench = await assemble([{ seq: 1, path: 'Makefile' }], true)
+    bench.files.set('Makefile', 'PRIVATE_BODY: initial')
+    try {
+      await act(async () => { buttonByAria(bench, 'Preview Makefile')!.click() })
+      await flush()
+      await act(async () => { buttonByAria(bench, 'Close document panel')!.click() })
+      await flush()
+      await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
+      await flush()
+      const recent = bench.container.querySelector<HTMLButtonElement>('.dsh-md-preview-quick[data-source="recent"] button')
+      expect(recent?.textContent).toContain('Makefile')
+      bench.files.set('Makefile', 'PRIVATE_BODY: recent')
+      await act(async () => { recent!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('PRIVATE_BODY: recent')
+      await act(async () => { buttonByAria(bench, 'Close document panel')!.click() })
+      await flush()
+      await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
+      await flush()
+      bench.files.set('Makefile', 'PRIVATE_BODY: continued')
+      await act(async () => { buttonByText(bench, 'Continue reading')!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('PRIVATE_BODY: continued')
+      expect(bench.reads).toHaveLength(3)
+      const persisted = localStorage.getItem('dsh-md-preview.reading.v1')!
+      expect(persisted).toContain('Makefile')
+      expect(persisted).not.toMatch(/PRIVATE_BODY|fingerprint|content|draft/)
+    } finally { await bench.unmount() }
+  })
+
+  it('refreshes text only on explicit request and retries a failed refresh', async () => {
+    const produced = [{ seq: 1, path: 'Dockerfile' }]
+    const bench = await assemble(produced, true)
+    bench.files.set('Dockerfile', 'FROM old')
+    try {
+      await act(async () => { buttonByAria(bench, 'Preview Dockerfile')!.click() })
+      await flush()
+      bench.files.set('Dockerfile', 'FROM latest')
+      await act(async () => { bench.setChatSnapshot(produced) })
+      await act(async () => { buttonByAria(bench, 'Preview Dockerfile')!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('FROM old')
+      expect(bench.reads).toHaveLength(1)
+      expect(buttonByAria(bench, 'Refresh content')).toBeDefined()
+      await act(async () => { buttonByAria(bench, 'Refresh content')!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('FROM latest')
+      expect(bench.reads).toHaveLength(2)
+      bench.files.delete('Dockerfile')
+      await act(async () => {
+        buttonByAria(bench, 'Refresh content')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', altKey: true, bubbles: true }))
+      })
+      await flush()
+      expect(bench.container.textContent).toContain('md-preview/not-found')
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')).toBeNull()
+      bench.files.set('Dockerfile', 'FROM recovered')
+      await act(async () => { buttonByAria(bench, 'Retry')!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('FROM recovered')
+      expect(bench.writes).toEqual([])
+    } finally { await bench.unmount() }
+  })
+
+  it('uses the Host category for presentation and its separate edit eligibility', async () => {
+    const bench = await assemble([{ seq: 1, path: 'guide.md' }, { seq: 2, path: 'Makefile' }], true)
+    bench.files.set('Makefile', '# Resolved Markdown')
+    bench.classifications.set('guide.md', { kind: 'text', editable: false })
+    bench.classifications.set('Makefile', { kind: 'markdown', editable: false })
+    try {
+      await act(async () => { buttonByAria(bench, 'Preview guide.md')!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent).toBe('# Guide\n\nbody')
+      expect(buttonByAria(bench, 'Edit')).toBeUndefined()
+      expect(buttonByAria(bench, 'Outline')).toBeUndefined()
+      await act(async () => { buttonByAria(bench, 'Preview Makefile')!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document h1')?.textContent).toBe('Resolved Markdown')
+      expect(buttonByAria(bench, 'Edit')).toBeUndefined()
+      expect(bench.writes).toEqual([])
+    } finally { await bench.unmount() }
+  })
+
+  it.each(['Dockerfile', 'Makefile', 'notes.txt', 'notes.unknown'])('opens %s from produced-file chips as literal read-only text', async path => {
+    const bench = await assemble([{ seq: 1, path }], true)
+    bench.files.set(path, '# literal text\n<script>not executed</script>\n中文')
+    try {
+      const chip = buttonByAria(bench, `Preview ${path}`)
+      expect(chip).toBeDefined()
+      await act(async () => { chip!.click() })
+      await flush()
+      expect(bench.container.querySelector('.dsh-md-preview-document pre')?.textContent)
+        .toBe('# literal text\n<script>not executed</script>\n中文')
+      expect(bench.container.querySelector('.dsh-md-preview-document script')).toBeNull()
+      expect(buttonByAria(bench, 'Edit')).toBeUndefined()
+      expect(bench.writes).toEqual([])
+    } finally { await bench.unmount() }
+  })
+})
 
 describe('client assembly against the real slot machinery (#21)', () => {
   const PRODUCED = [
@@ -425,10 +713,9 @@ describe('client assembly against the real slot machinery (#21)', () => {
       // Open the panel on the browse face from the capsule.
       await act(async () => { buttonByAria(bench, 'Open workspace documents')!.click() })
       await flush()
-      // The newest turn's previewable outputs show as quick rows (run.ts is
-      // not previewable and never appears); name and path both render.
+      // Source text now participates alongside Markdown; names and paths render.
       const rows = [...bench.container.querySelectorAll<HTMLElement>('.dsh-md-preview-quick[data-source="turn"] .dsh-md-preview-quickrow')]
-      expect(rows.map(row => row.getAttribute('title'))).toEqual(['guide.md', 'notes.md'])
+      expect(rows.map(row => row.getAttribute('title'))).toEqual(['guide.md', 'notes.md', 'run.ts'])
       // Opening a quick row reads the document through the mounted Remote.
       await act(async () => { rows[1]!.click() })
       await flush()

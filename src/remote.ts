@@ -1,8 +1,7 @@
 /**
- * MdPreview Host Remote: reads one markdown document from a session's
- * workspace for in-browser rendering. The read is deliberately scoped: the
- * path must resolve inside the owning session's working directory, carry an
- * allowed extension, and stay under the configured byte cap.
+ * MdPreview Host Remote: reads workspace text for in-browser rendering.
+ * The session, regular-file check, containment, byte cap and fs text result
+ * authorize reads. Markdown edit eligibility is an independent decision.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-fs'
@@ -12,6 +11,8 @@ import type { FsDirEntry, FsInfo, FsTarget, FsVersion } from '@deepseek-ai/dsh-f
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Config } from './config.ts'
+import { DEFAULT_ALLOWED_EXTENSIONS } from './constants.ts'
+import { isTextPreviewCandidate } from './document-kind.ts'
 import type {
   MdPreviewEntry, MdPreviewFile, MdPreviewFailureCode, MdPreviewListResult,
   MdPreviewSearchLimit, MdPreviewSearchMatch, MdPreviewSearchResult, MdPreviewWriteResult,
@@ -34,6 +35,19 @@ function fsErrorCode(error: unknown): string | undefined {
     if (typeof code === 'string') return code
   }
   return undefined
+}
+
+/** Preserve filesystem failure categories without inspecting provider messages. */
+function readFailureCode(error: unknown): MdPreviewFailureCode {
+  switch (fsErrorCode(error)) {
+    case 'FS_NOT_TEXT': return 'md-preview/not-text'
+    case 'FS_NOT_REGULAR_FILE': return 'md-preview/not-regular-file'
+    case 'FS_NOT_FOUND': return 'md-preview/not-found'
+    case 'FS_TOO_LARGE': return 'md-preview/too-large'
+    case 'FS_PERMISSION_DENIED':
+    case 'FS_SANDBOX_DENIED': return 'md-preview/forbidden'
+    default: return 'md-preview/unavailable'
+  }
 }
 
 /** Workspace-relative form of an entry target, falling back to its name. */
@@ -89,22 +103,34 @@ export class MdPreviewService extends TypertRemoteService {
    */
   @Remote
   async read(sessionId: SessionId, path: string, signal: AbortSignal): Promise<MdPreviewFile> {
-    // Reads admit the preview union; writes (below) stay markdown-only.
-    const { target, info } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'read', [...this.config.allowedExtensions, ...this.config.previewExtensions])
+    const { target, info } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'read')
     if (info.size !== undefined && info.size > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/read refuses "${path}" above the configured byte cap`)
     }
-    let content: string
+    const chunks: string[] = []
+    let bytes = 0
     try {
-      content = await this.ctx.fs.readText(target, signal)
+      // The fs provider owns fatal UTF-8 decoding and binary rejection. A
+      // bounded stream also protects against unknown size or post-stat growth.
+      for await (const chunk of await this.ctx.fs.streamText(target, signal)) {
+        signal.throwIfAborted()
+        bytes += Buffer.byteLength(chunk, 'utf8')
+        if (bytes > this.config.maxBytes) break
+        chunks.push(chunk)
+      }
+      signal.throwIfAborted()
     } catch (error) {
       if (signal.aborted) throw error
-      throw failure('md-preview/unavailable', `mdPreview/read failed for "${path}": ${error instanceof Error ? error.message : String(error)}`)
+      throw failure(readFailureCode(error), `mdPreview/read failed for "${path}": ${error instanceof Error ? error.message : String(error)}`)
     }
-    if (content.length > this.config.maxBytes) {
+    if (bytes > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/read refuses "${path}" above the configured byte cap`)
     }
-    return { path, content, fingerprint: info.version }
+    const content = chunks.join('')
+    const kind = isAllowedExtension(target.displayPath, DEFAULT_ALLOWED_EXTENSIONS) ? 'markdown' : 'text'
+    const editable = kind === 'markdown' && isAllowedExtension(path, this.config.allowedExtensions)
+      && isAllowedExtension(target.displayPath, this.config.allowedExtensions)
+    return { path, content, fingerprint: info.version, kind, editable }
   }
 
   /**
@@ -128,8 +154,9 @@ export class MdPreviewService extends TypertRemoteService {
     force: boolean,
     signal: AbortSignal,
   ): Promise<MdPreviewWriteResult> {
-    const { target, cwd } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write', this.config.allowedExtensions)
-    if (content.length > this.config.maxBytes) {
+    const { target, cwd } = await this.resolveWorkspaceTarget(sessionId, path, signal, 'write',
+      DEFAULT_ALLOWED_EXTENSIONS.filter(extension => this.config.allowedExtensions.includes(extension)))
+    if (Buffer.byteLength(content, 'utf8') > this.config.maxBytes) {
       throw failure('md-preview/too-large', `mdPreview/write refuses "${path}" above the configured byte cap`)
     }
     if (fingerprint === undefined && !force) {
@@ -230,7 +257,6 @@ export class MdPreviewService extends TypertRemoteService {
     }
     const { root } = await this.resolveContainedTarget(sessionId, '', signal, 'search')
     const rootPath = root.displayPath
-    const previewable = [...this.config.allowedExtensions, ...this.config.previewExtensions]
     const matches: MdPreviewSearchMatch[] = []
     const limits = new Set<MdPreviewSearchLimit>()
     // BFS over directory targets, keyed by resolved display path so a
@@ -260,7 +286,8 @@ export class MdPreviewService extends TypertRemoteService {
         }
         for (const entry of entries) {
           if (entry.type === 'file' && entry.name.toLowerCase().includes(q)
-            && isAllowedExtension(entry.name, previewable)) {
+            && isTextPreviewCandidate(entry.name) && isTextPreviewCandidate(entry.target.displayPath)
+            && this.ctx.fs.contains(root, entry.target)) {
             matches.push({
               name: entry.name,
               path: workspaceRelative(rootPath, entry.target.displayPath, entry.name),
@@ -306,21 +333,31 @@ export class MdPreviewService extends TypertRemoteService {
     path: string,
     signal: AbortSignal,
     op: 'read' | 'write',
-    extensions: readonly string[],
+    extensions: readonly string[] = [],
   ): Promise<{ target: FsTarget; info: FsInfo; cwd: string }> {
     if (path.trim().length === 0) {
       throw failure('md-preview/bad-request', `mdPreview/${op} requires a non-empty path`)
     }
-    if (!isAllowedExtension(path, extensions)) {
+    if (op === 'read' ? !isTextPreviewCandidate(path) : !isAllowedExtension(path, extensions)) {
       throw failure('md-preview/unsupported-extension', `mdPreview/${op} refuses non-previewable path "${path}"`)
     }
     const contained = await this.resolveContainedTarget(sessionId, path, signal, op)
-    const info = await this.ctx.fs.stat(contained.target, signal)
+    if (op === 'read' ? !isTextPreviewCandidate(contained.target.displayPath) : !isAllowedExtension(contained.target.displayPath, extensions)) {
+      throw failure('md-preview/unsupported-extension', `mdPreview/${op} refuses non-previewable resolved target for "${path}"`)
+    }
+    let info: FsInfo | undefined
+    try {
+      info = await this.ctx.fs.stat(contained.target, signal)
+      signal.throwIfAborted()
+    } catch (error) {
+      if (signal.aborted) throw error
+      throw failure(readFailureCode(error), `mdPreview/${op} cannot inspect "${path}"`)
+    }
     if (info === undefined) {
       throw failure('md-preview/not-found', `mdPreview/${op} cannot find "${path}"`)
     }
     if (info.type !== 'file') {
-      throw failure('md-preview/unsupported-extension', `mdPreview/${op} target "${path}" is not a regular file`)
+      throw failure('md-preview/not-regular-file', `mdPreview/${op} target "${path}" is not a regular file`)
     }
     return { ...contained, info }
   }
@@ -342,6 +379,7 @@ export class MdPreviewService extends TypertRemoteService {
     signal: AbortSignal,
     op: 'read' | 'write' | 'list' | 'search',
   ): Promise<{ root: FsTarget; target: FsTarget; cwd: string }> {
+    signal.throwIfAborted()
     const session = this.ctx.sessions.get(sessionId)
     if (session === undefined) {
       throw failure('md-preview/unknown-session', `mdPreview/${op} cannot resolve session "${sessionId}"`)
@@ -350,7 +388,13 @@ export class MdPreviewService extends TypertRemoteService {
     if (cwd === undefined) {
       throw failure('md-preview/no-workspace', `mdPreview/${op} session "${sessionId}" has no working directory`)
     }
-    const root = await this.ctx.fs.resolve(cwd, { signal })
+    let root: FsTarget
+    try {
+      root = await this.ctx.fs.resolve(cwd, { signal })
+    } catch (error) {
+      if (signal.aborted) throw error
+      throw failure(readFailureCode(error), `mdPreview/${op} cannot resolve the session workspace`)
+    }
     let target: FsTarget
     if (path.trim().length === 0) {
       target = root
@@ -360,7 +404,7 @@ export class MdPreviewService extends TypertRemoteService {
       } catch (error) {
         // Caller cancellation is an outcome of the call, not a missing file.
         if (signal.aborted) throw error
-        throw failure('md-preview/not-found', `mdPreview/${op} cannot resolve path "${path}"`)
+        throw failure(fsErrorCode(error) === undefined ? 'md-preview/not-found' : readFailureCode(error), `mdPreview/${op} cannot resolve path "${path}"`)
       }
     }
     if (!this.ctx.fs.contains(root, target)) {

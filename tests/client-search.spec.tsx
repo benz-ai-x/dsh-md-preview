@@ -103,7 +103,7 @@ async function renderSearch(): Promise<SearchHarness> {
       close={() => { store.set(null) }}
       read={((sessionId: string, path: string) => {
         harness.reads.push({ path })
-        return Promise.resolve({ ok: true as const, value: { path, content: `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+        return Promise.resolve({ ok: true as const, value: { path, content: `# ${path}`, kind: 'markdown', editable: true, fingerprint: 'v1' } satisfies MdPreviewFile })
       }) as never}
       write={vi.fn(() => Promise.resolve({ ok: true, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={harness.list as never}

@@ -39,7 +39,7 @@ interface HeaderHarness {
 async function renderHeaderPanel(content: string, path = 'docs/guide.md'): Promise<HeaderHarness> {
   const store = createPreviewStore()
   const leave = createLeaveIntentSeat()
-  const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path, content, fingerprint: 'v1' } }
+  const readResult: { ok: true; value: MdPreviewFile } = { ok: true, value: { path, content, kind: 'markdown', editable: true, fingerprint: 'v1' } }
   // Stable seam identities, like the mount world's one-time closures: an
   // inline arrow per render would re-run the read effect on every rerender
   // and remount the editor mid-edit.

@@ -38,6 +38,37 @@ function deepTree() {
 }
 
 describe('MdPreviewService.search', () => {
+  it('does not offer an Office target already identified by directory metadata behind a text alias', async () => {
+    const { service, fs } = await makeService()
+    fs.listDir = async () => [{
+      name: 'alias.txt', type: 'file', target: { targetKey: 'opaque-office', displayPath: '/workspace/project/report.docx' },
+    }] as never
+    await expect(service.search(SESSION as never, 'alias', new AbortController().signal))
+      .resolves.toMatchObject({ matches: [], complete: true })
+  })
+
+  it('finds text candidates without reading bodies and excludes Office and reserved media formats', async () => {
+    const names = ['Dockerfile', 'Makefile', 'notes.txt', 'notes.unknown', 'report.DOCX', 'sheet.xlsx', 'page.html', 'scene.png']
+    const { service, fs } = await makeService({
+      dirs: new Map([[WORKSPACE, names.map(name => ({ name, type: 'file' as const }))]]),
+    })
+    const readText = vi.spyOn(fs, 'readText').mockRejectedValue(new Error('name search must not read'))
+    const streamText = vi.spyOn(fs, 'streamText').mockRejectedValue(new Error('name search must not stream'))
+    await expect(service.search(SESSION as never, 'e', new AbortController().signal))
+      .resolves.toEqual({
+        query: 'e',
+        matches: [
+          { name: 'Dockerfile', path: 'Dockerfile' },
+          { name: 'Makefile', path: 'Makefile' },
+          { name: 'notes.txt', path: 'notes.txt' },
+          { name: 'notes.unknown', path: 'notes.unknown' },
+        ],
+        complete: true, limits: [],
+      })
+    expect(readText).not.toHaveBeenCalled()
+    expect(streamText).not.toHaveBeenCalled()
+  })
+
   it('finds previewable documents by case-insensitive name substring across unexpanded directories', async () => {
     const { service, fs } = await makeService(deepTree())
     const readText = vi.spyOn(fs, 'readText')
@@ -65,7 +96,7 @@ describe('MdPreviewService.search', () => {
       'docs/notes/guide.md',
     ])
     expect(result.matches.every(match => typeof match.name === 'string')).toBe(true)
-    // The non-previewable neighbors (png/csv/bin) and directories never match.
+    // These neighbors do not match the query; directories never qualify.
     expect(result.matches.map(match => match.path).some(path => /\.(png|csv|bin)$/.test(path))).toBe(false)
   })
 

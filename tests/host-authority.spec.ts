@@ -25,7 +25,7 @@ const CASES: readonly AuthorityCase[] = [
   },
   {
     name: 'a non-previewable extension',
-    path: 'src/index.ts',
+    path: 'reports/report.docx',
     message: /non-previewable/,
   },
   {

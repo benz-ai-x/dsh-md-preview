@@ -78,7 +78,7 @@ async function renderContinue(): Promise<ContinueHarness> {
           return Promise.resolve({ ok: false as const, error: { code: 'md-preview/not-found', message: 'gone' } }) as never
         }
         const body = readBodies.get(file) ?? `# ${file}`
-        return Promise.resolve({ ok: true as const, value: { path: file, content: body, fingerprint: 'v1' } satisfies MdPreviewFile }) as never
+        return Promise.resolve({ ok: true as const, value: { path: file, content: body, kind: 'markdown', editable: true, fingerprint: 'v1' } satisfies MdPreviewFile }) as never
       }) as never}
       write={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: 'x', fingerprint: 'v2' } })) as never}
       list={vi.fn(() => Promise.resolve({ ok: true as const, value: { path: '', entries: [] } })) as never}
@@ -183,7 +183,7 @@ describe('the continue-reading entry (#28)', () => {
     await act(async () => { view.dispatch({ changes: { from: 0, insert: 'x' } }) })
     await flush()
     harness.reading.record('session-1', 'other.md', {
-      at: 4000, anchor: null, index: -1, offsetIntoSection: 0, fraction: 0.5,
+      at: Date.now() + 1, anchor: null, index: -1, offsetIntoSection: 0, fraction: 0.5,
     })
     await act(async () => {
       (harness.container.querySelector('button[aria-label="browse.open"]') as HTMLButtonElement).click()

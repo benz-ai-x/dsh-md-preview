@@ -108,7 +108,7 @@ async function renderReadingPanel(options: HarnessOptions = {}): Promise<Reading
     if (options.failure !== undefined) return options.failure
     const content = contents[Math.min(readCount, contents.length - 1)] ?? ''
     readCount += 1
-    return { path: 'doc.md', content, fingerprint: `fp-${readCount}` }
+    return { path: 'doc.md', content, kind: 'markdown', editable: true, fingerprint: `fp-${readCount}` }
   }
   const harness: ReadingHarness = {
     container: document.createElement('div'),

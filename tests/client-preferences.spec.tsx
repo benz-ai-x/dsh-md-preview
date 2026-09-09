@@ -61,7 +61,7 @@ async function renderPrefsPanel(options: HarnessOptions = {}): Promise<PrefsHarn
   const storage = createMemoryStorage()
   const prefs = options.preferences ?? createPanelPreferenceStore(storage)
   const sessionId = options.sessionId ?? 'session-1'
-  const readResult: MdPreviewFile = { path: 'doc.md', content: '# Report\n\n## Target\n\nbody', fingerprint: 'v1' }
+  const readResult: MdPreviewFile = { path: 'doc.md', content: '# Report\n\n## Target\n\nbody', kind: 'markdown', editable: true, fingerprint: 'v1' }
   const harness: PrefsHarness = {
     container: document.createElement('div'),
     store,

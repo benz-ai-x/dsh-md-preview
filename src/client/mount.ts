@@ -121,7 +121,7 @@ function registerUi(ctx: ClientContext): void {
     }),
   }, PreviewOverlay))
 
-  // The markdown-aware chip row: claims turns that produced markdown. The
+  // The text-aware chip row: claims turns that produced text candidates. The
   // negative priority outranks ui-deliverables' entry (default 0) for those
   // turns only; every other turn still resolves to the shipped row.
   ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
@@ -132,7 +132,7 @@ function registerUi(ctx: ClientContext): void {
     inject: (sessionId: SessionId) => ({ openPreview: openPreview(sessionId) }),
   }, MdChips))
 
-  // The per-message action: additive list id, hidden without markdown.
+  // The per-message action: additive list id, hidden without text candidates.
   ctx.slots.inject('conversation.chat.assistant-actions', () => ctx.slots.register({
     name: 'conversation.chat.assistant-actions',
     id: 'md-preview',

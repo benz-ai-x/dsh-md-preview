@@ -12,7 +12,7 @@ import {
   type PreviewSessionState,
 } from '../src/client/preview-session.ts'
 
-const FILE: MdPreviewFile = { path: 'README.md', content: '# Hi', fingerprint: 'v1' }
+const FILE: MdPreviewFile = { path: 'README.md', content: '# Hi', kind: 'markdown', editable: true, fingerprint: 'v1' }
 const WRITE_OK: { ok: true; value: MdPreviewWriteResult } = { ok: true, value: { path: 'README.md', fingerprint: 'v2' } }
 
 /** Drive the machine from its initial state through a sequence of actions. */

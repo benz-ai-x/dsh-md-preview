@@ -66,10 +66,10 @@ async function renderBrowse(script: Map<string, ListScript>): Promise<BrowseHarn
       read={((sessionId: string, path: string) => {
         harness.reads.push({ path })
         if (/\.(md|markdown)$/.test(path)) {
-          return Promise.resolve({ ok: true as const, value: { path, content: `# ${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+          return Promise.resolve({ ok: true as const, value: { path, content: `# ${path}`, kind: 'markdown', editable: true, fingerprint: 'v1' } satisfies MdPreviewFile })
         }
         if (/\.txt$/.test(path)) {
-          return Promise.resolve({ ok: true as const, value: { path, content: `plain:${path}`, fingerprint: 'v1' } satisfies MdPreviewFile })
+          return Promise.resolve({ ok: true as const, value: { path, content: `plain:${path}`, kind: 'text', editable: false, fingerprint: 'v1' } satisfies MdPreviewFile })
         }
         return Promise.resolve({ ok: false as const, error: { code: 'md-preview/unsupported-extension', message: `refuses "${path}"` } })
       }) as never}
@@ -146,9 +146,10 @@ describe('preview rendering by type', () => {
     expect(buttonByLabel(harness, 'panel.edit')).toBeDefined()
   })
 
-  it('lands a non-previewable file on the unsupported state with its own copy', async () => {
+  it('shows the Host unsupported failure for a directly opened target', async () => {
     const harness = await renderBrowse(TREE)
-    await openFile(harness, 'logo.bin')
+    harness.setTarget({ sessionId: 'session-1', path: 'logo.bin' })
+    await flush()
     expect(harness.container.textContent).toContain('panel.unsupported')
     expect(harness.container.textContent).toContain('md-preview/unsupported-extension')
     expect(harness.container.textContent).not.toContain('panel.error')

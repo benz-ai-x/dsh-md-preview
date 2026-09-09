@@ -909,6 +909,15 @@ const CSS = `
   word-break: break-word;
   color: var(--dsw-alias-label-primary);
 }
+.dsh-md-preview-readonly {
+  margin: 0 12px 8px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+.dsh-md-preview-treeitem[aria-disabled="true"] > .dsh-md-preview-treerow {
+  cursor: default;
+  color: var(--dsw-alias-label-secondary);
+}
 .dsh-md-preview-toast {
   position: absolute;
   top: 44px;

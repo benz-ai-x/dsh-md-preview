@@ -1,5 +1,5 @@
 /**
- * Message-id to produced-markdown lookup over the Chat snapshot. Pure and
+ * Message-id to produced-document lookup over the Chat snapshot. Pure and
  * bounded by the loaded window: the per-message preview action finds the
  * turn-tail node whose closing assistant message owns the id and reads the
  * same `deliverables` Turn data the chip row uses. The returned references
@@ -41,7 +41,7 @@ export function ownedDeliverables(snapshot: ChatSnapshot, messageId: string): Ow
 }
 
 /**
- * Previewable markdown documents of one turn, first-seen order, seq-cutoff applied.
+ * Text candidates of one turn, first-seen order, seq-cutoff applied.
  * @param owned - deliverables data and closing seq of one turn.
  * @returns previewable paths in first-seen order.
  */

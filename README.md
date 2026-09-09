@@ -2,12 +2,14 @@ English | [中文](README.zh.md)
 
 # @benz-ai-x/dsh-md-preview
 
-Read and edit workspace documents beside a DeepSeek Harness conversation. Open a Markdown document produced by an assistant, browse the session workspace, or pick up where you last read.
+Read and edit workspace documents beside a DeepSeek Harness conversation. Open an assistant-produced document, browse the session workspace, or pick up where you last read.
 
 [![npm](https://img.shields.io/npm/v/@benz-ai-x/dsh-md-preview)](https://www.npmjs.com/package/@benz-ai-x/dsh-md-preview)
 [![GitHub](https://img.shields.io/badge/repo-benz--ai--x%2Fdsh--md--preview-24292e?logo=github)](https://github.com/benz-ai-x/dsh-md-preview)
 
 Current release: **[v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)**, published on 2026-09-08. Requires the pinned Harness **0.1.2-rc.1** baseline and a web profile.
+
+Unreleased source changes ([#39](https://github.com/benz-ai-x/dsh-md-preview/issues/39)) add read-only UTF-8 text, all existing document entry points and explicit content refresh. The versioned installation commands below install v0.10.0; these additions await publication.
 
 ## Install or upgrade
 
@@ -27,6 +29,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
 ## What it does
 
 - **Preview and edit** — render Markdown, GFM tables, highlighted code, TeX and Mermaid; edit existing Markdown documents with CodeMirror and save back to the workspace.
+- **Read text** — view UTF-8 text, source code, `Dockerfile`, `Makefile` and unknown extensions as literal read-only content. Refresh explicitly to fetch external changes.
 - **Read beside the conversation** — a document sidebar reserves space on wide screens, remembers your width preference and uses an overlay on narrow screens or when maximized. Native navigation and tool details keep their own controls.
 - **Find documents** — browse the workspace tree, search document names across unexpanded directories, and use current-turn outputs, recently read documents and the continue-reading entry.
 - **Keep your place** — reopening restores the recorded reading position after fetching the latest content. Panel width, navigation width and navigation choices persist when browser storage is available.
@@ -38,21 +41,26 @@ dsh plugin --profile web remove @benz-ai-x/dsh-md-preview
 | Entry or control | Action |
 | --- | --- |
 | Paperclip beside Session-log download | Opens workspace browsing while the panel is closed; closes the current panel while it is open |
-| Markdown chip under a turn | Opens that produced document |
-| Per-message “Preview documents” action | Lists Markdown documents produced by that message's turn |
+| Text or Markdown chip under a turn | Opens that produced document |
+| Per-message “Preview documents” action | Lists text candidates produced by that message's turn |
 | Folder icon inside the panel | Toggles the workspace navigation on wide panels; opens the Browse Face on narrow panels |
 | Outline | Navigates headings and highlights the current reading position |
 | Preview / Edit | Switches between the View Face and Edit Face for editable documents |
+| Refresh content | Re-reads the current document in the View Face; failures offer Retry |
 | Maximize / Restore | Fills the application content area, then returns to the remembered width |
 | × | Closes the panel through the Unsaved Guard and returns focus to the paperclip entry |
 
-The paperclip opens **workspace documents**; uploaded attachments are not supported. Non-Markdown produced-file chips keep Harness's desktop-open behavior. The workspace browser can also preview `.txt` as plain text by default.
+The paperclip opens **workspace documents**; uploaded attachments are not supported. Text candidates include extensionless files and unknown extensions. Office, HTML, PDF, images, media and common binary containers are excluded from this text preview; their produced-file chips keep Harness's desktop-open behavior, and their workspace rows cannot open a preview. A candidate still needs Host authorization and a successful UTF-8 text read.
+
+Text is read-only, including JSON, XML and JSONL shown as original source in this change. Syntax highlighting, folding, structured formatting and incremental large-text reading are tracked separately in #40–#44 of [Spec #38](https://github.com/benz-ai-x/dsh-md-preview/issues/38); HTML, images, audio/video and PDF previews follow in #45–#49. Office preview is excluded. Reads remain capped at 1 MiB by default. The Host reports binary or invalid UTF-8 content as `md-preview/not-text`.
 
 The sidebar docks when the available application width is at least 1056px; narrower layouts and maximized reading use an overlay. Width starts at half the viewport, capped at 720px, and remembers a 360–1200px drag preference subject to available space. Drag the left edge to resize; double-click it to toggle maximization. Panels at least 640px wide can show the Files/Outline navigation beside the document; narrower panels use the Browse Face or outline popover. Direct document entries open body-first unless you have chosen a navigation preference.
 
 In Edit, save with the toolbar button or Cmd/Ctrl-S. To leave without saving, request Preview, another document or close, then choose **Discard changes** in the guard; **Keep editing** preserves the draft. There is no separate Cancel-edit button. Save writes only an existing file and returns to Preview after confirmation.
 
-Workspace search matches document **names**, case-insensitively, without reading file contents. Partial traversal reports an incomplete result with its reasons. Clearing a query restores the tree expansion state. Recently read documents are derived from recorded reading positions, so opening a file without scrolling may not add a recent entry.
+Workspace search matches document **names**, case-insensitively, without reading file contents. Partial traversal reports an incomplete result with its reasons. Clearing a query restores the tree expansion state. Every successful open records its identity and recency, including documents read without scrolling. Recently read and Continue reading always re-read when they open a new Preview Session; Markdown position restoration is preserved. Records and preferences never contain document bodies, drafts or fingerprints.
+
+During one Preview Session, external file changes and selecting the current target again leave the displayed content in place. Use **Refresh content** or **Alt-R** in the View Face to re-read. Refresh is unavailable while editing; leaving an edit still uses the Unsaved Guard.
 
 ## Keyboard
 
@@ -61,6 +69,7 @@ Workspace search matches document **names**, case-insensitively, without reading
 | Shortcut | Action |
 | --- | --- |
 | Mod-S | Save |
+| Alt-R | Refresh the current document in the View Face |
 | Mod-F | Find within the editor |
 | Mod-Z / Mod-Shift-Z | Undo / redo |
 | Mod-B / Mod-I / Mod-K | Wrap the selection as bold, italic or a link |
@@ -78,7 +87,6 @@ After installation, override the existing row in the profile's `cordis.patch.yml
   config:
     maxBytes: 1048576
     allowedExtensions: ['.md', '.markdown']
-    previewExtensions: ['.md', '.markdown', '.txt']
     searchMaxResults: 200
     searchMaxDirectories: 2000
     searchConcurrency: 8
@@ -89,13 +97,13 @@ A later patch replaces the row's **whole config**; preserve all custom values yo
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `maxBytes` | `1048576` | Per-file read/write cap in bytes |
-| `allowedExtensions` | `[".md", ".markdown"]` | Extensions allowed for editing |
-| `previewExtensions` | `[".md", ".markdown", ".txt"]` | Preview extensions; members outside the editable set are read-only |
+| `allowedExtensions` | `[".md", ".markdown"]` | Editing allowlist, intersected with the supported Markdown extensions |
+| `previewExtensions` | `[".md", ".markdown", ".txt"]` | Deprecated compatibility field; accepted but no longer restricts or widens text admission |
 | `searchMaxResults` | `200` | Maximum matches returned by a workspace search |
 | `searchMaxDirectories` | `2000` | Maximum directories visited by a workspace search |
 | `searchConcurrency` | `8` | Parallel directory listings per traversal step |
 
-Paths are scoped to the session workspace. Saves require the backing read's fingerprint or an explicit force-overwrite choice. The schema is the authority for configuration defaults; the editable extensions are included in the preview union.
+Paths are scoped to the session workspace. Saves require the backing read's fingerprint or an explicit force-overwrite choice. The schema is the authority for configuration defaults. `allowedExtensions: []` disables Markdown editing while retaining rendered previews. Adding `.txt` or another text extension cannot make it editable. Both the requested name and resolved target must have a configured `.md` or `.markdown` extension for writes. Existing `previewExtensions` values can remain in profiles, but are no longer an access-control list: the Host validates the actual file, workspace containment, byte cap and fs text result on every open.
 
 ## Failure codes
 
@@ -104,7 +112,9 @@ Paths are scoped to the session workspace. Saves require the backing read's fing
 | `md-preview/bad-request` | Invalid input; for example, a save with neither fingerprint nor force |
 | `md-preview/unknown-session` | Session does not exist |
 | `md-preview/no-workspace` | Session has no working directory |
-| `md-preview/unsupported-extension` | Unsupported document extension |
+| `md-preview/unsupported-extension` | Format excluded from preview, or target not eligible for editing |
+| `md-preview/not-text` | Binary content or invalid UTF-8 rejected by the filesystem provider |
+| `md-preview/not-regular-file` | Target is a directory or special file |
 | `md-preview/forbidden` | Workspace containment or filesystem access was denied |
 | `md-preview/not-found` | Target does not exist |
 | `md-preview/too-large` | Read or write exceeds `maxBytes` |

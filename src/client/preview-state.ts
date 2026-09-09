@@ -2,7 +2,7 @@
 
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { DEFAULT_ALLOWED_EXTENSIONS } from '../constants.ts'
+import { isTextPreviewCandidate } from '../document-kind.ts'
 
 /** The document the preview panel currently shows; null while closed. */
 export interface MdPreviewTarget {
@@ -26,29 +26,9 @@ export function basename(path: string): string {
   return at === -1 ? path : path.slice(at + 1)
 }
 
-/** Lowercased dot-prefixed extension of a path, or the empty string. */
-function extensionOf(path: string): string {
-  const name = basename(path)
-  const dot = name.lastIndexOf('.')
-  return dot === -1 ? '' : name.slice(dot).toLowerCase()
-}
-
-/** Extensions the client offers to preview (kept in sync with the Host default). */
-const PREVIEWABLE_EXTENSIONS: readonly string[] = [...DEFAULT_ALLOWED_EXTENSIONS]
-
-/** The editable set mirror (Host config cannot reach the browser bundle). */
-const EDITABLE_EXTENSIONS: readonly string[] = [...DEFAULT_ALLOWED_EXTENSIONS]
-
-/** Whether the client treats a produced path as a previewable markdown document. */
+/** A name-only candidate; opening still asks the Host to authorize text reading. */
 export function isPreviewable(path: string): boolean {
-  const extension = extensionOf(path)
-  return extension !== '' && PREVIEWABLE_EXTENSIONS.includes(extension)
-}
-
-/** Whether a path may enter an edit session (the markdown-only editable set). */
-export function isEditable(path: string): boolean {
-  const extension = extensionOf(path)
-  return extension !== '' && EDITABLE_EXTENSIONS.includes(extension)
+  return isTextPreviewCandidate(path)
 }
 
 /** Produced paths of one turn split into previewable and externally-opened groups, first-seen order preserved. */

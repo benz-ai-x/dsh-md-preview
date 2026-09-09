@@ -53,10 +53,21 @@ describe('TYPERT_REMOTE', () => {
 
   it('round-trips the result codec', () => {
     const schema = descriptor.result.mode === 'strict' ? descriptor.result.schema : undefined
-    expect(schema?.parse({ path: 'README.md', content: '# Hi', fingerprint: 'v1' }))
-      .toEqual({ path: 'README.md', content: '# Hi', fingerprint: 'v1' })
+    const markdown = { path: 'README.md', content: '# Hi', fingerprint: 'v1', kind: 'markdown', editable: true }
+    expect(schema?.parse(markdown)).toEqual(markdown)
     expect(() => schema?.parse({ path: 'README.md' })).toThrow()
     expect(() => schema?.parse(null)).toThrow()
+  })
+
+  it('carries Host presentation and edit eligibility independently and rejects invalid categories', () => {
+    const schema = descriptor.result.mode === 'strict' ? descriptor.result.schema : undefined
+    const text = { path: 'Dockerfile', content: 'FROM base', fingerprint: 'v1', kind: 'text', editable: false }
+    expect(schema?.parse(text)).toEqual(text)
+    const readonlyMarkdown = { ...text, path: 'notes.md', content: '# Notes', kind: 'markdown' }
+    expect(schema?.parse(readonlyMarkdown)).toEqual(readonlyMarkdown)
+    expect(() => schema?.parse({ ...text, kind: 'unknown' })).toThrow()
+    expect(() => schema?.parse({ ...text, editable: true })).toThrow()
+    expect(() => schema?.parse({ path: 'notes.md', content: '# Notes', fingerprint: 'v1' })).toThrow()
   })
 
   it('refuses empty paths at the wire boundary', () => {

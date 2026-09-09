@@ -28,6 +28,8 @@ export interface PanelDocumentSessionDeps {
     signal: AbortSignal,
   ) => Promise<RemoteResult<MdPreviewWriteResult>>
   readonly close: () => void
+  /** Accepted successful read only; callers may record the opened identity. */
+  readonly onRead?: (sessionId: SessionId, path: string) => void
 }
 
 /** The panel-facing surface: machine state plus intent actions. */
@@ -56,7 +58,7 @@ export function usePanelDocumentSession(
   deps: PanelDocumentSessionDeps,
   target: MdPreviewTarget | null,
 ): PanelDocumentSession {
-  const { read, write, close } = deps
+  const { read, write, close, onRead } = deps
   const [state, dispatch] = useReducer(transition, undefined, initialPreviewSession)
   // Manual retry and the post-save re-read re-run the read effect for the
   // same target; only a target change is a full session reset.
@@ -93,6 +95,7 @@ export function usePanelDocumentSession(
     void read(target.sessionId, target.path, controller.signal)
       .then((result) => {
         if (controller.signal.aborted || epoch.current !== run) return
+        if (result.ok) onRead?.(target.sessionId, target.path)
         dispatch(result.ok
           ? { type: 'READ_RESOLVED', file: result.value }
           : { type: 'READ_FAILED', code: result.error.code, message: result.error.message })
@@ -103,7 +106,7 @@ export function usePanelDocumentSession(
         dispatch({ type: 'READ_FAILED', code: 'md-preview/unavailable', message: error instanceof Error ? error.message : String(error) })
       })
     return () => { controller.abort() }
-  }, [read, target, revision])
+  }, [read, target, revision, onRead])
 
   // A target change (an approved close or switch included) or unmount aborts
   // an in-flight save so it cannot land on the previous document: its outcome
