@@ -4,8 +4,8 @@ English | [中文](README.zh.md)
 
 Preview and edit Markdown in the **official DeepSeek Harness right-sidebar tabs**.
 
-This branch is the **0.11.0-alpha.4 development candidate**. It requires Harness
-`0.1.5-alpha.1` plus the public close-guard patch pinned by
+This branch is the **0.11.0-alpha.5 development candidate**. It requires Harness
+`0.1.5-alpha.1` plus the public close-guard and Markdown source-position patches pinned by
 [dsh-reference.lock.json](dsh-reference.lock.json). Stock npm Harness of that version
 lacks the guard and this candidate refuses activation. The published
 [v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
@@ -13,12 +13,13 @@ uses the old sidebar and does not include this migration. No new release is impl
 
 ## Install the candidate
 
-Build the pinned Harness checkout with [the patch](patches/harness-sidebar-close-guard.patch),
+Apply the [close-guard patch](patches/harness-sidebar-close-guard.patch) followed by
+the [heading-source patch](patches/harness-markdown-heading-source.patch) to the pinned official base and build it,
 then use that checkout's normal CLI and an isolated web profile. With its `dsh` command:
 
 ```sh
 dsh --profile markdown-accept --from-default-profile web --dump-config
-dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.4.tgz --save-exact
+dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.5.tgz --save-exact
 dsh --profile markdown-accept --dump-config
 dsh --profile markdown-accept --no-open
 ```
@@ -58,7 +59,8 @@ Source setup and actual acceptance results are in the
   metadata refresh does not dismiss it or replace the draft. This tab's Reload also
   refreshes file metadata after the guarded body read.
 
-`line` navigation reveals the enclosing ATX section in Preview. **Source line N**
+`line` navigation reveals the enclosing ATX section in Preview, including linked,
+indented and repeated headings. **Source line N**
 opens the editor at the exact source line on every click, preserving an active draft
 and its undo history; a fresh native navigation updates the target.
 Each target is applied once per face, so switching faces does not replay an old line.

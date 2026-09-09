@@ -552,6 +552,109 @@ describe('Markdown in the official right sidebar', () => {
     expect(editor().state.sliceDoc()).toBe('draft # First\n\nIntroduction\n\n## Second\nTarget\n')
   })
 
+  it('reveals the enclosing linked ATX heading even when an earlier heading has the same label', async () => {
+    const scrolls: Element[] = []
+    const previous = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true, value: function (this: Element) { scrolls.push(this) },
+    })
+    try {
+      const { runtime, view, files } = await mountSidebar()
+      files.set(`${SESSION}/guide.md`, {
+        content: '# Top\n\n## Section\nEarlier\n\n## [Section](https://example.com)\nTarget\n',
+        fingerprint: 'heading-v1',
+      })
+      await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md'), { params: { line: 7 } }) })
+      const target = view.view.getByRole('link', { name: 'Section' }).closest('h2')!
+      expect(scrolls).toEqual([target])
+    } finally {
+      if (previous) Object.defineProperty(Element.prototype, 'scrollIntoView', previous)
+      else Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+    }
+  })
+
+  it('reveals an indented ATX heading instead of the preceding section', async () => {
+    const scrolls: Element[] = []
+    const previous = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true, value: function (this: Element) { scrolls.push(this) },
+    })
+    try {
+      const { runtime, view, files } = await mountSidebar()
+      files.set(`${SESSION}/guide.md`, {
+        content: '# Top\n\nIntroduction\n\n   ## Section\nTarget\n',
+        fingerprint: 'heading-v1',
+      })
+      await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md'), { params: { line: 6 } }) })
+      expect(scrolls).toEqual([view.view.getByRole('heading', { name: 'Section' })])
+    } finally {
+      if (previous) Object.defineProperty(Element.prototype, 'scrollIntoView', previous)
+      else Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+    }
+  })
+
+  it('ignores headings inside indented code fences when locating the requested section', async () => {
+    const scrolls: Element[] = []
+    const previous = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true, value: function (this: Element) { scrolls.push(this) },
+    })
+    try {
+      const { runtime, view, files } = await mountSidebar()
+      files.set(`${SESSION}/guide.md`, {
+        content: '# Top\n\n   ```md\n   ## Section\n   ```\n\n   ## Section\nTarget\n',
+        fingerprint: 'heading-v1',
+      })
+      await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md'), { params: { line: 8 } }) })
+      expect(scrolls).toEqual([view.view.getByRole('heading', { name: 'Section' })])
+    } finally {
+      if (previous) Object.defineProperty(Element.prototype, 'scrollIntoView', previous)
+      else Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+    }
+  })
+
+  it('distinguishes an ATX section from an earlier underlined heading with the same label', async () => {
+    const scrolls: Element[] = []
+    const previous = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true, value: function (this: Element) { scrolls.push(this) },
+    })
+    try {
+      const { runtime, view, files } = await mountSidebar()
+      files.set(`${SESSION}/guide.md`, {
+        content: 'Section\n-------\n\n## [Section](https://example.com)\nTarget\n',
+        fingerprint: 'heading-v1',
+      })
+      await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md'), { params: { line: 5 } }) })
+      const target = view.view.getByRole('link', { name: 'Section' }).closest('h2')!
+      expect(scrolls).toEqual([target])
+    } finally {
+      if (previous) Object.defineProperty(Element.prototype, 'scrollIntoView', previous)
+      else Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+    }
+  })
+
+  it('locates the section after math source and a footnote rendered out of source order', async () => {
+    const scrolls: Element[] = []
+    const previous = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true, value: function (this: Element) { scrolls.push(this) },
+    })
+    try {
+      const { runtime, view, files } = await mountSidebar()
+      files.set(`${SESSION}/guide.md`, {
+        content: '# Top\n\n[^note]: ## Note\n\nText[^note]\n\n$$\n# Section\n$$\n\n## [Section][section]\nTarget\n\n[section]: https://example.com\n',
+        fingerprint: 'heading-v1',
+      })
+      await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md'), { params: { line: 12 } }) })
+      const target = view.view.getByRole('link', { name: 'Section' }).closest('h2')!
+      expect(scrolls).toEqual([target])
+    } finally {
+      if (previous) Object.defineProperty(Element.prototype, 'scrollIntoView', previous)
+      else Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+    }
+  })
+
   it('exposes the requested source line from preview and locates it when editing starts', async () => {
     const { runtime, view, files } = await mountSidebar()
     files.set(`${SESSION}/guide.md`, { content: '# First\n\nIntroduction\n\n## Second\nTarget\n', fingerprint: 'line-v1' })

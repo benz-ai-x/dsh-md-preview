@@ -4,20 +4,21 @@
 
 在 **DeepSeek Harness 官方右边栏标签页**中预览和编辑 Markdown。
 
-当前分支为 **0.11.0-alpha.4 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
-[dsh-reference.lock.json](dsh-reference.lock.json) 固定的公共关闭守卫补丁。
+当前分支为 **0.11.0-alpha.5 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
+[dsh-reference.lock.json](dsh-reference.lock.json) 固定的公共关闭守卫与 Markdown 源位置补丁。
 官方 npm 同版本尚无该接口，候选插件会拒绝激活。已发布的
 [v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
 仍使用旧面板，不包含此次迁移；本轮不代表正式发布。
 
 ## 安装候选包
 
-先构建带[补丁](patches/harness-sidebar-close-guard.patch)的固定 Harness 检出，
+在固定官方基线上依次应用[关闭守卫补丁](patches/harness-sidebar-close-guard.patch)和
+[标题源位置补丁](patches/harness-markdown-heading-source.patch)，再构建该 Harness 检出，
 使用该检出的正常 CLI 和独立 web profile。以下 `dsh` 指该 CLI：
 
 ```sh
 dsh --profile markdown-accept --from-default-profile web --dump-config
-dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.4.tgz --save-exact
+dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.5.tgz --save-exact
 dsh --profile markdown-accept --dump-config
 dsh --profile markdown-accept --no-open
 ```
@@ -48,7 +49,8 @@ dsh plugin --profile markdown-accept remove @benz-ai-x/dsh-md-preview
   本标签的重新加载在未保存守卫放行、正文重读结束后，也会更新官方文件元数据。
   其他查看器刷新共享元数据不会清除这个提示，也不会自动覆盖草稿。
 
-带 `line` 的原生导航在预览中滚动到所属 ATX 章节；每次点击“源码第 N 行”都会进入编辑器精确定位，
+带 `line` 的原生导航在预览中滚动到所属 ATX 章节，支持链接、缩进和同名标题。
+每次点击“源码第 N 行”都会进入编辑器精确定位，
 保留正在编辑的草稿与撤销历史。
 每个导航目标在每种面孔只定位一次，切换预览/编辑不重放旧行号；再次导航时使用新的行目标。
 

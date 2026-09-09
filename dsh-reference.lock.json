@@ -4,7 +4,7 @@
     "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
     "version": "0.1.5-alpha.1",
     "node": "^22.19.0 || >=24.0.0",
-    "commit": "737e95c657a95fd04b12269313902f9b5ca2f6ca",
+    "commit": "a28c5a8f4927217f345d02e22c782a32d5750f0a",
     "docsDigest": "aed2ad3126a0f0cd9b84250afe6e45c0682fee2c2c7b8268df98eb737686647f"
   },
   "localResolution": {

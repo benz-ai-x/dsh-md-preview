@@ -1,6 +1,6 @@
 {
   "name": "@benz-ai-x/dsh-md-preview",
-  "version": "0.11.0-alpha.4",
+  "version": "0.11.0-alpha.5",
   "description": "Markdown preview and editing in the official DeepSeek Harness right-sidebar tabs.",
   "license": "MIT",
   "repository": {

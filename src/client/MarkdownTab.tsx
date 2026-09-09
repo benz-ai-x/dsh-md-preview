@@ -13,7 +13,7 @@ import { MarkdownEditor } from './editor.tsx'
 import type { EditorStatus } from './editor.tsx'
 import { canSave, isDirty } from './preview-session.ts'
 import type { createDiagramRenderer } from './diagrams.ts'
-import { activeIndexForLine, extractOutline, findHeadingElement } from './outline.ts'
+import { findPreviewSection } from './preview-navigation.ts'
 
 export interface MarkdownTabInjected {
   useDocuments: SnapshotSelectorHook<MarkdownDocuments>
@@ -70,8 +70,7 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
     } else {
       // Rendered Markdown has no one-to-one source-line layout. Reveal its
       // enclosing section; the source-line action gives an exact editor jump.
-      const headings = extractOutline(state.content.file.content)
-      findHeadingElement(rendered.current, headings, activeIndexForLine(headings, line))?.scrollIntoView?.({ block: 'start' })
+      findPreviewSection(rendered.current, state.content.file.content, line)?.scrollIntoView?.({ block: 'start' })
     }
   }, [key, state?.content, state?.face, tab.navigation.revision, line, takeNavigation])
   useEffect(() => {
@@ -138,7 +137,7 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
               }
             }} onStatus={setStatus}
             onChange={draft => edit(key, draft)} onSave={() => save(key, false)} />
-        : <div className="dsh-md-tab-document" ref={rendered}><MarkdownText text={state.content.file.content} labels={labels} /></div>
+        : <div className="dsh-md-tab-document" ref={rendered}><MarkdownText text={state.content.file.content} labels={labels} headingSource /></div>
       : <p role="status">{state?.content.state === 'failed' ? `${t('panel.error')} · ${state.content.code}` : t('panel.loading')}</p>}
   </section>
 }

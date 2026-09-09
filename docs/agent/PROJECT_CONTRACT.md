@@ -1,9 +1,10 @@
 # Project Contract: dsh-md-preview
 
 The implementation baseline is [dsh-reference.lock.json](../../dsh-reference.lock.json):
-Harness `0.1.5-alpha.1`, local patched commit `737e95c657a95fd04b12269313902f9b5ca2f6ca`
+Harness `0.1.5-alpha.1`, local patched commit `a28c5a8f4927217f345d02e22c782a32d5750f0a`
 over official `5dda764ed3aa172535a7967b06ff95d9cbfe536a`. The public before-close API
-is not in the official npm release. Missing capability causes activation rollback.
+and Markdown heading-source option are local patches absent from the official npm
+release. Missing before-close capability causes activation rollback.
 
 ## User-visible outcome
 
@@ -24,7 +25,12 @@ A successful write followed by a failed read is an already-saved state with a re
 Successful write and read completion shows a Saved status; entering the next edit
 session or explicitly reloading clears that confirmation.
 
-A native `line` navigation reveals the enclosing ATX heading in Preview. Source Line
+A native `line` navigation reveals the enclosing ATX heading in Preview. The platform's
+opt-in `MarkdownText.headingSource` supplies source lines and UTF-16 offsets from the
+same parse as the rendered body. `preview-navigation.ts` chooses the latest eligible
+ATX source position, including linked, indented and duplicate headings; setext, fenced
+and mathematical content cannot shift the match, nor can reordered footnote headings.
+Source Line
 opens the exact source line in Edit on every explicit click, including within an active
 draft. Native navigation revisions are applied once per face; ordinary face switches
 do not replay a consumed revision. Explicit source-line selection preserves draft and history.
