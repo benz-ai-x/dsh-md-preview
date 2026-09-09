@@ -232,7 +232,7 @@
     依据回复: 按照你的建议做
     时间: '2026-09-09T01:27:03.204Z'
 恢复注记:
-  上次中断位置: 'PR-1 已建立独立开发 worktree，正在完成 #39。'
+  上次中断位置: PR-1 开发 worktree 就绪；#39 已标 in-progress，开始隔离开发。
   下一步: '按 TDD 完成 #39，完整 verify 后创建 PR 并交独立评审；涉及公共协议/授权需人工合并后再开下游。'
   执行环境: >-
     所有验证显式设置 DSH_HARNESS_ROOT=/Users/pc2026/Dev-Space/deepseek-harness-md-preview-baseline；该新 worktree 固定
