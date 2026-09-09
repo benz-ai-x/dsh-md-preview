@@ -112,6 +112,7 @@ export function transition(state: PreviewSessionState, action: PreviewSessionAct
         ...state,
         face: 'edit',
         draft: state.content.file.content,
+        toast: false,
         conflicted: false,
         saveError: null,
       }

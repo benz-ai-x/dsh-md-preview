@@ -95,7 +95,7 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
         </>)}
     </div>
     {state?.content.state === 'ready' && !state.saving && !state.savedPendingRead
-      && metadata.value?.changed && metadata.value.version !== state.content.file.fingerprint
+      && metadata.value !== undefined && metadata.value.version !== state.content.file.fingerprint
       && <p role="status" className="dsh-md-tab-notice">{t('panel.conflict.title')}</p>}
     {state?.conflicted && <div role="alert" className="dsh-md-tab-notice">
       <strong>{t('panel.conflict.title')}</strong>
@@ -103,6 +103,7 @@ export function MarkdownTab({ useTabInfo, useResource, sessionId, useDocuments, 
       <Button size="sm" disabled={state.saving} onClick={() => save(key, true)}>{t('panel.conflict.force')}</Button>
     </div>}
     {state?.saving && <p role="status">{t('status.saving')}</p>}
+    {state?.toast && state.face === 'view' && state.content.state === 'ready' && <p role="status">{t('status.saved')}</p>}
     {state?.saveError && <p role="alert">{t('panel.saveError')} · {state.saveError.code} — {state.saveError.message}</p>}
     {state?.savedPendingRead && state.content.state === 'failed' && <p role="alert">{t('panel.saved.readFailed')}</p>}
     {state?.content.state === 'failed' && state.content.code === 'md-preview/too-large' && <div className="dsh-md-tab-notice">

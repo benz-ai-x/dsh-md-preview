@@ -122,7 +122,29 @@ describe('Markdown in the official right sidebar', () => {
     await act(async () => { view.view.getByRole('button', { name: 'Save', exact: true }).click() })
     expect(writes).toEqual([{ sessionId: SESSION, path: 'guide.md', content: '# Saved Markdown\n', fingerprint: 'v1', force: false }])
     expect(view.view.getByRole('heading', { name: 'Saved Markdown' })).toBeTruthy()
+    expect(view.view.getByRole('status').textContent).toBe('Saved')
     expect(reads).toHaveLength(2)
+    await act(async () => { view.view.getByRole('button', { name: 'Reload', exact: true }).click() })
+    expect(view.view.queryByText('Saved', { exact: true })).toBeNull()
+  })
+
+  it('clears an earlier save confirmation when a new draft is discarded', async () => {
+    const { runtime, view } = await mountSidebar()
+    await act(async () => { runtime.ctx.sidebarRight.openResource(sessionFileAddress(SESSION, 'guide.md')) })
+    const edit = async (text: string) => {
+      await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+      const editor = EditorView.findFromDOM(view.container.querySelector('.cm-editor') as HTMLElement)!
+      await act(async () => { editor.dispatch({ changes: { from: 0, insert: text } }) })
+    }
+    await edit('saved ')
+    await act(async () => { view.view.getByRole('button', { name: 'Save', exact: true }).click() })
+    expect(view.view.getByRole('status').textContent).toBe('Saved')
+    await edit('discarded ')
+    await act(async () => { view.view.getByRole('button', { name: 'Preview', exact: true }).click() })
+    const discard = [...document.querySelectorAll('button')].find(button => button.textContent === 'Discard changes')!
+    await act(async () => { discard.click() })
+    expect(view.view.queryByText('Saved', { exact: true })).toBeNull()
+    expect(view.container.textContent).not.toContain('discarded ')
   })
 
   it('retains a draft and its undo/redo history while another tab is viewed', async () => {
@@ -385,6 +407,22 @@ describe('Markdown in the official right sidebar', () => {
     expect(view.container.querySelector('.cm-editor')).toBeNull()
   })
 
+  it('announces a newer first metadata version without replacing the loaded draft', async () => {
+    const { runtime, view, metadata, files } = await mountSidebar()
+    const address = sessionFileAddress(SESSION, 'guide.md')
+    await act(async () => { runtime.ctx.sidebarRight.openResource(address) })
+    await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+    const editor = EditorView.findFromDOM(view.container.querySelector('.cm-editor') as HTMLElement)!
+    await act(async () => { editor.dispatch({ changes: { from: 0, insert: 'unsaved ' } }) })
+    files.set(`${SESSION}/guide.md`, { content: '# Updated by Host\n', fingerprint: 'v2' })
+    await act(async () => {
+      const source = metadata(address)
+      source.set({ ...source.getSnapshot(), status: 'live', value: { absolutePath: '/workspace/a/guide.md', version: 'v2', changed: false } })
+    })
+    expect(view.view.getByRole('status').textContent).toContain('The file changed elsewhere')
+    expect(editor.state.sliceDoc()).toBe('unsaved # Migrated Markdown\n\n**Ready**\n')
+  })
+
   it('announces a Host-observed version change without refreshing the current document', async () => {
     const { runtime, view, metadata, files, reads } = await mountSidebar()
     const address = sessionFileAddress(SESSION, 'guide.md')
@@ -397,9 +435,33 @@ describe('Markdown in the official right sidebar', () => {
     expect(view.view.getByRole('status').textContent).toContain('The file changed elsewhere')
     expect(view.view.getByRole('heading', { name: 'Migrated Markdown' })).toBeTruthy()
     expect(reads).toHaveLength(1)
+    // A reload in another native viewer clears the shared metadata flag,
+    // but this tab still holds its old body until its own Reload action.
+    await act(async () => {
+      const source = metadata(address)
+      source.set({ ...source.getSnapshot(), status: 'live', value: { absolutePath: '/workspace/a/guide.md', version: 'v2', changed: false } })
+    })
+    expect(view.view.getByRole('status').textContent).toContain('The file changed elsewhere')
+    expect(view.view.getByRole('heading', { name: 'Migrated Markdown' })).toBeTruthy()
     await act(async () => { view.view.getByRole('button', { name: 'Reload', exact: true }).click() })
     expect(view.view.getByRole('heading', { name: 'Updated by Host' })).toBeTruthy()
     expect(view.container.textContent).not.toContain('The file changed elsewhere')
+  })
+
+  it('does not replay an old source-line target when returning to the editor', async () => {
+    const { runtime, view, files } = await mountSidebar()
+    const address = sessionFileAddress(SESSION, 'guide.md')
+    files.set(`${SESSION}/guide.md`, { content: '# First\n\nIntroduction\n\n## Second\nTarget\n', fingerprint: 'line-v1' })
+    await act(async () => { runtime.ctx.sidebarRight.openResource(address, { params: { line: 6 } }) })
+    await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+    const editor = () => EditorView.findFromDOM(view.container.querySelector('.cm-editor') as HTMLElement)!
+    expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(6)
+    await act(async () => { editor().dispatch({ selection: { anchor: 0 } }) })
+    await act(async () => { view.view.getByRole('button', { name: 'Preview', exact: true }).click() })
+    await act(async () => { view.view.getByRole('button', { name: 'Edit', exact: true }).click() })
+    expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(1)
+    await act(async () => { runtime.ctx.sidebarRight.openResource(address, { params: { line: 3 } }) })
+    expect(editor().state.doc.lineAt(editor().state.selection.main.head).number).toBe(3)
   })
 
   it('exposes the requested source line from preview and locates it when editing starts', async () => {

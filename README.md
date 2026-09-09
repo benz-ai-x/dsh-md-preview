@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 Preview and edit Markdown in the **official DeepSeek Harness right-sidebar tabs**.
 
-This branch is the **0.11.0-alpha.2 development candidate**. It requires Harness
+This branch is the **0.11.0-alpha.3 development candidate**. It requires Harness
 `0.1.5-alpha.1` plus the public close-guard patch pinned by
 [dsh-reference.lock.json](dsh-reference.lock.json). Stock npm Harness of that version
 lacks the guard and this candidate refuses activation. The published
@@ -18,7 +18,7 @@ then use that checkout's normal CLI and an isolated web profile. With its `dsh` 
 
 ```sh
 dsh --profile markdown-accept --from-default-profile web --dump-config
-dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.2.tgz --save-exact
+dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.3.tgz --save-exact
 dsh --profile markdown-accept --dump-config
 dsh --profile markdown-accept --no-open
 ```
@@ -45,6 +45,7 @@ Source setup and actual acceptance results are in the
   renderer. A diagram failure keeps the original code and a visible explanation.
 - Choose **Edit** for CodeMirror, then **Save** or Mod-S. Undo, redo and in-document
   find are retained. Saving writes the complete original-format text and re-reads the committed file.
+  **Saved** confirms success until the next edit or explicit reload.
 - A live tab retains its draft and undo history while switching tabs or sessions, hiding
   the right sidebar, or remounting its body. Closing its record releases that state.
 - Native close/replacement, Reload and returning to Preview share an unsaved-change
@@ -53,10 +54,12 @@ Source setup and actual acceptance results are in the
   an in-progress save. Refreshing the browser asks its native leave warning when possible.
 - Conflicts retain the draft and offer Reload or explicit **Overwrite**. A successful
   write followed by a failed read is reported as already saved with a read retry.
-  Observed external changes show a hint and never silently replace a draft.
+  Observed version differences show a hint until this tab reloads; another viewer's
+  metadata refresh does not dismiss it or replace the draft.
 
 `line` navigation reveals the enclosing ATX section in Preview. **Source line N**
 opens the editor at the exact source line; a fresh native navigation updates the target.
+Each target is applied once per face, so switching faces does not replay an old line.
 
 ## Keyboard
 

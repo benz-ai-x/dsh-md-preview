@@ -29,7 +29,7 @@ export function createMarkdownDocuments(read: MarkdownDocumentApi['read'], write
     controller: AbortController
     leave: ReturnType<typeof createLeaveDecision>
     saving: Promise<void> | undefined
-    navigation?: { revision: number; face: 'view' | 'edit' }
+    navigation?: Partial<Record<'view' | 'edit', number>>
     release: () => void
   }
   const records = new Map<string, RecordOwner>()
@@ -93,8 +93,8 @@ export function createMarkdownDocuments(read: MarkdownDocumentApi['read'], write
     },
     takeNavigation(key: string, revision: number, face: 'view' | 'edit'): boolean {
       const record = records.get(key)
-      if (record === undefined || (record.navigation?.revision === revision && record.navigation.face === face)) return false
-      record.navigation = { revision, face }
+      if (record === undefined || record.navigation?.[face] === revision) return false
+      record.navigation = { ...record.navigation, [face]: revision }
       return true
     },
     decide(key: string, allow: boolean): void {
@@ -131,7 +131,10 @@ export function createMarkdownDocuments(read: MarkdownDocumentApi['read'], write
       const settle = (allowed: boolean): void => {
         if (!allowed || disposed || record.controller.signal.aborted) return
         update(record, { type: 'CANCEL_EDIT' })
-        if (kind === 'reload') own(load(record))
+        if (kind === 'reload') {
+          update(record, { type: 'TOAST_EXPIRED' })
+          own(load(record))
+        }
       }
       const decision = record.leave.request({ kind }, record.controller.signal)
       if (typeof decision === 'boolean') settle(decision)

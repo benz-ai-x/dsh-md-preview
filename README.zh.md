@@ -4,7 +4,7 @@
 
 在 **DeepSeek Harness 官方右边栏标签页**中预览和编辑 Markdown。
 
-当前分支为 **0.11.0-alpha.2 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
+当前分支为 **0.11.0-alpha.3 开发候选**，依赖 Harness `0.1.5-alpha.1` 加
 [dsh-reference.lock.json](dsh-reference.lock.json) 固定的公共关闭守卫补丁。
 官方 npm 同版本尚无该接口，候选插件会拒绝激活。已发布的
 [v0.10.0](https://github.com/benz-ai-x/dsh-md-preview/releases/tag/v0.10.0)
@@ -17,7 +17,7 @@
 
 ```sh
 dsh --profile markdown-accept --from-default-profile web --dump-config
-dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.2.tgz --save-exact
+dsh plugin --profile markdown-accept add ./benz-ai-x-dsh-md-preview-0.11.0-alpha.3.tgz --save-exact
 dsh --profile markdown-accept --dump-config
 dsh --profile markdown-accept --no-open
 ```
@@ -38,15 +38,17 @@ dsh plugin --profile markdown-accept remove @benz-ai-x/dsh-md-preview
   消息操作区的“预览文档”也走同一原生资源通路。标签、分栏、浮动及右栏开合由 Harness 管理。
 - 平台 Markdown 渲染器显示 GFM 表格、配色代码、数学和 Mermaid。图表失败保留源码与提示。
 - “编辑”进入 CodeMirror，支持撤销重做与文内查找；“保存”或 Mod-S 完整写回原文并重读确认。
+  成功后显示“已保存”，下一次编辑或主动重新加载时清除这次确认。
 - 标签仍存活时，切换标签/会话、隐藏右栏或正文重新挂载保留草稿及撤销历史；真正关闭记录后释放。
 - 原生关闭/替换、重新加载和返回预览共用未保存守卫。“继续编辑”保留草稿，
   “放弃修改”执行暂存的第一个动作；重复破坏性请求不替换已有决定。保存中关闭会先等待保存。
   浏览器刷新在支持时触发原生离开提醒。
 - 保存冲突保留草稿，提供重新加载与显式“强制覆盖”。保存已成功但重读失败会明确区分，
-  可重试读取；已观察到的外部变化只提示，不会自动覆盖草稿。
+  可重试读取；已观察到的版本差异会提示，直到本标签主动重新加载。
+  其他查看器刷新共享元数据不会清除这个提示，也不会自动覆盖草稿。
 
 带 `line` 的原生导航在预览中滚动到所属 ATX 章节；“源码第 N 行”进入编辑器精确定位。
-再次导航时使用新的行目标。
+每个导航目标在每种面孔只定位一次，切换预览/编辑不重放旧行号；再次导航时使用新的行目标。
 
 ## 快捷键
 

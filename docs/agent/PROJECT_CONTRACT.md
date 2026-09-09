@@ -21,6 +21,8 @@ find and formatting shortcuts. LF/CRLF and terminal newline shape are preserved.
 A save freezes input, writes with the backing read's fingerprint, and re-reads before
 returning to Preview. A write conflict retains the draft; force is an explicit action.
 A successful write followed by a failed read is an already-saved state with a read retry.
+Successful write and read completion shows a Saved status; entering the next edit
+session or explicitly reloading clears that confirmation.
 
 A native `line` navigation reveals the enclosing ATX heading in Preview. Source Line
 opens the exact source line in Edit; each navigation revision is applied once per face.
@@ -73,6 +75,8 @@ policy (`workspace-write` rooted at the session cwd). Successful writes emit pub
 `fs/observed` facts without a forged tool actor; failures/cancellation emit no success.
 This is not an OS-wide watcher. External metadata changes only prompt a reload, never
 silently replace an open body's draft.
+The current tab compares observed metadata versions with its own read fingerprint.
+A shared metadata reload clearing `changed` does not acknowledge this tab's old body.
 
 Stable `md-preview/` failures: `bad-request`, `unknown-session`, `no-workspace`,
 `unsupported-extension`, `forbidden`, `not-found`, `too-large`, `conflict`, `unavailable`.
