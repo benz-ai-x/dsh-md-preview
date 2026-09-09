@@ -14,6 +14,8 @@
   完整 verify 退出0：138项strict、16文件201测试、类型检查、双端构建、6项产物检查。
   插件 alpha.5 同归档安装/移除通过；本次证据见
   [PR #61 标题定位修复](docs/verification/official-sidebar-markdown/PR61-HEADINGS.md)。
+  复审指出的双语 README 旧基线/补丁命令已修正，独立重放得到固定基线的完整文件树；
+  见 [README 修复记录](docs/verification/official-sidebar-markdown/PR61-README.md)。
   #60 真实浏览器验收继续，不能把自动化通过标为正式发布或人工验收。
 - **固定基线**：Harness `0.1.5-alpha.1` 加本地补丁提交 `a28c5a8f4927217f345d02e22c782a32d5750f0a`。
   独立检出 `../deepseek-harness-md-guard`，命令显式覆盖旧全局 `DSH_HARNESS_ROOT`。

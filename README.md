@@ -133,11 +133,25 @@ pnpm verify
 pnpm pack:publishable
 ```
 
-The original Harness checkout is not changed by this repository. To reproduce the
-patch in a new worktree, start from upstream commit `5dda764ed3aa172535a7967b06ff95d9cbfe536a`,
-apply the supplied format-patch with `git am`, and build Harness. The audited worktree
-commit is `737e95c657a95fd04b12269313902f9b5ca2f6ca`; preserve its commit identity or
-re-audit an independently applied commit before changing the lock.
+The audited Harness worktree is `a28c5a8f4927217f345d02e22c782a32d5750f0a`, containing
+both patches over official `0.1.5-alpha.1` / `5dda764ed3aa172535a7967b06ff95d9cbfe536a`.
+To reproduce the changes independently, create a clean worktree at that official
+commit, then run the following from this plugin repository's root. Set
+`dsh_patch_worktree` to the new worktree. The close-guard patch is a format-patch;
+the heading-source patch is a plain diff and needs `git apply --index` followed by a commit.
+
+```sh
+dsh_patch_worktree=/absolute/path/to/new-harness-worktree
+git -C "$dsh_patch_worktree" am "$PWD/patches/harness-sidebar-close-guard.patch"
+git -C "$dsh_patch_worktree" apply --index "$PWD/patches/harness-markdown-heading-source.patch"
+git -C "$dsh_patch_worktree" commit -m 'feat(client): expose source positions for settled Markdown headings'
+git -C "$dsh_patch_worktree" rev-parse 'HEAD^{tree}'
+```
+
+The resulting tree must be `651b692f063e3d11806c5a53509fb705e1deb13e`. Replaying creates
+new commit identities; a matching tree alone does not satisfy the lock's exact commit
+check. Build and re-audit that checkout before recording its commit in the lock, then
+use the source-link workflow above. Keep the original Harness checkout separate.
 
 Node/pnpm requirements are in [package.json](package.json). The client keeps the
 repository's lazy-CJS factory protocol and frozen platform-module list; CodeMirror

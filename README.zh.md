@@ -113,10 +113,23 @@ pnpm verify
 pnpm pack:publishable
 ```
 
-本仓库不会修改原 Harness 检出。另建 worktree 时，从官方提交
-`5dda764ed3aa172535a7967b06ff95d9cbfe536a` 开始，用 `git am` 应用提供的 format-patch，
-再构建 Harness。已审计 worktree 的提交是 `737e95c657a95fd04b12269313902f9b5ca2f6ca`；
-保留其身份，或重新审计另行应用的提交后再更新 lock。
+已审计的 Harness worktree 提交为 `a28c5a8f4927217f345d02e22c782a32d5750f0a`，
+包含官方 `0.1.5-alpha.1` / `5dda764ed3aa172535a7967b06ff95d9cbfe536a` 之上的两份补丁。
+独立复现时，先在该官方提交另建干净 worktree，再从本插件仓库根目录执行下列命令，
+将 `dsh_patch_worktree` 设为新 worktree。关闭守卫补丁是 format-patch；
+标题源位置补丁是普通 diff，需要 `git apply --index` 后单独提交。
+
+```sh
+dsh_patch_worktree=/absolute/path/to/new-harness-worktree
+git -C "$dsh_patch_worktree" am "$PWD/patches/harness-sidebar-close-guard.patch"
+git -C "$dsh_patch_worktree" apply --index "$PWD/patches/harness-markdown-heading-source.patch"
+git -C "$dsh_patch_worktree" commit -m 'feat(client): expose source positions for settled Markdown headings'
+git -C "$dsh_patch_worktree" rev-parse 'HEAD^{tree}'
+```
+
+所得 tree 应为 `651b692f063e3d11806c5a53509fb705e1deb13e`。重放会生成新的提交身份，
+tree 相同不代表满足 lock 的精确提交检查。先构建并重新审计该检出，再将其提交记录到 lock，
+随后运行上方源码链接流程；原 Harness 检出保持独立。
 
 Node/pnpm 要求见 [package.json](package.json)。Client 保留自有 lazy-CJS factory 协议
 及冻结的平台模块表，CodeMirror 与 Mermaid 内联；完整构建清除已退役源码的残留声明。

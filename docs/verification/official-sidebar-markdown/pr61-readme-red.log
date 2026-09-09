@@ -1,0 +1,4 @@
+README command against heading-source patch in an isolated empty repo
+git am exit: 128
+Patch format detection failed.
+Patch opening: diff --git a/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.i18n.yaml b/.agents/notes/implemented/feature/2026-09-09-markdown-heading-source-positions.i18n.yaml
